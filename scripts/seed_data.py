@@ -1,6 +1,9 @@
 """
-Seed script — populates all DynamoDB tables with realistic gym data
-from March 15 to April 30, 2025.
+Seed script — populates all DynamoDB tables with realistic gym data.
+All dates are computed relative to today so the data is always current.
+
+Activity window : TODAY - 42 days  →  TODAY + 14 days
+Memberships     : varied start/end dates; some expiring soon, some active
 
 Usage:
     python scripts/seed_data.py
@@ -20,8 +23,9 @@ import httpx
 
 BASE_URL = "http://localhost:8000/api/v1"
 HEADERS = {"Authorization": "Bearer local-dev-token", "Content-Type": "application/json"}
-START_DATE = date(2025, 3, 15)
-END_DATE = date(2025, 4, 30)
+TODAY = date.today()
+START_DATE = TODAY - timedelta(days=42)   # ~6 weeks of history
+END_DATE   = TODAY + timedelta(days=14)   # 2 weeks of upcoming classes
 
 # ─────────────────────────────────────────────
 # Data fixtures
@@ -209,8 +213,23 @@ def seed_students() -> list[str]:
 def seed_memberships(student_ids: list[str]) -> None:
     print("\n💳 Creando membresías...")
     random.seed(42)
+
+    # Build a distribution of start offsets (days ago) so we get a realistic mix:
+    # - some members with memberships expiring VERY soon (3-10 days)
+    # - some expiring in 10-30 days ("warning" zone)
+    # - most with memberships valid for months ahead
+    # - a few already expired (inactive context)
+    start_offsets = (
+        [355, 360, 358]                    # founders: annual, ~5 days left
+        + [25, 20]                          # quarterly expiring very soon
+        + [10, 15]                          # monthly expiring soon
+        + [random.randint(20, 60) for _ in range(6)]  # mid-term
+        + [random.randint(5,  30) for _ in range(6)]  # mostly recent
+        + [random.randint(60, 90) for _ in range(5)]  # long-term
+    )
+
     for i, student_id in enumerate(student_ids):
-        # Pick a plan; first 3 (founders) get annual, rest varied
+        # First 3 (founders) → annual; rest → varied
         if i < 3:
             plan = ("annual", 5499.0, 365)
         else:
@@ -218,9 +237,8 @@ def seed_memberships(student_ids: list[str]) -> None:
 
         membership_type, price, days = plan
 
-        # Stagger start dates so some are expiring soon
-        offset = random.randint(0, 30)
-        membership_start = START_DATE - timedelta(days=offset)
+        offset = start_offsets[i] if i < len(start_offsets) else random.randint(5, 60)
+        membership_start = TODAY - timedelta(days=offset)
         membership_end = membership_start + timedelta(days=days)
 
         classes_total = None
@@ -372,7 +390,8 @@ def main() -> None:
     args = parser.parse_args()
 
     print("🏋️  Fitness Room — Seed Script")
-    print(f"   Período: {START_DATE} → {END_DATE}")
+    print(f"   Período: {START_DATE} → {END_DATE}  (relativo a hoy: {TODAY})")
+    print(f"   Hoy    : {TODAY}")
     print(f"   Servidor: {BASE_URL}")
 
     if not check_server():
