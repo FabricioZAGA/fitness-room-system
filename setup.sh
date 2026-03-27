@@ -172,7 +172,7 @@ if $BACKEND_ONLY; then
   # Crear virtualenv con uv
   if [ ! -d ".venv" ]; then
     info "Creando virtualenv con uv (Python ${PYTHON_VERSION})..."
-    uv venv --python "$PYTHON_VERSION" .venv
+    uv venv --python "$PYTHON_VERSION" --system-certs .venv
     success "Virtualenv creado en backend/.venv"
   else
     success "Virtualenv ya existe en backend/.venv"
@@ -180,7 +180,7 @@ if $BACKEND_ONLY; then
 
   # Instalar dependencias del proyecto
   info "Instalando dependencias del backend..."
-  uv sync --all-extras
+  uv sync --all-extras --system-certs
   success "Dependencias del backend instaladas"
 
   # Copiar .env si no existe
@@ -210,7 +210,7 @@ if $INFRA_ONLY; then
   fi
 
   info "Instalando dependencias CDK..."
-  uv pip install -r requirements.txt
+  uv pip install --system-certs -r requirements.txt
   success "Dependencias CDK instaladas"
 
   cd "$ROOT_DIR"
