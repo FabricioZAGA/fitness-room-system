@@ -144,14 +144,14 @@ export function EditStudentModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+            className="rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:border-slate-600 hover:text-white"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+            className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 disabled:opacity-50"
           >
             {isPending ? "Guardando..." : "Guardar Cambios"}
           </button>
@@ -170,11 +170,11 @@ function Field({
 }): React.JSX.Element {
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-zinc-400">{label}</label>
+      <label className="mb-1.5 block text-sm font-medium text-slate-300">{label}</label>
       {children}
     </div>
   );
 }
 
 const inputCls =
-  "w-full rounded-lg border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/30";
+  "w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20";
