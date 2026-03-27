@@ -178,9 +178,23 @@ if $BACKEND_ONLY; then
     success "Virtualenv ya existe en backend/.venv"
   fi
 
-  # Instalar dependencias del proyecto
+  # Activar venv e instalar dependencias via pip (compatible con proxy corporativo)
+  source "$ROOT_DIR/backend/.venv/bin/activate"
+
   info "Instalando dependencias del backend..."
-  uv sync --all-extras --system-certs
+  local PIP_FLAGS="--trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org"
+
+  # Dependencias principales
+  pip install -r requirements.txt $PIP_FLAGS -q
+
+  # Dependencias de desarrollo
+  pip install \
+    "pytest>=8.3.0" "pytest-cov>=5.0.0" "pytest-asyncio>=0.24.0" "pytest-mock>=3.14.0" \
+    "moto[dynamodb]>=5.0.0" "ruff>=0.8.0" "mypy>=1.13.0" \
+    "boto3-stubs[dynamodb,cognito-idp]>=1.35.0" "types-python-jose>=3.3.0" \
+    "uvicorn[standard]>=0.32.0" \
+    $PIP_FLAGS -q
+
   success "Dependencias del backend instaladas"
 
   # Copiar .env si no existe
@@ -210,7 +224,10 @@ if $INFRA_ONLY; then
   fi
 
   info "Instalando dependencias CDK..."
-  uv pip install --system-certs -r requirements.txt
+  source "$ROOT_DIR/infrastructure/cdk/.venv/bin/activate"
+  pip install -r requirements.txt \
+    --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -q
+  deactivate
   success "Dependencias CDK instaladas"
 
   cd "$ROOT_DIR"
