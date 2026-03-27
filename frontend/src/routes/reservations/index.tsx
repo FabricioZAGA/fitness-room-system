@@ -13,13 +13,19 @@ export const Route = createFileRoute("/reservations/")({
   component: ReservationsPage,
 });
 
+type DateFilter = "today" | "week" | "all";
+
 function ReservationsPage(): React.JSX.Element {
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilter>("today");
+
+  const today = new Date().toISOString().slice(0, 10);
+  const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
   const { data: classesData, isLoading: classesLoading } = useClasses({
     upcoming_only: false,
-    limit: 50,
+    limit: 200,
   });
   const { data: reservationsData, isLoading: resLoading } =
     useReservationsForClass(selectedClassId);
@@ -40,8 +46,13 @@ function ReservationsPage(): React.JSX.Element {
   const { mutate: cancelReservation } = useCancelReservation();
   const { mutate: markAttendance } = useMarkAttendance();
 
-  const classes = classesData?.items ?? [];
-  const selectedClass = classes.find((c) => c.class_id === selectedClassId);
+  const allClasses = classesData?.items ?? [];
+  const classes = allClasses.filter((c) => {
+    if (dateFilter === "today") return c.class_date === today;
+    if (dateFilter === "week") return c.class_date >= today && c.class_date <= weekEnd;
+    return true;
+  });
+  const selectedClass = allClasses.find((c) => c.class_id === selectedClassId);
 
   return (
     <div className="min-h-screen bg-slate-950 p-6">
@@ -55,13 +66,41 @@ function ReservationsPage(): React.JSX.Element {
         </div>
       </div>
 
-      {/* Class selector */}
+      {/* Date filter + Class selector */}
       <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        {/* Quick filters */}
+        <div className="mb-4 flex gap-2">
+          {(["today", "week", "all"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => { setDateFilter(f); setSelectedClassId(""); }}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
+                dateFilter === f
+                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
+                  : "border border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600 hover:text-white"
+              }`}
+            >
+              {f === "today" ? "Hoy" : f === "week" ? "Esta semana" : "Todas"}
+            </button>
+          ))}
+          {dateFilter === "today" && (
+            <span className="ml-2 flex items-center text-sm text-slate-500">
+              {today}
+            </span>
+          )}
+        </div>
+
         <label className="mb-3 block text-sm font-medium text-slate-300">
-          Selecciona una clase
+          Selecciona una clase{classes.length > 0 ? ` (${classes.length})` : ""}
         </label>
         {classesLoading ? (
           <div className="h-14 w-full animate-pulse rounded-xl bg-slate-800" />
+        ) : classes.length === 0 ? (
+          <div className="rounded-xl bg-slate-800/30 py-6 text-center">
+            <p className="text-slate-500">
+              {dateFilter === "today" ? "No hay clases hoy" : dateFilter === "week" ? "No hay clases esta semana" : "No hay clases registradas"}
+            </p>
+          </div>
         ) : (
           <select
             value={selectedClassId}
@@ -71,7 +110,7 @@ function ReservationsPage(): React.JSX.Element {
             <option value="">— Selecciona una clase —</option>
             {classes.map((cls) => (
               <option key={cls.class_id} value={cls.class_id}>
-                {CLASS_TYPE_LABELS[cls.class_type]} · {cls.instructor_name} ·{" "}
+                {CLASS_TYPE_LABELS[cls.class_type]} · {cls.instructor_name} ·{" "}
                 {formatDate(cls.class_date)} {formatTime(cls.start_time)} ({cls.reservations_count}/{cls.capacity})
               </option>
             ))}
