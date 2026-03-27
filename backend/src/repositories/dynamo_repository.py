@@ -155,7 +155,7 @@ class DynamoRepository:
         Returns:
             Tuple of (items list, next pagination key or None).
         """
-        key_condition = Key(pk_name).eq(pk_value)
+        key_condition: Any = Key(pk_name).eq(pk_value)
         if sk_name and sk_begins_with:
             key_condition = key_condition & Key(sk_name).begins_with(sk_begins_with)
 
@@ -192,7 +192,7 @@ class DynamoRepository:
 
     def transact_write(self, transact_items: list[dict[str, Any]]) -> None:
         """Execute multiple write operations atomically."""
-        self._table.meta.client.transact_write(TransactItems=transact_items)
+        self._table.meta.client.transact_write_items(TransactItems=transact_items)  # type: ignore[arg-type]
 
     def update_counter(self, pk: str, sk: str, attribute: str, delta: int) -> int:
         """Atomically increment or decrement a numeric attribute.
@@ -213,4 +213,4 @@ class DynamoRepository:
             ExpressionAttributeValues={":delta": delta},
             ReturnValues="UPDATED_NEW",
         )
-        return int(response["Attributes"][attribute])
+        return int(str(response["Attributes"][attribute]))

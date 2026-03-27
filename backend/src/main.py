@@ -141,4 +141,4 @@ app.include_router(reservations.router, prefix="/api/v1")
 def handler(event: dict[str, Any], context: LambdaContext) -> dict[str, Any]:
     """AWS Lambda entry point — wraps FastAPI via Mangum."""
     mangum_handler = Mangum(app, lifespan="off")
-    return mangum_handler(event, context)
+    return mangum_handler(event, context)  # type: ignore[arg-type]
