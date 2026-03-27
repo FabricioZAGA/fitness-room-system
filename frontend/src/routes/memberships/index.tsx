@@ -1,7 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CreditCard } from "lucide-react";
+import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { CreditCard, Plus } from "lucide-react";
 import { useExpiringSoon } from "@/hooks/useMemberships";
 import { MembershipStatusBadge } from "@/components/shared/StatusBadge";
+import { CreateMembershipModal } from "@/components/shared/CreateMembershipModal";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import { formatDate, formatCurrency } from "@/lib/utils";
 
@@ -10,15 +12,26 @@ export const Route = createFileRoute("/memberships/")({
 });
 
 function MembershipsPage(): React.JSX.Element {
+  const [createOpen, setCreateOpen] = useState(false);
   const { data: expiring, isLoading } = useExpiringSoon(30);
 
   return (
+    <>
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-100">Membresías</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Gestión de membresías y alertas de renovación
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-100">Membresías</h1>
+          <p className="mt-1 text-sm text-zinc-400">
+            Gestión de membresías y alertas de renovación
+          </p>
+        </div>
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
+        >
+          <Plus className="h-4 w-4" />
+          Nueva Membresía
+        </button>
       </div>
 
       <div className="card p-5">
@@ -53,7 +66,15 @@ function MembershipsPage(): React.JSX.Element {
               <tbody className="divide-y divide-zinc-800">
                 {expiring.map((m) => (
                   <tr key={m.membership_id} className="hover:bg-zinc-800/50">
-                    <td className="px-3 py-3 font-medium text-zinc-200">{m.student_id}</td>
+                    <td className="px-3 py-3 font-medium text-zinc-200">
+                      <Link
+                        to="/students/$studentId"
+                        params={{ studentId: m.student_id }}
+                        className="hover:text-violet-400"
+                      >
+                        {m.student_id.slice(0, 8)}…
+                      </Link>
+                    </td>
                     <td className="px-3 py-3 text-zinc-400">
                       {MEMBERSHIP_TYPE_LABELS[m.membership_type]}
                     </td>
@@ -79,5 +100,7 @@ function MembershipsPage(): React.JSX.Element {
         )}
       </div>
     </div>
+      <CreateMembershipModal open={createOpen} onClose={() => setCreateOpen(false)} />
+    </>
   );
 }

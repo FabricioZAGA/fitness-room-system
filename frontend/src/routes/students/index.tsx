@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, Search, Users } from "lucide-react";
 import { useStudents } from "@/hooks/useStudents";
 import { StudentStatusBadge } from "@/components/shared/StatusBadge";
+import { CreateStudentModal } from "@/components/shared/CreateStudentModal";
 import { getInitials } from "@/lib/utils";
 import type { StudentStatus } from "@/types/student";
 
@@ -21,6 +22,7 @@ const STATUS_FILTERS: { label: string; value: StudentStatus | undefined }[] = [
 function StudentsPage(): React.JSX.Element {
   const [statusFilter, setStatusFilter] = useState<StudentStatus | undefined>(undefined);
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
 
   const { data, isLoading } = useStudents({ status: statusFilter });
 
@@ -34,6 +36,7 @@ function StudentsPage(): React.JSX.Element {
     : students;
 
   return (
+    <>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -42,13 +45,13 @@ function StudentsPage(): React.JSX.Element {
             {data?.total ?? 0} alumno{data?.total !== 1 ? "s" : ""} registrado{data?.total !== 1 ? "s" : ""}
           </p>
         </div>
-        <Link
-          to="/students/new"
+        <button
+          onClick={() => setCreateOpen(true)}
           className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
         >
           <Plus className="h-4 w-4" />
           Nuevo Alumno
-        </Link>
+        </button>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -129,5 +132,7 @@ function StudentsPage(): React.JSX.Element {
         </div>
       )}
     </div>
+      <CreateStudentModal open={createOpen} onClose={() => setCreateOpen(false)} />
+    </>
   );
 }

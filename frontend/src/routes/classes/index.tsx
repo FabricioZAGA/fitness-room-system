@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Calendar, Plus } from "lucide-react";
 import { useClasses } from "@/hooks/useClasses";
+import { CreateClassModal } from "@/components/shared/CreateClassModal";
 import { CLASS_TYPE_COLORS, CLASS_TYPE_LABELS } from "@/types/class";
 import { formatDate, formatTime } from "@/lib/utils";
 
@@ -9,10 +11,12 @@ export const Route = createFileRoute("/classes/")({
 });
 
 function ClassesPage(): React.JSX.Element {
+  const [createOpen, setCreateOpen] = useState(false);
   const { data, isLoading } = useClasses({ upcoming_only: false, limit: 50 });
   const classes = data?.items ?? [];
 
   return (
+    <>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -21,7 +25,10 @@ function ClassesPage(): React.JSX.Element {
             {data?.total ?? 0} clase{data?.total !== 1 ? "s" : ""} registrada{data?.total !== 1 ? "s" : ""}
           </p>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500">
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
+        >
           <Plus className="h-4 w-4" />
           Nueva Clase
         </button>
@@ -68,5 +75,7 @@ function ClassesPage(): React.JSX.Element {
         </div>
       )}
     </div>
+      <CreateClassModal open={createOpen} onClose={() => setCreateOpen(false)} />
+    </>
   );
 }

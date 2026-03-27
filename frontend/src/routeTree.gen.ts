@@ -14,6 +14,7 @@ import { Route as StudentsIndexRouteImport } from './routes/students/index'
 import { Route as ReservationsIndexRouteImport } from './routes/reservations/index'
 import { Route as MembershipsIndexRouteImport } from './routes/memberships/index'
 import { Route as ClassesIndexRouteImport } from './routes/classes/index'
+import { Route as StudentsStudentIdIndexRouteImport } from './routes/students/$studentId/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const ClassesIndexRoute = ClassesIndexRouteImport.update({
   path: '/classes/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudentsStudentIdIndexRoute = StudentsStudentIdIndexRouteImport.update({
+  id: '/students/$studentId/',
+  path: '/students/$studentId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/memberships/': typeof MembershipsIndexRoute
   '/reservations/': typeof ReservationsIndexRoute
   '/students/': typeof StudentsIndexRoute
+  '/students/$studentId/': typeof StudentsStudentIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/memberships': typeof MembershipsIndexRoute
   '/reservations': typeof ReservationsIndexRoute
   '/students': typeof StudentsIndexRoute
+  '/students/$studentId': typeof StudentsStudentIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,6 +70,7 @@ export interface FileRoutesById {
   '/memberships/': typeof MembershipsIndexRoute
   '/reservations/': typeof ReservationsIndexRoute
   '/students/': typeof StudentsIndexRoute
+  '/students/$studentId/': typeof StudentsStudentIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -71,8 +80,15 @@ export interface FileRouteTypes {
     | '/memberships/'
     | '/reservations/'
     | '/students/'
+    | '/students/$studentId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/classes' | '/memberships' | '/reservations' | '/students'
+  to:
+    | '/'
+    | '/classes'
+    | '/memberships'
+    | '/reservations'
+    | '/students'
+    | '/students/$studentId'
   id:
     | '__root__'
     | '/'
@@ -80,6 +96,7 @@ export interface FileRouteTypes {
     | '/memberships/'
     | '/reservations/'
     | '/students/'
+    | '/students/$studentId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -88,6 +105,7 @@ export interface RootRouteChildren {
   MembershipsIndexRoute: typeof MembershipsIndexRoute
   ReservationsIndexRoute: typeof ReservationsIndexRoute
   StudentsIndexRoute: typeof StudentsIndexRoute
+  StudentsStudentIdIndexRoute: typeof StudentsStudentIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -127,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClassesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/students/$studentId/': {
+      id: '/students/$studentId/'
+      path: '/students/$studentId'
+      fullPath: '/students/$studentId/'
+      preLoaderRoute: typeof StudentsStudentIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -136,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   MembershipsIndexRoute: MembershipsIndexRoute,
   ReservationsIndexRoute: ReservationsIndexRoute,
   StudentsIndexRoute: StudentsIndexRoute,
+  StudentsStudentIdIndexRoute: StudentsStudentIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
