@@ -4,6 +4,8 @@ All entity-specific repositories extend this class.
 Direct boto3 calls outside this layer are NOT allowed.
 """
 
+import json
+from decimal import Decimal
 from typing import Any
 
 import boto3
@@ -27,9 +29,14 @@ class DynamoRepository:
         dynamodb = boto3.resource("dynamodb", **kwargs)
         self._table = dynamodb.Table(cfg.dynamodb_table_name)
 
+    @staticmethod
+    def _floats_to_decimal(obj: Any) -> Any:
+        """Recursively convert float values to Decimal for DynamoDB compatibility."""
+        return json.loads(json.dumps(obj), parse_float=Decimal)
+
     def put_item(self, item: dict[str, Any]) -> None:
         """Insert or fully replace an item in the table."""
-        self._table.put_item(Item=item)
+        self._table.put_item(Item=self._floats_to_decimal(item))
 
     def get_item(self, pk: str, sk: str) -> dict[str, Any] | None:
         """Retrieve a single item by primary key. Returns None if not found."""
