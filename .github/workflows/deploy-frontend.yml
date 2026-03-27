@@ -1,0 +1,88 @@
+name: Deploy Frontend (S3 + CloudFront)
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "frontend/**"
+      - "infrastructure/cdk/stacks/hosting_stack.py"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "dev"
+        type: choice
+        options: ["dev", "staging", "prod"]
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  deploy:
+    name: Deploy frontend to ${{ github.event.inputs.environment || 'dev' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: frontend
+
+      - name: Build
+        run: pnpm build
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_AWS_REGION: ${{ env.AWS_REGION }}
+          VITE_COGNITO_USER_POOL_ID: ${{ secrets.VITE_COGNITO_USER_POOL_ID }}
+          VITE_COGNITO_CLIENT_ID: ${{ secrets.VITE_COGNITO_CLIENT_ID }}
+          VITE_APP_NAME: "Fitness Room"
+          VITE_APP_ENV: ${{ github.event.inputs.environment || 'dev' }}
+
+      - name: Get S3 bucket name from CloudFormation
+        id: get-bucket
+        run: |
+          BUCKET=$(aws cloudformation describe-stacks \
+            --stack-name FitnessRoomHostingStack-${{ github.event.inputs.environment || 'dev' }} \
+            --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" \
+            --output text)
+          echo "bucket=$BUCKET" >> $GITHUB_OUTPUT
+
+      - name: Upload to S3
+        run: |
+          aws s3 sync dist/ s3://${{ steps.get-bucket.outputs.bucket }}/ \
+            --delete \
+            --cache-control "max-age=31536000,immutable" \
+            --exclude "index.html"
+          aws s3 cp dist/index.html s3://${{ steps.get-bucket.outputs.bucket }}/index.html \
+            --cache-control "no-cache,no-store,must-revalidate"
+        working-directory: frontend
+
+      - name: Invalidate CloudFront
+        run: |
+          DIST_ID=$(aws cloudformation describe-stacks \
+            --stack-name FitnessRoomHostingStack-${{ github.event.inputs.environment || 'dev' }} \
+            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
+            --output text)
+          aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
+          echo "✅ CloudFront invalidation created for $DIST_ID"

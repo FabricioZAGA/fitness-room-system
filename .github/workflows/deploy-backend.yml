@@ -1,0 +1,73 @@
+name: Deploy Backend (Lambda)
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "backend/**"
+      - "infrastructure/cdk/stacks/api_stack.py"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "dev"
+        type: choice
+        options: ["dev", "staging", "prod"]
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: "948999370306"
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'dev' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install backend dependencies
+        run: uv sync --all-extras
+        working-directory: backend
+
+      - name: Run tests before deploy
+        run: uv run pytest tests/ -v --tb=short
+        working-directory: backend
+        env:
+          DYNAMODB_TABLE_NAME: fitness-room-test
+          ENVIRONMENT: test
+          COGNITO_USER_POOL_ID: us-east-1_TEST
+          COGNITO_CLIENT_ID: test-client-id
+
+      - name: Install CDK dependencies
+        run: pip install -r requirements.txt
+        working-directory: infrastructure/cdk
+
+      - name: Install AWS CDK CLI
+        run: npm install -g aws-cdk
+
+      - name: Deploy API Stack
+        run: |
+          cdk deploy FitnessRoomApiStack-${{ github.event.inputs.environment || 'dev' }} \
+            --context env=${{ github.event.inputs.environment || 'dev' }} \
+            --require-approval never
+        working-directory: infrastructure/cdk
+
+      - name: Print API URL
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name FitnessRoomApiStack-${{ github.event.inputs.environment || 'dev' }} \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
+            --output text
