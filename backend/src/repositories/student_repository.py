@@ -4,10 +4,10 @@ from typing import Any
 
 from boto3.dynamodb.conditions import Attr
 
+from src.models.common import utc_now
 from src.models.student import StudentCreate, StudentDynamoItem, StudentStatus, StudentUpdate
 from src.repositories.dynamo_repository import DynamoRepository
 from src.utils.exceptions import ResourceAlreadyExistsException, ResourceNotFoundException
-from src.models.common import utc_now
 
 
 class StudentRepository(DynamoRepository):

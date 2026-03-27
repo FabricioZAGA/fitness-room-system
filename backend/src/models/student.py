@@ -39,9 +39,7 @@ class StudentCreate(BaseModel):
     phone: str | None = Field(
         default=None, max_length=20, description="Phone number with country code"
     )
-    status: StudentStatus = Field(
-        default=StudentStatus.NEW, description="Student status"
-    )
+    status: StudentStatus = Field(default=StudentStatus.NEW, description="Student status")
     notes: str | None = Field(default=None, max_length=1000, description="Internal notes")
 
     @field_validator("phone")

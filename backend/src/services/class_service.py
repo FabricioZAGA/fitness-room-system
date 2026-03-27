@@ -90,6 +90,7 @@ class ClassService:
 
         if upcoming_only:
             from datetime import date
+
             today = date.today().isoformat()
             responses = [r for r in responses if str(r.class_date) >= today]
 

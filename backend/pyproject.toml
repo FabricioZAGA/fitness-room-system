@@ -52,6 +52,9 @@ ignore = [
     "ANN101", # Missing type annotation for `self`
     "ANN102", # Missing type annotation for `cls`
     "ANN204", # Missing return type annotation for special method
+    "B008",   # Depends() calls in function defaults — idiomatic FastAPI
+    "N818",   # Exception naming (FitnessRoomException is intentional)
+    "ANN401", # typing.Any allowed in FastAPI dependency context
 ]
 
 [tool.ruff.format]

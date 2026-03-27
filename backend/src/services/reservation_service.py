@@ -10,8 +10,6 @@ from src.repositories.membership_repository import MembershipRepository
 from src.repositories.reservation_repository import ReservationRepository
 from src.repositories.student_repository import StudentRepository
 from src.utils.exceptions import (
-    CapacityExceededException,
-    ResourceAlreadyExistsException,
     raise_bad_request,
     raise_conflict,
 )
@@ -65,7 +63,8 @@ class ReservationService:
         existing = self._reservation_repo.get_reservation(data.class_id, data.student_id)
         if existing:
             raise_conflict(
-                f"Student '{data.student_id}' already has a reservation for class '{data.class_id}'."
+                f"Student '{data.student_id}' already has a reservation "
+                f"for class '{data.class_id}'."
             )
 
         class_date = class_item.class_date
@@ -74,7 +73,9 @@ class ReservationService:
         if available_spots > 0:
             reservation = self._reservation_repo.create_reservation(data, class_date)
             self._class_repo.increment_reservations_count(data.class_id)
-            logger.info("Reservation confirmed", extra={"reservation_id": reservation.reservation_id})
+            logger.info(
+                "Reservation confirmed", extra={"reservation_id": reservation.reservation_id}
+            )
             return reservation.to_response()
 
         position = self._reservation_repo.get_next_waitlist_position(data.class_id)

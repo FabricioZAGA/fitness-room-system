@@ -69,7 +69,7 @@ def list_reservations_for_class(
     "/class/{class_id}/waitlist",
     response_model=list[ReservationResponse],
     summary="Get Class Waitlist",
-    description="Get the ordered waitlist for a class. Students are listed by position (1 = next to be promoted).",
+    description="Get the ordered waitlist for a class. Students are listed by position (1 = next to be promoted).",  # noqa: E501
 )
 def get_waitlist_for_class(
     class_id: str,

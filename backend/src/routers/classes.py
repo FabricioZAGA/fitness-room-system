@@ -76,7 +76,7 @@ def list_classes(
     "/{class_id}",
     response_model=ClassResponse,
     summary="Get Class",
-    description="Get full details for a specific class session including capacity and reservation count.",
+    description="Get full details for a specific class session including capacity and reservation count.",  # noqa: E501
 )
 def get_class(
     class_id: str,
@@ -107,7 +107,7 @@ def update_class(
     "/{class_id}/cancel",
     response_model=ClassResponse,
     summary="Cancel Class",
-    description="Mark a class as cancelled. Students with reservations should be notified separately.",
+    description="Mark a class as cancelled. Students with reservations should be notified separately.",  # noqa: E501
 )
 def cancel_class(
     class_id: str,
@@ -122,7 +122,7 @@ def cancel_class(
     "/{class_id}",
     response_model=MessageResponse,
     summary="Delete Class",
-    description="Permanently delete a class session. Prefer cancellation for classes with reservations.",
+    description="Permanently delete a class session. Prefer cancellation for classes with reservations.",  # noqa: E501
 )
 def delete_class(
     class_id: str,

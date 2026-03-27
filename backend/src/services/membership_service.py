@@ -12,7 +12,7 @@ from src.models.membership import (
 )
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.student_repository import StudentRepository
-from src.utils.exceptions import raise_bad_request, raise_not_found
+from src.utils.exceptions import raise_bad_request
 
 logger = Logger()
 

@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, status
 
-from src.models.common import MessageResponse, PaginatedResponse
+from src.models.common import PaginatedResponse
 from src.models.membership import MembershipCreate, MembershipResponse, MembershipUpdate
 from src.services.membership_service import MembershipService
 from src.utils.auth import get_current_user
@@ -22,7 +22,7 @@ def get_service() -> MembershipService:
     response_model=MembershipResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Assign Membership",
-    description="Assign a new membership plan to a student. Student must not have an active membership.",
+    description="Assign a new membership plan to a student. Student must not have an active membership.",  # noqa: E501
 )
 def assign_membership(
     data: MembershipCreate,
@@ -37,7 +37,7 @@ def assign_membership(
     "/expiring-soon",
     response_model=list[MembershipResponse],
     summary="List Expiring Memberships",
-    description="List all active memberships expiring within the next N days. Useful for renewal alerts.",
+    description="List all active memberships expiring within the next N days. Useful for renewal alerts.",  # noqa: E501
 )
 def list_expiring_soon(
     days: int = Query(default=7, ge=1, le=90, description="Number of days ahead to check"),

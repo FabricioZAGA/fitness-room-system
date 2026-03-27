@@ -32,15 +32,9 @@ class Settings(BaseSettings):
         description="DynamoDB endpoint URL (for local development only)",
     )
 
-    cognito_user_pool_id: str = Field(
-        default="", description="Cognito User Pool ID"
-    )
-    cognito_client_id: str = Field(
-        default="", description="Cognito App Client ID"
-    )
-    cognito_region: str = Field(
-        default="us-east-1", description="Cognito region"
-    )
+    cognito_user_pool_id: str = Field(default="", description="Cognito User Pool ID")
+    cognito_client_id: str = Field(default="", description="Cognito App Client ID")
+    cognito_region: str = Field(default="us-east-1", description="Cognito region")
 
     powertools_service_name: str = Field(
         default="fitness-room-api", description="Lambda Powertools service name"

@@ -3,8 +3,6 @@
 from datetime import date
 from typing import Any
 
-from boto3.dynamodb.conditions import Attr
-
 from src.models.common import utc_now
 from src.models.membership import (
     MembershipCreate,
@@ -121,9 +119,7 @@ class MembershipRepository(DynamoRepository):
 
         if data.end_date is not None:
             updates["end_date"] = data.end_date.isoformat()
-            updates["GSI1SK"] = (
-                f"EXPIRY#{data.end_date.isoformat()}#STUDENT#{student_id}"
-            )
+            updates["GSI1SK"] = f"EXPIRY#{data.end_date.isoformat()}#STUDENT#{student_id}"
         if data.status is not None:
             updates["status"] = data.status.value
             if data.status != MembershipStatus.ACTIVE:
@@ -142,9 +138,7 @@ class MembershipRepository(DynamoRepository):
         )
         return MembershipDynamoItem.model_validate(raw)
 
-    def decrement_classes_remaining(
-        self, student_id: str, membership_id: str
-    ) -> int:
+    def decrement_classes_remaining(self, student_id: str, membership_id: str) -> int:
         """Atomically decrement the classes_remaining counter.
 
         Returns the new remaining count.

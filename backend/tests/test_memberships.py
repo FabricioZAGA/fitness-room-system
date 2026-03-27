@@ -1,6 +1,6 @@
 """Tests for the Memberships API endpoints."""
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -19,14 +19,18 @@ def make_membership_response(overrides: dict | None = None) -> MembershipRespons
         "membership_type": MembershipType.MONTHLY,
         "status": MembershipStatus.ACTIVE,
         "start_date": date.today(),
-        "end_date": date(date.today().year, date.today().month + 1 if date.today().month < 12 else 1, 1),
+        "end_date": date(
+            date.today().year,
+            date.today().month + 1 if date.today().month < 12 else 1,
+            1,
+        ),
         "price_paid": 500.0,
         "classes_total": None,
         "classes_remaining": None,
         "days_until_expiry": 30,
         "notes": None,
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
     }
     if overrides:
         data.update(overrides)
@@ -81,7 +85,9 @@ class TestAssignMembership:
         )
         assert response.status_code == 422
 
-    def test_assign_membership_invalid_type(self, client: TestClient, sample_student_id: str) -> None:
+    def test_assign_membership_invalid_type(
+        self, client: TestClient, sample_student_id: str
+    ) -> None:
         """Should return 422 for unknown membership type."""
         response = client.post(
             "/api/v1/memberships",
@@ -146,7 +152,9 @@ class TestGetActiveMembership:
         assert response.status_code == 200
         assert response.json()["status"] == "active"
 
-    def test_get_active_membership_not_found(self, client: TestClient, sample_student_id: str) -> None:
+    def test_get_active_membership_not_found(
+        self, client: TestClient, sample_student_id: str
+    ) -> None:
         """Should return null when no active membership exists."""
         with patch("src.routers.memberships.MembershipService") as mock_svc_cls:
             mock_svc = MagicMock()

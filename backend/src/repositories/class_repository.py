@@ -2,8 +2,6 @@
 
 from typing import Any
 
-from boto3.dynamodb.conditions import Attr
-
 from src.models.class_model import ClassCreate, ClassDynamoItem, ClassUpdate
 from src.models.common import utc_now
 from src.repositories.dynamo_repository import DynamoRepository
@@ -94,9 +92,7 @@ class ClassRepository(DynamoRepository):
             last_evaluated_key=last_evaluated_key,
         )
         filtered = [
-            ClassDynamoItem.model_validate(i)
-            for i in items
-            if i.get("class_date", "") <= end_date
+            ClassDynamoItem.model_validate(i) for i in items if i.get("class_date", "") <= end_date
         ]
         return filtered, next_key
 

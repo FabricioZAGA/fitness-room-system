@@ -1,9 +1,9 @@
 """Tests for the Students API endpoints."""
 
+from datetime import UTC
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-import pytest
 from fastapi.testclient import TestClient
 
 from src.models.student import StudentResponse, StudentStatus
@@ -11,7 +11,8 @@ from src.models.student import StudentResponse, StudentStatus
 
 def make_student_response(overrides: dict | None = None) -> StudentResponse:
     """Build a mock StudentResponse for testing."""
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     data = {
         "student_id": str(uuid4()),
         "first_name": "Ana",
@@ -20,8 +21,8 @@ def make_student_response(overrides: dict | None = None) -> StudentResponse:
         "phone": "+52 55 1234 5678",
         "status": StudentStatus.NEW,
         "notes": None,
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
     }
     if overrides:
         data.update(overrides)
@@ -80,6 +81,7 @@ class TestGetStudent:
     def test_get_student_not_found(self, client: TestClient) -> None:
         """Should return 404 for non-existent student."""
         from src.utils.exceptions import ResourceNotFoundException
+
         with patch("src.routers.students.StudentService") as mock_svc_cls:
             mock_svc = MagicMock()
             mock_svc.get_student.side_effect = ResourceNotFoundException("Student not found")

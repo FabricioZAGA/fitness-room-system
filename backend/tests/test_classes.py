@@ -1,6 +1,6 @@
 """Tests for the Classes API endpoints."""
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -26,8 +26,8 @@ def make_class_response(overrides: dict | None = None) -> ClassResponse:
         "description": None,
         "class_link": None,
         "is_cancelled": False,
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
     }
     if overrides:
         data.update(overrides)
@@ -99,6 +99,7 @@ class TestGetClass:
     def test_get_class_not_found(self, client: TestClient) -> None:
         """Should return 404 for a non-existent class."""
         from src.utils.exceptions import ResourceNotFoundException
+
         with patch("src.routers.classes.ClassService") as mock_svc_cls:
             mock_svc = MagicMock()
             mock_svc.get_class.side_effect = ResourceNotFoundException("Class not found")

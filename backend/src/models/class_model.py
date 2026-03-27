@@ -56,7 +56,9 @@ class ClassCreate(BaseModel):
     capacity: int = Field(default=20, ge=1, le=200, description="Maximum number of students")
     location: str = Field(default="Studio A", max_length=100, description="Class location")
     description: str | None = Field(default=None, max_length=500, description="Class description")
-    class_link: str | None = Field(default=None, max_length=500, description="External class link (Zumba/STRONG)")
+    class_link: str | None = Field(
+        default=None, max_length=500, description="External class link (Zumba/STRONG)"
+    )
 
 
 class ClassUpdate(BaseModel):

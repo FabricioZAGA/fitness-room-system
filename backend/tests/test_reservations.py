@@ -1,10 +1,9 @@
 """Tests for the Reservations API endpoints."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-import pytest
 from fastapi.testclient import TestClient
 
 from src.models.reservation import ReservationResponse, ReservationStatus
@@ -18,8 +17,8 @@ def make_reservation_response(overrides: dict | None = None) -> ReservationRespo
         "class_id": str(uuid4()),
         "status": ReservationStatus.CONFIRMED,
         "class_date": "2026-06-15",
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
     }
     if overrides:
         data.update(overrides)
@@ -47,10 +46,12 @@ class TestCreateReservation:
 
     def test_create_reservation_waitlisted(self, client: TestClient) -> None:
         """Should return waitlisted status when class is full."""
-        mock_response = make_reservation_response({
-            "status": ReservationStatus.WAITLISTED,
-            "waitlist_position": 1,
-        })
+        mock_response = make_reservation_response(
+            {
+                "status": ReservationStatus.WAITLISTED,
+                "waitlist_position": 1,
+            }
+        )
         with patch("src.routers.reservations.ReservationService") as mock_svc_cls:
             mock_svc = MagicMock()
             mock_svc.create_reservation.return_value = mock_response
@@ -78,19 +79,19 @@ class TestCancelReservation:
         """Should cancel reservation and return cancelled status."""
         class_id = str(uuid4())
         student_id = str(uuid4())
-        mock_response = make_reservation_response({
-            "status": ReservationStatus.CANCELLED,
-            "student_id": student_id,
-            "class_id": class_id,
-        })
+        mock_response = make_reservation_response(
+            {
+                "status": ReservationStatus.CANCELLED,
+                "student_id": student_id,
+                "class_id": class_id,
+            }
+        )
         with patch("src.routers.reservations.ReservationService") as mock_svc_cls:
             mock_svc = MagicMock()
             mock_svc.cancel_reservation.return_value = mock_response
             mock_svc_cls.return_value = mock_svc
 
-            response = client.delete(
-                f"/api/v1/reservations/class/{class_id}/student/{student_id}"
-            )
+            response = client.delete(f"/api/v1/reservations/class/{class_id}/student/{student_id}")
 
         assert response.status_code == 200
         assert response.json()["status"] == "cancelled"

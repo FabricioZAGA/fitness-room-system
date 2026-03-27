@@ -12,7 +12,7 @@ from src.models.reservation import (
     WaitlistDynamoItem,
 )
 from src.repositories.dynamo_repository import DynamoRepository
-from src.utils.exceptions import ResourceAlreadyExistsException, ResourceNotFoundException
+from src.utils.exceptions import ResourceAlreadyExistsException
 
 
 class ReservationRepository(DynamoRepository):
@@ -145,7 +145,8 @@ class ReservationRepository(DynamoRepository):
         )
         if not success:
             raise ResourceAlreadyExistsException(
-                f"Student '{data.student_id}' is already on the waitlist for class '{data.class_id}'"
+                f"Student '{data.student_id}' is already on the waitlist "
+                f"for class '{data.class_id}'"
             )
         return item
 

@@ -1,8 +1,8 @@
 """Pytest configuration and shared fixtures for Fitness Room backend tests."""
 
 import os
-from typing import Generator
-from unittest.mock import MagicMock, patch
+from collections.abc import Generator
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,7 +17,6 @@ os.environ.setdefault("LOG_LEVEL", "WARNING")
 
 from src.main import app
 from src.utils.auth import get_current_user
-
 
 MOCK_ADMIN_USER = {
     "sub": "test-user-id",

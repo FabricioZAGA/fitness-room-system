@@ -1,6 +1,6 @@
 """Common Pydantic v2 base models and shared schemas."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 def utc_now() -> datetime:
     """Return the current UTC datetime."""
-    return datetime.now(tz=timezone.utc)
+    return datetime.now(tz=UTC)
 
 
 def new_id() -> str:

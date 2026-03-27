@@ -36,7 +36,9 @@ class DynamoRepository:
         response = self._table.get_item(Key={"PK": pk, "SK": sk})
         return response.get("Item")
 
-    def get_item_or_raise(self, pk: str, sk: str, resource_name: str, resource_id: str) -> dict[str, Any]:
+    def get_item_or_raise(
+        self, pk: str, sk: str, resource_name: str, resource_id: str
+    ) -> dict[str, Any]:
         """Retrieve a single item or raise ResourceNotFoundException."""
         item = self.get_item(pk, sk)
         if item is None:
@@ -116,7 +118,9 @@ class DynamoRepository:
             "KeyConditionExpression": Key("PK").eq(pk),
         }
         if sk_begins_with:
-            kwargs["KeyConditionExpression"] = Key("PK").eq(pk) & Key("SK").begins_with(sk_begins_with)
+            kwargs["KeyConditionExpression"] = Key("PK").eq(pk) & Key("SK").begins_with(
+                sk_begins_with
+            )
         if limit:
             kwargs["Limit"] = limit
         if last_evaluated_key:
@@ -204,7 +208,7 @@ class DynamoRepository:
         """
         response = self._table.update_item(
             Key={"PK": pk, "SK": sk},
-            UpdateExpression=f"ADD #attr :delta",
+            UpdateExpression="ADD #attr :delta",
             ExpressionAttributeNames={"#attr": attribute},
             ExpressionAttributeValues={":delta": delta},
             ReturnValues="UPDATED_NEW",

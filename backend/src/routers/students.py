@@ -42,7 +42,9 @@ def create_student(
 def list_students(
     status_filter: StudentStatus | None = Query(default=None, alias="status"),
     limit: int = Query(default=50, ge=1, le=200),
-    last_key: str | None = Query(default=None, description="Pagination token from previous response"),
+    last_key: str | None = Query(
+        default=None, description="Pagination token from previous response"
+    ),
     _current_user: dict[str, Any] = Depends(get_current_user),
     service: StudentService = Depends(get_service),
 ) -> PaginatedResponse[StudentResponse]:

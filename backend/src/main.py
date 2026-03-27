@@ -4,7 +4,8 @@ This module initializes the FastAPI app, registers all routers,
 configures exception handlers, and exposes the Mangum Lambda handler.
 
 Architecture:
-  HTTP Request → API Gateway v2 → Lambda (Mangum) → FastAPI → Router → Service → Repository → DynamoDB
+  HTTP Request → API Gateway v2 → Lambda (Mangum)
+              → FastAPI → Router → Service → Repository → DynamoDB
 """
 
 from typing import Any
@@ -26,7 +27,6 @@ from src.utils.exceptions import (
     MembershipNotFoundException,
     ResourceAlreadyExistsException,
     ResourceNotFoundException,
-    WaitlistFullException,
 )
 
 logger = Logger()
@@ -63,7 +63,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.is_local else [
+    allow_origins=["*"]
+    if settings.is_local
+    else [
         "http://localhost:5173",
         "http://localhost:3000",
     ],
@@ -119,9 +121,7 @@ async def invalid_operation_handler(
 
 @app.exception_handler(MembershipExpiredException)
 @app.exception_handler(MembershipNotFoundException)
-async def membership_error_handler(
-    _request: Request, exc: FitnessRoomException
-) -> JSONResponse:
+async def membership_error_handler(_request: Request, exc: FitnessRoomException) -> JSONResponse:
     """Handle membership-related domain exceptions."""
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,

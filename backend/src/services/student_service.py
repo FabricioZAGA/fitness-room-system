@@ -6,7 +6,7 @@ from aws_lambda_powertools import Logger
 
 from src.models.student import StudentCreate, StudentResponse, StudentStatus, StudentUpdate
 from src.repositories.student_repository import StudentRepository
-from src.utils.exceptions import ResourceAlreadyExistsException, raise_bad_request, raise_conflict
+from src.utils.exceptions import ResourceAlreadyExistsException, raise_conflict
 
 logger = Logger()
 

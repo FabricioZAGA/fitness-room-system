@@ -85,7 +85,7 @@ async def get_current_user(
         return claims
 
     except JWTError:
-        raise credentials_exception
+        raise credentials_exception from None
 
 
 def require_group(group: str) -> Any:
