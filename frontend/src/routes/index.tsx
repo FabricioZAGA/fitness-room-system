@@ -9,26 +9,41 @@ import {
   ArrowRight,
   AlertTriangle,
 } from "lucide-react";
+import { useMemo } from "react";
 import { useStudents } from "@/hooks/useStudents";
 import { useClasses } from "@/hooks/useClasses";
 import { useExpiringSoon } from "@/hooks/useMemberships";
 import { useInstructors } from "@/hooks/useInstructors";
 import { CLASS_TYPE_LABELS } from "@/types/class";
+import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
+import { formatDate } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
   component: DashboardPage,
 });
 
 function DashboardPage(): React.JSX.Element {
+  const today = new Date().toISOString().slice(0, 10);
+
   const { data: studentsData } = useStudents({ status: "active" });
+  const { data: allStudentsData } = useStudents({ limit: 200 });
   const { data: classesData } = useClasses({ upcoming_only: true, limit: 5 });
+  const { data: todayClassesData } = useClasses({ date: today, limit: 50 });
   const { data: expiringSoon } = useExpiringSoon(7);
   const { data: instructorsData } = useInstructors({ status: "active" });
 
   const activeStudents = studentsData?.total ?? 0;
-  const upcomingClasses = classesData?.total ?? 0;
+  const todayClasses = todayClassesData?.total ?? 0;
   const expiring = expiringSoon?.length ?? 0;
   const activeInstructors = instructorsData?.items?.length ?? 0;
+
+  const studentMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const s of allStudentsData?.items ?? []) {
+      map[s.student_id] = s.full_name;
+    }
+    return map;
+  }, [allStudentsData]);
 
   return (
     <div className="min-h-screen bg-slate-950 p-6">
@@ -106,7 +121,7 @@ function DashboardPage(): React.JSX.Element {
         />
         <StatCard
           label="Clases Hoy"
-          value={upcomingClasses}
+          value={todayClasses}
           icon={Calendar}
           color="blue"
           href="/classes"
@@ -194,17 +209,26 @@ function DashboardPage(): React.JSX.Element {
                   className="flex items-center justify-between rounded-xl bg-slate-800/50 p-4"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-sm font-bold text-amber-400">
-                      {m.days_until_expiry}
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-sm font-bold text-amber-400">
+                      {m.days_until_expiry}d
                     </div>
                     <div>
-                      <p className="font-medium text-white">{m.student_id.slice(0, 8)}...</p>
-                      <p className="text-sm text-slate-400">{m.membership_type}</p>
+                      <p className="font-medium text-white">
+                        {studentMap[m.student_id] ?? m.student_id.slice(0, 8) + "…"}
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        {MEMBERSHIP_TYPE_LABELS[m.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS]} · {formatDate(m.end_date)}
+                      </p>
                     </div>
                   </div>
-                  <span className="text-sm text-amber-400">
-                    {m.days_until_expiry} días
-                  </span>
+                  <Link
+                    to="/students/$studentId"
+                    params={{ studentId: m.student_id }}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Ver →
+                  </Link>
                 </div>
               ))}
             </div>
