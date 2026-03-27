@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CheckinRouteImport } from './routes/checkin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -19,6 +20,11 @@ import { Route as InstructorsIndexRouteImport } from './routes/instructors/index
 import { Route as ClassesIndexRouteImport } from './routes/classes/index'
 import { Route as StudentsStudentIdIndexRouteImport } from './routes/students/$studentId/index'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/classes/': typeof ClassesIndexRoute
   '/instructors/': typeof InstructorsIndexRoute
   '/memberships/': typeof MembershipsIndexRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/classes': typeof ClassesIndexRoute
   '/instructors': typeof InstructorsIndexRoute
   '/memberships': typeof MembershipsIndexRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/classes/': typeof ClassesIndexRoute
   '/instructors/': typeof InstructorsIndexRoute
   '/memberships/': typeof MembershipsIndexRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/checkin'
     | '/login'
+    | '/settings'
     | '/classes/'
     | '/instructors/'
     | '/memberships/'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/checkin'
     | '/login'
+    | '/settings'
     | '/classes'
     | '/instructors'
     | '/memberships'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/checkin'
     | '/login'
+    | '/settings'
     | '/classes/'
     | '/instructors/'
     | '/memberships/'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CheckinRoute: typeof CheckinRoute
   LoginRoute: typeof LoginRoute
+  SettingsRoute: typeof SettingsRoute
   ClassesIndexRoute: typeof ClassesIndexRoute
   InstructorsIndexRoute: typeof InstructorsIndexRoute
   MembershipsIndexRoute: typeof MembershipsIndexRoute
@@ -149,6 +162,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CheckinRoute: CheckinRoute,
   LoginRoute: LoginRoute,
+  SettingsRoute: SettingsRoute,
   ClassesIndexRoute: ClassesIndexRoute,
   InstructorsIndexRoute: InstructorsIndexRoute,
   MembershipsIndexRoute: MembershipsIndexRoute,
