@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CreditCard, Calendar, Plus, Power, PowerOff } from "lucide-react";
+import { ArrowLeft, CreditCard, Calendar, Plus, Power, PowerOff, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useStudent, useActivateStudent, useDeactivateStudent } from "@/hooks/useStudents";
 import { useMembershipsForStudent } from "@/hooks/useMemberships";
 import { useReservationsForStudent } from "@/hooks/useReservations";
 import { StudentStatusBadge, MembershipStatusBadge, ReservationStatusBadge } from "@/components/shared/StatusBadge";
 import { CreateMembershipModal } from "@/components/shared/CreateMembershipModal";
+import { EditStudentModal } from "@/components/shared/EditStudentModal";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import { formatDate } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/students/$studentId/")({
 function StudentDetailPage(): React.JSX.Element {
   const { studentId } = Route.useParams();
   const [membershipModalOpen, setMembershipModalOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: student, isLoading } = useStudent(studentId);
   const { data: membershipsData } = useMembershipsForStudent(studentId);
@@ -66,6 +68,13 @@ function StudentDetailPage(): React.JSX.Element {
           </div>
           <div className="flex items-center gap-2">
             <StudentStatusBadge status={student.status} />
+            <button
+              onClick={() => setEditOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Editar
+            </button>
             {isActive ? (
               <button
                 onClick={() => deactivate(studentId)}
@@ -201,6 +210,11 @@ function StudentDetailPage(): React.JSX.Element {
         open={membershipModalOpen}
         onClose={() => setMembershipModalOpen(false)}
         studentId={studentId}
+      />
+      <EditStudentModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        student={student}
       />
     </>
   );

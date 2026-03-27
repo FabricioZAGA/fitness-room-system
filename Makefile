@@ -36,15 +36,23 @@ install: install-backend install-frontend install-infra
 
 install-backend:
 	@echo "📦 Installing backend dependencies..."
-	cd $(BACKEND_DIR) && uv sync --all-extras
+	@if [ ! -d "$(BACKEND_DIR)/.venv" ]; then python3 -m venv $(BACKEND_DIR)/.venv; fi
+	$(BACKEND_DIR)/.venv/bin/pip install -r $(BACKEND_DIR)/requirements.txt \
+		"pytest>=8.3.0" "pytest-cov>=5.0.0" "pytest-asyncio>=0.24.0" "pytest-mock>=3.14.0" \
+		"moto[dynamodb]>=5.0.0" "ruff>=0.8.0" "mypy>=1.13.0" \
+		"boto3-stubs[dynamodb,cognito-idp]>=1.35.0" "types-python-jose>=3.3.0" \
+		"uvicorn[standard]>=0.32.0" "pydantic[email]>=2.10.0" "aws-xray-sdk>=2.14.0" \
+		--trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -q
 
 install-frontend:
 	@echo "📦 Installing frontend dependencies..."
-	cd $(FRONTEND_DIR) && pnpm install
+	COREPACK_ENABLE_STRICT=0 cd $(FRONTEND_DIR) && pnpm install
 
 install-infra:
 	@echo "📦 Installing CDK dependencies..."
-	cd $(INFRA_DIR) && pip install -r requirements.txt
+	@if [ ! -d "$(INFRA_DIR)/.venv" ]; then python3 -m venv $(INFRA_DIR)/.venv; fi
+	$(INFRA_DIR)/.venv/bin/pip install -r $(INFRA_DIR)/requirements.txt \
+		--trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -q
 
 # ── Development ────────────────────────────────────────────────────────────────
 dev:
@@ -53,30 +61,30 @@ dev:
 
 dev-backend:
 	@echo "🐍 Starting backend..."
-	cd $(BACKEND_DIR) && uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+	cd $(BACKEND_DIR) && .venv/bin/uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
 dev-frontend:
 	@echo "⚛️  Starting frontend..."
-	cd $(FRONTEND_DIR) && pnpm dev
+	COREPACK_ENABLE_STRICT=0 cd $(FRONTEND_DIR) && pnpm dev
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
 test: test-backend test-frontend
 
 test-backend:
 	@echo "🧪 Running backend tests..."
-	cd $(BACKEND_DIR) && uv run pytest tests/ -v --cov=src --cov-report=term-missing
+	cd $(BACKEND_DIR) && .venv/bin/python -m pytest tests/ -v --cov=src --cov-report=term-missing
 
 test-frontend:
 	@echo "🧪 Running frontend tests..."
-	cd $(FRONTEND_DIR) && pnpm test
+	COREPACK_ENABLE_STRICT=0 cd $(FRONTEND_DIR) && pnpm test
 
 # ── Lint & Format ──────────────────────────────────────────────────────────────
 lint: lint-backend lint-frontend
 
 lint-backend:
 	@echo "🔍 Linting backend..."
-	cd $(BACKEND_DIR) && uv run ruff check src/ tests/
-	cd $(BACKEND_DIR) && uv run mypy src/
+	cd $(BACKEND_DIR) && .venv/bin/ruff check src/ tests/
+	cd $(BACKEND_DIR) && .venv/bin/mypy src/
 
 lint-frontend:
 	@echo "🔍 Linting frontend..."
@@ -86,8 +94,8 @@ format: format-backend format-frontend
 
 format-backend:
 	@echo "✨ Formatting backend..."
-	cd $(BACKEND_DIR) && uv run ruff format src/ tests/
-	cd $(BACKEND_DIR) && uv run ruff check --fix src/ tests/
+	cd $(BACKEND_DIR) && .venv/bin/ruff format src/ tests/
+	cd $(BACKEND_DIR) && .venv/bin/ruff check --fix src/ tests/
 
 format-frontend:
 	@echo "✨ Formatting frontend..."
