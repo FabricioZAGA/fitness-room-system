@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useStudents } from "@/hooks/useStudents";
 import { useMembershipsForStudent, useActiveMembership } from "@/hooks/useMemberships";
 import { useReservationsForStudent } from "@/hooks/useReservations";
+import { useClasses } from "@/hooks/useClasses";
 import {
   Search,
   CheckCircle2,
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 import { formatDate, getInitials } from "@/lib/utils";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
+import { CLASS_TYPE_LABELS } from "@/types/class";
 import type { Student } from "@/types/student";
 
 export const Route = createFileRoute("/checkin")({
@@ -31,7 +33,7 @@ function CheckinPage(): React.JSX.Element {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-  const { data: studentsData } = useStudents({ limit: 100 });
+  const { data: studentsData } = useStudents({ limit: 200 });
   const allStudents = studentsData?.items ?? [];
   
   // Client-side filtering for quick search
@@ -134,10 +136,17 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
   const { data: membership } = useActiveMembership(student.student_id);
   const { data: membershipsData } = useMembershipsForStudent(student.student_id);
   const { data: reservationsData } = useReservationsForStudent(student.student_id);
+  const { data: classesData } = useClasses({ limit: 200 });
   const allMemberships = membershipsData?.items ?? [];
   const today = new Date().toISOString().slice(0, 10);
   const todayReservations = (reservationsData?.items ?? []).filter(
     (r) => r.class_date === today && (r.status === "confirmed" || r.status === "waitlisted")
+  );
+  const classMap = Object.fromEntries(
+    (classesData?.items ?? []).map((c) => [
+      c.class_id,
+      { type: CLASS_TYPE_LABELS[c.class_type as keyof typeof CLASS_TYPE_LABELS] ?? c.class_type, time: c.start_time.slice(0, 5) },
+    ])
   );
 
   const isActive = student.status === "active" || student.status === "founder";
@@ -246,15 +255,20 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
           <p className="mb-2 text-sm font-semibold text-blue-400">Clases de hoy ({todayReservations.length})</p>
           <div className="space-y-1">
-            {todayReservations.map((r) => (
-              <div key={r.reservation_id} className="flex items-center justify-between text-sm">
-                <span className="text-slate-300">{r.class_date ?? "—"}</span>
-                <span className={r.status === "confirmed" ? "text-emerald-400" : "text-amber-400"}>
-                  {r.status === "confirmed" ? "Confirmada" : "En espera"}
-                </span>
-              </div>
-            ))}
-          </div>
+            {todayReservations.map((r) => {
+              const cls = classMap[r.class_id ?? ""];
+              return (
+                <div key={r.reservation_id} className="flex items-center justify-between text-sm">
+                  <span className="text-slate-300">
+                    {cls ? `${cls.type} · ${cls.time}` : (r.class_date ?? "—")}
+                  </span>
+                  <span className={r.status === "confirmed" ? "text-emerald-400" : "text-amber-400"}>
+                    {r.status === "confirmed" ? "Confirmada" : "En espera"}
+                  </span>
+                </div>
+              );
+            })}
+            </div>
         </div>
       )}
 
