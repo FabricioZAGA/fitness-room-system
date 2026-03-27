@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Dialog } from "./Dialog";
 import { useCreateClass } from "@/hooks/useClasses";
+import { useInstructors } from "@/hooks/useInstructors";
 import type { ClassType, CreateClassRequest } from "@/types/class";
 import { CLASS_TYPE_LABELS } from "@/types/class";
 
@@ -34,6 +35,8 @@ export function CreateClassModal({
 }: CreateClassModalProps): React.JSX.Element {
   const [form, setForm] = useState<CreateClassRequest>(INITIAL);
   const { mutate, isPending } = useCreateClass();
+  const { data: instructorsData } = useInstructors({ status: "active" });
+  const instructors = instructorsData?.items ?? [];
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -87,14 +90,21 @@ export function CreateClassModal({
             </select>
           </Field>
           <Field label="Instructor *">
-            <input
+            <select
               name="instructor_name"
               value={form.instructor_name}
               onChange={handleChange}
               required
-              placeholder="Nombre del instructor"
               className={inputCls}
-            />
+            >
+              <option value="">— Selecciona instructor —</option>
+              {instructors.map((inst) => (
+                <option key={inst.instructor_id} value={`${inst.first_name} ${inst.last_name}`}>
+                  {inst.first_name} {inst.last_name}
+                  {inst.specialties.length > 0 ? ` · ${inst.specialties[0]}` : ""}
+                </option>
+              ))}
+            </select>
           </Field>
         </div>
 
@@ -181,14 +191,14 @@ export function CreateClassModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+            className="rounded-xl border-2 border-slate-700 px-5 py-3 text-sm font-medium text-slate-400 transition-colors hover:border-slate-600 hover:text-white"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+            className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 disabled:opacity-50"
           >
             {isPending ? "Guardando..." : "Crear Clase"}
           </button>
@@ -207,11 +217,11 @@ function Field({
 }): React.JSX.Element {
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-zinc-400">{label}</label>
+      <label className="mb-2 block text-sm font-medium text-slate-300">{label}</label>
       {children}
     </div>
   );
 }
 
 const inputCls =
-  "w-full rounded-lg border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/30";
+  "w-full rounded-xl border-2 border-slate-700 bg-slate-800 px-4 py-3 text-base text-white placeholder-slate-500 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20";
