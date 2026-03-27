@@ -3,10 +3,11 @@
  * Quick member lookup and status display with large, accessible buttons.
  */
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useStudents } from "@/hooks/useStudents";
 import { useMembershipsForStudent, useActiveMembership } from "@/hooks/useMemberships";
+import { useReservationsForStudent } from "@/hooks/useReservations";
 import {
   Search,
   CheckCircle2,
@@ -18,7 +19,8 @@ import {
   Clock,
   ArrowRight,
 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getInitials } from "@/lib/utils";
+import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import type { Student } from "@/types/student";
 
 export const Route = createFileRoute("/checkin")({
@@ -131,7 +133,12 @@ function CheckinPage(): React.JSX.Element {
 function MemberStatusCard({ student }: { student: Student }): React.JSX.Element {
   const { data: membership } = useActiveMembership(student.student_id);
   const { data: membershipsData } = useMembershipsForStudent(student.student_id);
+  const { data: reservationsData } = useReservationsForStudent(student.student_id);
   const allMemberships = membershipsData?.items ?? [];
+  const today = new Date().toISOString().slice(0, 10);
+  const todayReservations = (reservationsData?.items ?? []).filter(
+    (r) => r.class_date === today && (r.status === "confirmed" || r.status === "waitlisted")
+  );
 
   const isActive = student.status === "active" || student.status === "founder";
   const hasMembership = !!membership;
@@ -197,9 +204,8 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
       {/* Member Info */}
       <div className="rounded-xl border border-slate-700 bg-slate-800 p-5">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-2xl font-bold text-white">
-            {student.first_name.charAt(0)}
-            {student.last_name.charAt(0)}
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-2xl font-bold text-white">
+            {getInitials(student.full_name)}
           </div>
           <div>
             <p className="text-xl font-bold text-white">{student.full_name}</p>
@@ -215,7 +221,7 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
           <InfoCard
             icon={CreditCard}
             label="Membresía"
-            value={membership.membership_type.toUpperCase()}
+            value={MEMBERSHIP_TYPE_LABELS[membership.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS] ?? membership.membership_type}
             color="emerald"
           />
           <InfoCard
@@ -235,14 +241,35 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
         </div>
       )}
 
+      {/* Today's reservations */}
+      {todayReservations.length > 0 && (
+        <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+          <p className="mb-2 text-sm font-semibold text-blue-400">Clases de hoy ({todayReservations.length})</p>
+          <div className="space-y-1">
+            {todayReservations.map((r) => (
+              <div key={r.reservation_id} className="flex items-center justify-between text-sm">
+                <span className="text-slate-300">{r.class_date ?? "—"}</span>
+                <span className={r.status === "confirmed" ? "text-emerald-400" : "text-amber-400"}>
+                  {r.status === "confirmed" ? "Confirmada" : "En espera"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions */}
       <div className="grid gap-3 sm:grid-cols-2">
         <button className="rounded-xl bg-emerald-600 py-4 text-lg font-semibold text-white transition-colors hover:bg-emerald-500">
-          Registrar Check-in
+          ✓ Registrar Check-in
         </button>
-        <button className="rounded-xl border-2 border-slate-700 py-4 text-lg font-semibold text-white transition-colors hover:border-slate-600 hover:bg-slate-800">
+        <Link
+          to="/students/$studentId"
+          params={{ studentId: student.student_id }}
+          className="rounded-xl border-2 border-slate-700 py-4 text-center text-lg font-semibold text-white transition-colors hover:border-slate-600 hover:bg-slate-800"
+        >
           Ver Perfil Completo
-        </button>
+        </Link>
       </div>
 
       {/* Membership History */}
