@@ -2,14 +2,14 @@
 
 ## Prerequisites
 
-| Tool | Version | Install |
-|---|---|---|
-| Python | 3.12+ | `brew install python@3.12` |
-| uv | latest | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| Node.js | 22+ | `brew install node` |
-| pnpm | 9+ | `npm install -g pnpm` |
-| AWS CLI | v2 | [docs.aws.amazon.com](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) |
-| AWS CDK CLI | v2 | `npm install -g aws-cdk` |
+| Tool        | Version | Install                                                                                              |
+| ----------- | ------- | ---------------------------------------------------------------------------------------------------- |
+| Python      | 3.12+   | `brew install python@3.12`                                                                           |
+| uv          | latest  | `curl -LsSf https://astral.sh/uv/install.sh \| sh`                                                   |
+| Node.js     | 22+     | `brew install node`                                                                                  |
+| pnpm        | 9+      | `npm install -g pnpm`                                                                                |
+| AWS CLI     | v2      | [docs.aws.amazon.com](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) |
+| AWS CDK CLI | v2      | `npm install -g aws-cdk`                                                                             |
 
 ## AWS Profile Setup
 
@@ -143,23 +143,23 @@ AWS_PROFILE=salle-cajas cdk deploy FitnessRoomHostingStack-dev
 
 ### Backend (`backend/.env`)
 
-| Variable | Description | Example |
-|---|---|---|
-| `ENVIRONMENT` | App environment | `local` |
-| `DYNAMODB_TABLE_NAME` | DynamoDB table | `fitness-room-dev` |
-| `AWS_REGION` | AWS region | `us-east-1` |
-| `COGNITO_USER_POOL_ID` | Cognito pool ID | `us-east-1_XXXX` |
-| `COGNITO_CLIENT_ID` | Cognito app client | `abcdef123456` |
+| Variable               | Description        | Example            |
+| ---------------------- | ------------------ | ------------------ |
+| `ENVIRONMENT`          | App environment    | `local`            |
+| `DYNAMODB_TABLE_NAME`  | DynamoDB table     | `fitness-room-dev` |
+| `AWS_REGION`           | AWS region         | `us-east-1`        |
+| `COGNITO_USER_POOL_ID` | Cognito pool ID    | `us-east-1_XXXX`   |
+| `COGNITO_CLIENT_ID`    | Cognito app client | `abcdef123456`     |
 
 ### Frontend (`frontend/.env`)
 
-| Variable | Description | Example |
-|---|---|---|
-| `VITE_API_BASE_URL` | Backend API URL | `http://localhost:8000` |
-| `VITE_AWS_REGION` | AWS region | `us-east-1` |
-| `VITE_COGNITO_USER_POOL_ID` | Cognito pool ID | `us-east-1_XXXX` |
-| `VITE_COGNITO_CLIENT_ID` | Cognito client ID | `abcdef123456` |
-| `VITE_APP_NAME` | Studio name shown in sidebar | `Fitness Room` |
+| Variable                    | Description                  | Example                 |
+| --------------------------- | ---------------------------- | ----------------------- |
+| `VITE_API_BASE_URL`         | Backend API URL              | `http://localhost:8000` |
+| `VITE_AWS_REGION`           | AWS region                   | `us-east-1`             |
+| `VITE_COGNITO_USER_POOL_ID` | Cognito pool ID              | `us-east-1_XXXX`        |
+| `VITE_COGNITO_CLIENT_ID`    | Cognito client ID            | `abcdef123456`          |
+| `VITE_APP_NAME`             | Studio name shown in sidebar | `Fitness Room`          |
 
 ## Project Structure
 

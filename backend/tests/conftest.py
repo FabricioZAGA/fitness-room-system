@@ -11,6 +11,9 @@ os.environ.setdefault("DYNAMODB_TABLE_NAME", "fitness-room-test")
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("COGNITO_USER_POOL_ID", "us-east-1_TEST")
 os.environ.setdefault("COGNITO_CLIENT_ID", "test-client-id")
+os.environ.setdefault("POWERTOOLS_TRACE_DISABLED", "true")
+os.environ.setdefault("POWERTOOLS_DEV", "true")
+os.environ.setdefault("LOG_LEVEL", "WARNING")
 
 from src.main import app
 from src.utils.auth import get_current_user

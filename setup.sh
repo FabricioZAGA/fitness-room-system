@@ -169,10 +169,11 @@ if $BACKEND_ONLY; then
     export PATH="$(pyenv root)/versions/${PYTHON_VERSION}/bin:$PATH"
   fi
 
-  # Crear virtualenv con uv
+  # Crear virtualenv con python -m venv (no requiere red)
   if [ ! -d ".venv" ]; then
-    info "Creando virtualenv con uv (Python ${PYTHON_VERSION})..."
-    uv venv --python "$PYTHON_VERSION" --system-certs .venv
+    info "Creando virtualenv (Python ${PYTHON_VERSION})..."
+    "$(pyenv root)/versions/${PYTHON_VERSION}/bin/python3" -m venv .venv 2>/dev/null \
+      || python3 -m venv .venv
     success "Virtualenv creado en backend/.venv"
   else
     success "Virtualenv ya existe en backend/.venv"
@@ -192,7 +193,7 @@ if $BACKEND_ONLY; then
     "pytest>=8.3.0" "pytest-cov>=5.0.0" "pytest-asyncio>=0.24.0" "pytest-mock>=3.14.0" \
     "moto[dynamodb]>=5.0.0" "ruff>=0.8.0" "mypy>=1.13.0" \
     "boto3-stubs[dynamodb,cognito-idp]>=1.35.0" "types-python-jose>=3.3.0" \
-    "uvicorn[standard]>=0.32.0" \
+    "uvicorn[standard]>=0.32.0" "pydantic[email]>=2.10.0" \
     $PIP_FLAGS -q
 
   success "Dependencias del backend instaladas"
@@ -217,7 +218,7 @@ if $INFRA_ONLY; then
 
   if [ ! -d ".venv" ]; then
     info "Creando virtualenv para CDK..."
-    uv venv --python 3.12 .venv
+    python3 -m venv .venv
     success "Virtualenv CDK creado en infrastructure/cdk/.venv"
   else
     success "Virtualenv CDK ya existe"
