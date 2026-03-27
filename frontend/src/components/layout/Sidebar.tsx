@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import {
   Calendar,
+  CalendarCheck,
   CreditCard,
   Home,
   Settings,
@@ -21,6 +22,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Alumnos", to: "/students", icon: Users, phase: 1 },
   { label: "Membresías", to: "/memberships", icon: CreditCard, phase: 1 },
   { label: "Clases", to: "/classes", icon: Calendar, phase: 1 },
+  { label: "Reservaciones", to: "/reservations", icon: CalendarCheck, phase: 1 },
   { label: "Configuración", to: "/settings", icon: Settings, phase: 1 },
 ];
 
