@@ -14,6 +14,7 @@ export const Route = createFileRoute("/memberships/")({
 
 function MembershipsPage(): React.JSX.Element {
   const [createOpen, setCreateOpen] = useState(false);
+  const [renewStudentId, setRenewStudentId] = useState<string | null>(null);
   const { data: expiring7, isLoading } = useExpiringSoon(7);
   const { data: expiring30 } = useExpiringSoon(30);
   const { data: studentsData } = useStudents({ limit: 200 });
@@ -112,7 +113,7 @@ function MembershipsPage(): React.JSX.Element {
                 </h2>
                 <div className="space-y-3">
                   {critical.map((m) => (
-                    <MembershipCard key={m.membership_id} membership={m} urgency="critical" studentName={studentMap[m.student_id]} />
+                    <MembershipCard key={m.membership_id} membership={m} urgency="critical" studentName={studentMap[m.student_id]} onRenew={() => setRenewStudentId(m.student_id)} />
                   ))}
                 </div>
               </section>
@@ -127,7 +128,7 @@ function MembershipsPage(): React.JSX.Element {
                 </h2>
                 <div className="space-y-3">
                   {warning.map((m) => (
-                    <MembershipCard key={m.membership_id} membership={m} urgency="warning" studentName={studentMap[m.student_id]} />
+                    <MembershipCard key={m.membership_id} membership={m} urgency="warning" studentName={studentMap[m.student_id]} onRenew={() => setRenewStudentId(m.student_id)} />
                   ))}
                 </div>
               </section>
@@ -137,6 +138,13 @@ function MembershipsPage(): React.JSX.Element {
       </div>
 
       <CreateMembershipModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      {renewStudentId && (
+        <CreateMembershipModal
+          open={!!renewStudentId}
+          onClose={() => setRenewStudentId(null)}
+          studentId={renewStudentId}
+        />
+      )}
     </>
   );
 }
@@ -145,10 +153,12 @@ function MembershipCard({
   membership: m,
   urgency,
   studentName,
+  onRenew,
 }: {
   membership: Membership;
   urgency: "critical" | "warning";
   studentName?: string;
+  onRenew?: () => void;
 }): React.JSX.Element {
   const days = m.days_until_expiry ?? 0;
 
@@ -209,12 +219,14 @@ function MembershipCard({
       </div>
 
       {/* Renew button */}
-      <button
-        onClick={() => {}}
-        className="hidden shrink-0 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 sm:block"
-      >
-        Renovar
-      </button>
+      {onRenew && (
+        <button
+          onClick={onRenew}
+          className="hidden shrink-0 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 sm:flex items-center gap-2"
+        >
+          Renovar
+        </button>
+      )}
     </div>
   );
 }
