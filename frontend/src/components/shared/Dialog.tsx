@@ -47,20 +47,20 @@ export function Dialog({
       <div
         ref={ref}
         className={cn(
-          "relative w-full rounded-xl border border-zinc-800 bg-zinc-950 shadow-2xl",
+          "relative w-full rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl",
           widths[size]
         )}
       >
-        <div className="flex items-start justify-between border-b border-zinc-800 px-6 py-4">
+        <div className="flex items-start justify-between border-b border-slate-800 px-6 py-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-100">{title}</h2>
+            <h2 className="text-lg font-semibold text-white">{title}</h2>
             {description && (
-              <p className="mt-0.5 text-xs text-zinc-500">{description}</p>
+              <p className="mt-0.5 text-sm text-slate-500">{description}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="ml-4 rounded-lg p-1 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+            className="ml-4 rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-white"
           >
             <X className="h-4 w-4" />
           </button>
