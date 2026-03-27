@@ -9,13 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as CheckinRouteImport } from './routes/checkin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentsIndexRouteImport } from './routes/students/index'
 import { Route as ReservationsIndexRouteImport } from './routes/reservations/index'
 import { Route as MembershipsIndexRouteImport } from './routes/memberships/index'
+import { Route as InstructorsIndexRouteImport } from './routes/instructors/index'
 import { Route as ClassesIndexRouteImport } from './routes/classes/index'
 import { Route as StudentsStudentIdIndexRouteImport } from './routes/students/$studentId/index'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckinRoute = CheckinRouteImport.update({
+  id: '/checkin',
+  path: '/checkin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -36,6 +49,11 @@ const MembershipsIndexRoute = MembershipsIndexRouteImport.update({
   path: '/memberships/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InstructorsIndexRoute = InstructorsIndexRouteImport.update({
+  id: '/instructors/',
+  path: '/instructors/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClassesIndexRoute = ClassesIndexRouteImport.update({
   id: '/classes/',
   path: '/classes/',
@@ -49,7 +67,10 @@ const StudentsStudentIdIndexRoute = StudentsStudentIdIndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/checkin': typeof CheckinRoute
+  '/login': typeof LoginRoute
   '/classes/': typeof ClassesIndexRoute
+  '/instructors/': typeof InstructorsIndexRoute
   '/memberships/': typeof MembershipsIndexRoute
   '/reservations/': typeof ReservationsIndexRoute
   '/students/': typeof StudentsIndexRoute
@@ -57,7 +78,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/checkin': typeof CheckinRoute
+  '/login': typeof LoginRoute
   '/classes': typeof ClassesIndexRoute
+  '/instructors': typeof InstructorsIndexRoute
   '/memberships': typeof MembershipsIndexRoute
   '/reservations': typeof ReservationsIndexRoute
   '/students': typeof StudentsIndexRoute
@@ -66,7 +90,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/checkin': typeof CheckinRoute
+  '/login': typeof LoginRoute
   '/classes/': typeof ClassesIndexRoute
+  '/instructors/': typeof InstructorsIndexRoute
   '/memberships/': typeof MembershipsIndexRoute
   '/reservations/': typeof ReservationsIndexRoute
   '/students/': typeof StudentsIndexRoute
@@ -76,7 +103,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/checkin'
+    | '/login'
     | '/classes/'
+    | '/instructors/'
     | '/memberships/'
     | '/reservations/'
     | '/students/'
@@ -84,7 +114,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/checkin'
+    | '/login'
     | '/classes'
+    | '/instructors'
     | '/memberships'
     | '/reservations'
     | '/students'
@@ -92,7 +125,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/checkin'
+    | '/login'
     | '/classes/'
+    | '/instructors/'
     | '/memberships/'
     | '/reservations/'
     | '/students/'
@@ -101,7 +137,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CheckinRoute: typeof CheckinRoute
+  LoginRoute: typeof LoginRoute
   ClassesIndexRoute: typeof ClassesIndexRoute
+  InstructorsIndexRoute: typeof InstructorsIndexRoute
   MembershipsIndexRoute: typeof MembershipsIndexRoute
   ReservationsIndexRoute: typeof ReservationsIndexRoute
   StudentsIndexRoute: typeof StudentsIndexRoute
@@ -110,6 +149,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkin': {
+      id: '/checkin'
+      path: '/checkin'
+      fullPath: '/checkin'
+      preLoaderRoute: typeof CheckinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -138,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MembershipsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/instructors/': {
+      id: '/instructors/'
+      path: '/instructors'
+      fullPath: '/instructors/'
+      preLoaderRoute: typeof InstructorsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/classes/': {
       id: '/classes/'
       path: '/classes'
@@ -157,7 +217,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CheckinRoute: CheckinRoute,
+  LoginRoute: LoginRoute,
   ClassesIndexRoute: ClassesIndexRoute,
+  InstructorsIndexRoute: InstructorsIndexRoute,
   MembershipsIndexRoute: MembershipsIndexRoute,
   ReservationsIndexRoute: ReservationsIndexRoute,
   StudentsIndexRoute: StudentsIndexRoute,

@@ -8,6 +8,7 @@ import "./index.css";
 import { configureAmplify } from "./lib/amplify";
 import { applyTheme } from "./config/theme";
 import { routeTree } from "./routeTree.gen";
+import { AuthProvider } from "./contexts/AuthContext";
 
 configureAmplify();
 applyTheme();
@@ -35,10 +36,12 @@ if (!rootElement) throw new Error("Root element not found");
 
 createRoot(rootElement).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <Toaster position="top-right" richColors closeButton />
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster position="top-right" richColors closeButton />
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
+    </AuthProvider>
   </StrictMode>
 );

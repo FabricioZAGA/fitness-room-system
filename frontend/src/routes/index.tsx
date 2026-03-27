@@ -1,126 +1,293 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Calendar, CreditCard, TrendingUp, Users } from "lucide-react";
+import {
+  Calendar,
+  CreditCard,
+  QrCode,
+  Users,
+  UserCog,
+  Clock,
+  ArrowRight,
+  AlertTriangle,
+} from "lucide-react";
 import { useStudents } from "@/hooks/useStudents";
 import { useClasses } from "@/hooks/useClasses";
 import { useExpiringSoon } from "@/hooks/useMemberships";
-import { cn } from "@/lib/utils";
+import { useInstructors } from "@/hooks/useInstructors";
+import { CLASS_TYPE_LABELS } from "@/types/class";
 
 export const Route = createFileRoute("/")({
   component: DashboardPage,
 });
 
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  href: string;
-  color: string;
+function DashboardPage(): React.JSX.Element {
+  const { data: studentsData } = useStudents({ status: "active" });
+  const { data: classesData } = useClasses({ upcoming_only: true, limit: 5 });
+  const { data: expiringSoon } = useExpiringSoon(7);
+  const { data: instructorsData } = useInstructors({ status: "active" });
+
+  const activeStudents = studentsData?.total ?? 0;
+  const upcomingClasses = classesData?.total ?? 0;
+  const expiring = expiringSoon?.length ?? 0;
+  const activeInstructors = instructorsData?.items?.length ?? 0;
+
+  return (
+    <div className="min-h-screen bg-slate-950 p-6">
+      {/* Welcome Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white">¡Bienvenido!</h1>
+        <p className="mt-1 text-lg text-slate-400">
+          Resumen de hoy en Fitness Room
+        </p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <QuickAction
+          to="/checkin"
+          icon={QrCode}
+          label="Check-in"
+          description="Registrar entrada"
+          color="emerald"
+        />
+        <QuickAction
+          to="/students"
+          icon={Users}
+          label="Nuevo Miembro"
+          description="Registrar alumno"
+          color="blue"
+        />
+        <QuickAction
+          to="/classes"
+          icon={Calendar}
+          label="Nueva Clase"
+          description="Programar clase"
+          color="violet"
+        />
+        <QuickAction
+          to="/memberships"
+          icon={CreditCard}
+          label="Membresía"
+          description="Asignar plan"
+          color="amber"
+        />
+      </div>
+
+      {/* Alert: Expiring Memberships */}
+      {expiring > 0 && (
+        <Link
+          to="/memberships"
+          className="mb-8 flex items-center justify-between rounded-2xl border-2 border-amber-500/30 bg-amber-500/10 p-5 transition-all hover:border-amber-500/50"
+        >
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-amber-500/20 p-3">
+              <AlertTriangle className="h-6 w-6 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-amber-400">
+                {expiring} membresía{expiring !== 1 ? "s" : ""} por vencer
+              </p>
+              <p className="text-sm text-amber-400/70">
+                Contactar miembros para renovación
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="h-5 w-5 text-amber-500" />
+        </Link>
+      )}
+
+      {/* Stats Grid */}
+      <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Miembros Activos"
+          value={activeStudents}
+          icon={Users}
+          color="emerald"
+          href="/students"
+        />
+        <StatCard
+          label="Clases Hoy"
+          value={upcomingClasses}
+          icon={Calendar}
+          color="blue"
+          href="/classes"
+        />
+        <StatCard
+          label="Instructores"
+          value={activeInstructors}
+          icon={UserCog}
+          color="violet"
+          href="/instructors"
+        />
+        <StatCard
+          label="Por Vencer"
+          value={expiring}
+          icon={CreditCard}
+          color="amber"
+          href="/memberships"
+        />
+      </div>
+
+      {/* Two Column Layout */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Upcoming Classes */}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">Próximas Clases</h2>
+            <Link
+              to="/classes"
+              className="text-sm text-emerald-400 hover:text-emerald-300"
+            >
+              Ver todas →
+            </Link>
+          </div>
+          {classesData?.items.length ? (
+            <div className="space-y-3">
+              {classesData.items.map((cls) => (
+                <div
+                  key={cls.class_id}
+                  className="flex items-center gap-4 rounded-xl bg-slate-800/50 p-4"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10">
+                    <Clock className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-white">
+                      {CLASS_TYPE_LABELS[cls.class_type] || cls.class_type}
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      {cls.instructor_name} · {cls.start_time.substring(0, 5)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-emerald-400">
+                      {cls.reservations_count}/{cls.capacity}
+                    </p>
+                    <p className="text-xs text-slate-500">reservados</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl bg-slate-800/30 py-12 text-center">
+              <Calendar className="mx-auto mb-3 h-10 w-10 text-slate-600" />
+              <p className="text-slate-500">No hay clases programadas</p>
+            </div>
+          )}
+        </div>
+
+        {/* Expiring Soon List */}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">Membresías por Vencer</h2>
+            <Link
+              to="/memberships"
+              className="text-sm text-emerald-400 hover:text-emerald-300"
+            >
+              Ver todas →
+            </Link>
+          </div>
+          {expiringSoon && expiringSoon.length > 0 ? (
+            <div className="space-y-3">
+              {expiringSoon.slice(0, 5).map((m) => (
+                <div
+                  key={m.membership_id}
+                  className="flex items-center justify-between rounded-xl bg-slate-800/50 p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-sm font-bold text-amber-400">
+                      {m.days_until_expiry}
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">{m.student_id.slice(0, 8)}...</p>
+                      <p className="text-sm text-slate-400">{m.membership_type}</p>
+                    </div>
+                  </div>
+                  <span className="text-sm text-amber-400">
+                    {m.days_until_expiry} días
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl bg-slate-800/30 py-12 text-center">
+              <CreditCard className="mx-auto mb-3 h-10 w-10 text-slate-600" />
+              <p className="text-slate-500">No hay membresías por vencer</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function StatCard({ title, value, description, icon: Icon, href, color }: StatCardProps): React.JSX.Element {
+function QuickAction({
+  to,
+  icon: Icon,
+  label,
+  description,
+  color,
+}: {
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  description: string;
+  color: "emerald" | "blue" | "violet" | "amber";
+}): React.JSX.Element {
+  const colors = {
+    emerald: "from-emerald-600 to-teal-600 shadow-emerald-600/20",
+    blue: "from-blue-600 to-cyan-600 shadow-blue-600/20",
+    violet: "from-violet-600 to-purple-600 shadow-violet-600/20",
+    amber: "from-amber-600 to-orange-600 shadow-amber-600/20",
+  };
+
   return (
-    <Link to={href} className="card block p-6 transition-colors hover:border-zinc-700">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-zinc-400">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-zinc-100">{value}</p>
-          <p className="mt-1 text-xs text-zinc-500">{description}</p>
-        </div>
-        <div className={cn("rounded-xl p-3", color)}>
-          <Icon className="h-5 w-5" />
-        </div>
+    <Link
+      to={to}
+      className={`flex items-center gap-4 rounded-2xl bg-gradient-to-r p-5 shadow-lg transition-all hover:scale-[1.02] ${colors[color]}`}
+    >
+      <Icon className="h-8 w-8 text-white" />
+      <div>
+        <p className="text-lg font-semibold text-white">{label}</p>
+        <p className="text-sm text-white/70">{description}</p>
       </div>
     </Link>
   );
 }
 
-function DashboardPage(): React.JSX.Element {
-  const { data: studentsData } = useStudents({ status: "active" });
-  const { data: classesData } = useClasses({ upcoming_only: true, limit: 5 });
-  const { data: expiringSoon } = useExpiringSoon(7);
-
-  const activeStudents = studentsData?.total ?? 0;
-  const upcomingClasses = classesData?.total ?? 0;
-  const expiring = expiringSoon?.length ?? 0;
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  color,
+  href,
+}: {
+  label: string;
+  value: number;
+  icon: React.ComponentType<{ className?: string }>;
+  color: "emerald" | "blue" | "violet" | "amber";
+  href: string;
+}): React.JSX.Element {
+  const colors = {
+    emerald: "border-emerald-500/20 text-emerald-400",
+    blue: "border-blue-500/20 text-blue-400",
+    violet: "border-violet-500/20 text-violet-400",
+    amber: "border-amber-500/20 text-amber-400",
+  };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-100">Dashboard</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Resumen general del estudio Fitness Room.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Alumnos Activos"
-          value={activeStudents}
-          description="Total con membresía activa"
-          icon={Users}
-          href="/students"
-          color="bg-violet-500/10 text-violet-400"
-        />
-        <StatCard
-          title="Clases Próximas"
-          value={upcomingClasses}
-          description="Clases programadas"
-          icon={Calendar}
-          href="/classes"
-          color="bg-blue-500/10 text-blue-400"
-        />
-        <StatCard
-          title="Membresías por Vencer"
-          value={expiring}
-          description="Próximos 7 días"
-          icon={CreditCard}
-          href="/memberships"
-          color="bg-amber-500/10 text-amber-400"
-        />
-        <StatCard
-          title="Asistencia"
-          value="—"
-          description="Disponible en Fase 2"
-          icon={TrendingUp}
-          href="/"
-          color="bg-green-500/10 text-green-400"
-        />
-      </div>
-
-      {expiring > 0 && (
-        <div className="card border-amber-500/30 bg-amber-500/5 p-4">
-          <p className="text-sm font-medium text-amber-400">
-            ⚠️ {expiring} membresía{expiring !== 1 ? "s" : ""} vence{expiring === 1 ? "" : "n"} en los próximos 7 días
-          </p>
-          <Link to="/memberships" className="mt-1 text-xs text-amber-400/70 hover:text-amber-400 underline">
-            Ver membresías →
-          </Link>
+    <Link
+      to={href}
+      className={`rounded-2xl border bg-slate-900 p-6 transition-all hover:border-slate-700 ${colors[color].split(" ")[0]}`}
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-slate-400">{label}</p>
+          <p className="mt-2 text-4xl font-bold text-white">{value}</p>
         </div>
-      )}
-
-      <div className="card p-6">
-        <h2 className="mb-4 text-sm font-semibold text-zinc-300">Próximas Clases</h2>
-        {classesData?.items.length ? (
-          <ul className="space-y-3">
-            {classesData.items.map((cls) => (
-              <li key={cls.class_id} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-zinc-200">{cls.instructor_name}</p>
-                  <p className="text-xs text-zinc-500">
-                    {cls.class_date} · {cls.start_time.substring(0, 5)}
-                  </p>
-                </div>
-                <span className="text-xs text-zinc-400">
-                  {cls.reservations_count}/{cls.capacity}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-zinc-500">No hay clases programadas próximamente.</p>
-        )}
+        <div className={`rounded-xl bg-slate-800 p-3 ${colors[color].split(" ")[1]}`}>
+          <Icon className="h-6 w-6" />
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
