@@ -14,7 +14,13 @@ export const apiClient: AxiosInstance = axios.create({
   timeout: 30_000,
 });
 
+const IS_LOCAL = import.meta.env.VITE_APP_ENV === "local";
+
 apiClient.interceptors.request.use(async (config) => {
+  if (IS_LOCAL) {
+    config.headers.Authorization = "Bearer local-dev-token";
+    return config;
+  }
   try {
     const session = await fetchAuthSession();
     const token = session.tokens?.idToken?.toString();
