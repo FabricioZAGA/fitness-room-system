@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertTriangle, CreditCard, Plus, Calendar, DollarSign } from "lucide-react";
 import { useExpiringSoon } from "@/hooks/useMemberships";
+import { useStudents } from "@/hooks/useStudents";
 import { CreateMembershipModal } from "@/components/shared/CreateMembershipModal";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatDate, formatCurrency, getInitials } from "@/lib/utils";
 import type { Membership } from "@/types/membership";
 
 export const Route = createFileRoute("/memberships/")({
@@ -15,12 +16,19 @@ function MembershipsPage(): React.JSX.Element {
   const [createOpen, setCreateOpen] = useState(false);
   const { data: expiring7, isLoading } = useExpiringSoon(7);
   const { data: expiring30 } = useExpiringSoon(30);
+  const { data: studentsData } = useStudents({ limit: 200 });
 
   const critical = expiring7 ?? [];
   const all30 = expiring30 ?? [];
   const warning = all30.filter(
     (m) => !critical.find((c) => c.membership_id === m.membership_id)
   );
+
+  const studentMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const s of studentsData?.items ?? []) map[s.student_id] = s.full_name;
+    return map;
+  }, [studentsData]);
 
   return (
     <>
@@ -104,7 +112,7 @@ function MembershipsPage(): React.JSX.Element {
                 </h2>
                 <div className="space-y-3">
                   {critical.map((m) => (
-                    <MembershipCard key={m.membership_id} membership={m} urgency="critical" />
+                    <MembershipCard key={m.membership_id} membership={m} urgency="critical" studentName={studentMap[m.student_id]} />
                   ))}
                 </div>
               </section>
@@ -119,7 +127,7 @@ function MembershipsPage(): React.JSX.Element {
                 </h2>
                 <div className="space-y-3">
                   {warning.map((m) => (
-                    <MembershipCard key={m.membership_id} membership={m} urgency="warning" />
+                    <MembershipCard key={m.membership_id} membership={m} urgency="warning" studentName={studentMap[m.student_id]} />
                   ))}
                 </div>
               </section>
@@ -136,9 +144,11 @@ function MembershipsPage(): React.JSX.Element {
 function MembershipCard({
   membership: m,
   urgency,
+  studentName,
 }: {
   membership: Membership;
   urgency: "critical" | "warning";
+  studentName?: string;
 }): React.JSX.Element {
   const days = m.days_until_expiry ?? 0;
 
@@ -167,13 +177,20 @@ function MembershipCard({
 
         {/* Info */}
         <div>
-          <Link
-            to="/students/$studentId"
-            params={{ studentId: m.student_id }}
-            className="text-lg font-semibold text-white hover:text-emerald-400 transition-colors"
-          >
-            Ver miembro →
-          </Link>
+          <div className="flex items-center gap-3 mb-1">
+            {studentName && (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-xs font-bold text-emerald-400">
+                {getInitials(studentName)}
+              </div>
+            )}
+            <Link
+              to="/students/$studentId"
+              params={{ studentId: m.student_id }}
+              className="text-lg font-semibold text-white hover:text-emerald-400 transition-colors"
+            >
+              {studentName ?? "Ver miembro →"}
+            </Link>
+          </div>
           <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-slate-400">
             <span className="flex items-center gap-1.5">
               <CreditCard className="h-3.5 w-3.5" />
