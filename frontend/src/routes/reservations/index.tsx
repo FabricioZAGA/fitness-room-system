@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarCheck, Plus, UserPlus, Users, XCircle, CheckCircle2, Clock } from "lucide-react";
 import { useClasses } from "@/hooks/useClasses";
+import { useStudents } from "@/hooks/useStudents";
 import { useReservationsForClass, useCancelReservation, useMarkAttendance } from "@/hooks/useReservations";
 import { ReservationStatusBadge } from "@/components/shared/StatusBadge";
 import { CLASS_TYPE_LABELS } from "@/types/class";
-import { formatDate, formatTime } from "@/lib/utils";
-import { useState } from "react";
+import { formatDate, formatTime, getInitials } from "@/lib/utils";
+import { useState, useMemo } from "react";
 import { AddToClassModal } from "@/components/shared/AddToClassModal";
 
 export const Route = createFileRoute("/reservations/")({
@@ -23,6 +24,18 @@ function ReservationsPage(): React.JSX.Element {
   const { data: reservationsData, isLoading: resLoading } =
     useReservationsForClass(selectedClassId);
   const reservations = reservationsData?.items ?? [];
+
+  const { data: studentsData } = useStudents({ limit: 200 });
+  const studentMap = useMemo(() => {
+    const map: Record<string, { name: string; initials: string }> = {};
+    for (const s of studentsData?.items ?? []) {
+      map[s.student_id] = {
+        name: s.full_name,
+        initials: getInitials(s.full_name),
+      };
+    }
+    return map;
+  }, [studentsData]);
 
   const { mutate: cancelReservation } = useCancelReservation();
   const { mutate: markAttendance } = useMarkAttendance();
@@ -134,77 +147,80 @@ function ReservationsPage(): React.JSX.Element {
           ) : (
             /* Reservations List */
             <div className="space-y-3">
-              {reservations.map((res) => (
-                <div
-                  key={res.reservation_id}
-                  className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900 p-5"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-slate-400">
-                      {res.student_id.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-medium text-white">
-                        {res.student_id.slice(0, 8)}...
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <ReservationStatusBadge status={res.status} />
-                        {res.waitlist_position !== null && (
-                          <span className="text-xs text-amber-400">
-                            Lista de espera #{res.waitlist_position}
-                          </span>
-                        )}
+              {reservations.map((res) => {
+                const member = studentMap[res.student_id];
+                return (
+                  <div
+                    key={res.reservation_id}
+                    className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900 p-5"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-bold text-emerald-400">
+                        {member ? member.initials : res.student_id.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-lg font-semibold text-white">
+                          {member ? member.name : `ID: ${res.student_id.slice(0, 8)}...`}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <ReservationStatusBadge status={res.status} />
+                          {res.waitlist_position !== null && (
+                            <span className="text-xs text-amber-400">
+                              Lista de espera #{res.waitlist_position}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    {res.status === "confirmed" && (
-                      <>
-                        <button
-                          onClick={() =>
-                            markAttendance({
-                              classId: selectedClassId,
-                              studentId: res.student_id,
-                              attended: true,
-                            })
-                          }
-                          className="rounded-lg bg-emerald-500/10 p-2 text-emerald-400 transition-colors hover:bg-emerald-500/20"
-                          title="Marcar asistencia"
-                        >
-                          <CheckCircle2 className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            markAttendance({
-                              classId: selectedClassId,
-                              studentId: res.student_id,
-                              attended: false,
-                            })
-                          }
-                          className="rounded-lg bg-amber-500/10 p-2 text-amber-400 transition-colors hover:bg-amber-500/20"
-                          title="Marcar no-show"
-                        >
-                          <Clock className="h-5 w-5" />
-                        </button>
-                      </>
-                    )}
-                    <button
-                      onClick={() =>
-                        cancelReservation({
-                          classId: selectedClassId,
-                          studentId: res.student_id,
-                        })
-                      }
-                      className="rounded-lg bg-red-500/10 p-2 text-red-400 transition-colors hover:bg-red-500/20"
-                      title="Cancelar reservación"
-                    >
-                      <XCircle className="h-5 w-5" />
-                    </button>
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      {res.status === "confirmed" && (
+                        <>
+                          <button
+                            onClick={() =>
+                              markAttendance({
+                                classId: selectedClassId,
+                                studentId: res.student_id,
+                                attended: true,
+                              })
+                            }
+                            className="rounded-lg bg-emerald-500/10 p-2 text-emerald-400 transition-colors hover:bg-emerald-500/20"
+                            title="Marcar asistencia"
+                          >
+                            <CheckCircle2 className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              markAttendance({
+                                classId: selectedClassId,
+                                studentId: res.student_id,
+                                attended: false,
+                              })
+                            }
+                            className="rounded-lg bg-amber-500/10 p-2 text-amber-400 transition-colors hover:bg-amber-500/20"
+                            title="Marcar no-show"
+                          >
+                            <Clock className="h-5 w-5" />
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() =>
+                          cancelReservation({
+                            classId: selectedClassId,
+                            studentId: res.student_id,
+                          })
+                        }
+                        className="rounded-lg bg-red-500/10 p-2 text-red-400 transition-colors hover:bg-red-500/20"
+                        title="Cancelar reservación"
+                      >
+                        <XCircle className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>

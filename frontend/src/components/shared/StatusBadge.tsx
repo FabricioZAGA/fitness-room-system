@@ -4,9 +4,9 @@ import type { MembershipStatus } from "@/types/membership";
 import type { ReservationStatus } from "@/types/reservation";
 
 const STUDENT_STATUS_STYLES: Record<StudentStatus, string> = {
-  active: "bg-green-500/15 text-green-400 border-green-500/30",
-  inactive: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
-  founder: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  inactive: "bg-slate-500/15 text-slate-400 border-slate-500/30",
+  founder: "bg-violet-500/15 text-violet-400 border-violet-500/30",
   new: "bg-blue-500/15 text-blue-400 border-blue-500/30",
 };
 
@@ -18,10 +18,10 @@ const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
 };
 
 const MEMBERSHIP_STATUS_STYLES: Record<MembershipStatus, string> = {
-  active: "bg-green-500/15 text-green-400 border-green-500/30",
+  active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   expired: "bg-red-500/15 text-red-400 border-red-500/30",
-  cancelled: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
-  pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  cancelled: "bg-slate-500/15 text-slate-400 border-slate-500/30",
+  pending: "bg-amber-500/15 text-amber-400 border-amber-500/30",
 };
 
 const MEMBERSHIP_STATUS_LABELS: Record<MembershipStatus, string> = {
@@ -32,9 +32,9 @@ const MEMBERSHIP_STATUS_LABELS: Record<MembershipStatus, string> = {
 };
 
 const RESERVATION_STATUS_STYLES: Record<ReservationStatus, string> = {
-  confirmed: "bg-green-500/15 text-green-400 border-green-500/30",
-  waitlisted: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-  cancelled: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
+  confirmed: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  waitlisted: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  cancelled: "bg-slate-500/15 text-slate-400 border-slate-500/30",
   attended: "bg-blue-500/15 text-blue-400 border-blue-500/30",
   no_show: "bg-red-500/15 text-red-400 border-red-500/30",
 };
@@ -63,7 +63,7 @@ function Badge({ label, className }: { label: string; className: string }): Reac
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold",
         className
       )}
     >
