@@ -94,7 +94,19 @@ echo ""
 MISSING=0
 
 check_tool "git"                              "brew install git"             || MISSING=$((MISSING+1))
-check_tool "uv"                               "curl -LsSf https://astral.sh/uv/install.sh | sh" || MISSING=$((MISSING+1))
+if command -v uv &>/dev/null; then
+  success "uv $(uv --version)"
+else
+  warn "uv no encontrado — instalando automáticamente..."
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+  if command -v uv &>/dev/null; then
+    success "uv $(uv --version) instalado"
+  else
+    error "No se pudo instalar uv. Instálalo manualmente: curl -LsSf https://astral.sh/uv/install.sh | sh"
+    MISSING=$((MISSING+1))
+  fi
+fi
 check_tool "aws"                              "brew install awscli"          || MISSING=$((MISSING+1))
 check_tool "direnv"                           "brew install direnv"          || MISSING=$((MISSING+1))
 
@@ -146,13 +158,15 @@ if $BACKEND_ONLY; then
 
   PYTHON_VERSION="3.12"
 
-  # Instalar Python 3.12 si pyenv está disponible y no lo tiene
+  # Instalar Python 3.12 via pyenv si no está disponible
   if command -v pyenv &>/dev/null; then
-    if ! pyenv versions --bare | grep -q "^${PYTHON_VERSION}"; then
-      info "Instalando Python ${PYTHON_VERSION} via pyenv..."
+    if ! pyenv versions --bare 2>/dev/null | grep -q "^${PYTHON_VERSION}"; then
+      info "Instalando Python ${PYTHON_VERSION} via pyenv (puede tardar unos minutos)..."
       pyenv install "$PYTHON_VERSION"
+      success "Python ${PYTHON_VERSION} instalado via pyenv"
     fi
     pyenv local "$PYTHON_VERSION"
+    export PATH="$(pyenv root)/versions/${PYTHON_VERSION}/bin:$PATH"
   fi
 
   # Crear virtualenv con uv
@@ -229,15 +243,17 @@ if $FRONTEND_ONLY; then
     success "Node.js $(node --version) activo (nvm)"
   fi
 
-  # Habilitar corepack para pnpm
-  if command -v corepack &>/dev/null; then
-    corepack enable pnpm 2>/dev/null || true
+  # Instalar pnpm si no está disponible (evitar corepack interactivo)
+  if ! command -v pnpm &>/dev/null || pnpm --version 2>/dev/null | grep -q 'corepack'; then
+    info "Instalando pnpm via npm..."
+    npm install -g pnpm@latest --silent
+    success "pnpm $(pnpm --version) instalado"
   fi
 
   cd "$ROOT_DIR/frontend"
 
   info "Instalando dependencias del frontend con pnpm..."
-  pnpm install
+  COREPACK_ENABLE_STRICT=0 pnpm install
   success "Dependencias del frontend instaladas"
 
   if [ ! -f ".env" ]; then
