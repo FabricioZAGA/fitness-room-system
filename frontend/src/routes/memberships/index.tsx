@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AlertTriangle, CreditCard, Plus, Calendar, DollarSign } from "lucide-react";
+import { AlertTriangle, CreditCard, Plus, Calendar, DollarSign, Mail } from "lucide-react";
 import { useExpiringSoon } from "@/hooks/useMemberships";
 import { useStudents } from "@/hooks/useStudents";
 import { CreateMembershipModal } from "@/components/shared/CreateMembershipModal";
+import { useSendCustomNotification } from "@/hooks/useNotifications";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import { formatDate, formatCurrency, getInitials } from "@/lib/utils";
 import type { Membership } from "@/types/membership";
@@ -18,6 +19,7 @@ function MembershipsPage(): React.JSX.Element {
   const { data: expiring7, isLoading } = useExpiringSoon(7);
   const { data: expiring30 } = useExpiringSoon(30);
   const { data: studentsData } = useStudents({ limit: 200 });
+  const notifyMutation = useSendCustomNotification();
 
   const critical = expiring7 ?? [];
   const all30 = expiring30 ?? [];
@@ -120,7 +122,14 @@ function MembershipsPage(): React.JSX.Element {
                 </h2>
                 <div className="space-y-3">
                   {critical.map((m) => (
-                    <MembershipCard key={m.membership_id} membership={m} urgency="critical" studentName={studentMap[m.student_id]} onRenew={() => setRenewStudentId(m.student_id)} />
+                    <MembershipCard key={m.membership_id} membership={m} urgency="critical" studentName={studentMap[m.student_id]} onRenew={() => setRenewStudentId(m.student_id)}
+                    onNotify={() => notifyMutation.mutate({
+                      studentId: m.student_id,
+                      data: {
+                        subject: `Recordatorio: tu membresía vence en ${m.days_until_expiry ?? 0} días`,
+                        message: `Hola, te recordamos que tu membresía vence el ${m.end_date}. Visítanos para renovarla y seguir entrenando sin interrupciones.`,
+                      },
+                    })} />
                   ))}
                 </div>
               </section>
@@ -135,7 +144,14 @@ function MembershipsPage(): React.JSX.Element {
                 </h2>
                 <div className="space-y-3">
                   {warning.map((m) => (
-                    <MembershipCard key={m.membership_id} membership={m} urgency="warning" studentName={studentMap[m.student_id]} onRenew={() => setRenewStudentId(m.student_id)} />
+                    <MembershipCard key={m.membership_id} membership={m} urgency="warning" studentName={studentMap[m.student_id]} onRenew={() => setRenewStudentId(m.student_id)}
+                    onNotify={() => notifyMutation.mutate({
+                      studentId: m.student_id,
+                      data: {
+                        subject: `Recordatorio: tu membresía vence en ${m.days_until_expiry ?? 0} días`,
+                        message: `Hola, te recordamos que tu membresía vence el ${m.end_date}. Visítanos para renovarla y seguir entrenando sin interrupciones.`,
+                      },
+                    })} />
                   ))}
                 </div>
               </section>
@@ -161,11 +177,13 @@ function MembershipCard({
   urgency,
   studentName,
   onRenew,
+  onNotify,
 }: {
   membership: Membership;
   urgency: "critical" | "warning";
   studentName?: string;
   onRenew?: () => void;
+  onNotify?: () => void;
 }): React.JSX.Element {
   const days = m.days_until_expiry ?? 0;
 
@@ -225,22 +243,30 @@ function MembershipCard({
         </div>
       </div>
 
-      {/* Renew button */}
-      {onRenew && (
-        <button
-          onClick={onRenew}
-          className="hidden shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all sm:flex items-center gap-2"
-          style={{
-            background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-            color: "var(--gold-fg)",
-            boxShadow: "0 10px 25px var(--gold-bg)"
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
-        >
-          Renovar
-        </button>
-      )}
+      {/* Actions */}
+      <div className="hidden shrink-0 gap-2 sm:flex">
+        {onNotify && (
+          <button
+            onClick={onNotify}
+            className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]"
+          >
+            <Mail className="h-4 w-4" />
+            Recordatorio
+          </button>
+        )}
+        {onRenew && (
+          <button
+            onClick={onRenew}
+            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all"
+            style={{
+              background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+              color: "var(--gold-fg)",
+            }}
+          >
+            Renovar
+          </button>
+        )}
+      </div>
     </div>
   );
 }

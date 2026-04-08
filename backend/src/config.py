@@ -44,6 +44,32 @@ class Settings(BaseSettings):
         default="fitness-room-api", description="Lambda Powertools service name"
     )
 
+    # ── SES / Notifications ────────────────────────────────────────────────────
+    ses_sender_email: str = Field(
+        default="noreply@fitness-room.mx",
+        description="Verified SES sender email address",
+    )
+    ses_sender_name: str = Field(
+        default="Fitness Room",
+        description="Display name in the From field of notification emails",
+    )
+    gym_phone: str = Field(
+        default="",
+        description="Gym phone number shown in email footers",
+    )
+    notification_critical_days: int = Field(
+        default=7,
+        description="Days before expiry for critical (urgent) reminder",
+    )
+    notification_warning_days: int = Field(
+        default=30,
+        description="Days before expiry for standard reminder",
+    )
+    notification_inactive_days: int = Field(
+        default=14,
+        description="Days without check-in before inactivity alert",
+    )
+
     @property
     def cognito_jwks_url(self) -> str:
         """Return JWKS URL for Cognito token validation."""

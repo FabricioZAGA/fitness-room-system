@@ -50,6 +50,9 @@ auth_stack = AuthStack(
     tags=common_tags,
 )
 
+_sender_email: str = app.node.try_get_context("senderEmail") or "noreply@fitness-room.mx"
+_sender_name: str = app.node.try_get_context("senderName") or "Fitness Room"
+
 api_stack = ApiStack(
     app,
     f"FitnessRoomApiStack-{env_name}",
@@ -57,6 +60,8 @@ api_stack = ApiStack(
     table=database_stack.table,
     user_pool=auth_stack.user_pool,
     frontend_url="http://localhost:5173" if env_name == "dev" else "https://app.fitnessroom.com" if env_name == "prod" else "https://staging.fitnessroom.com",
+    sender_email=_sender_email,
+    sender_name=_sender_name,
     env=aws_env,
     tags=common_tags,
 )

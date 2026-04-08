@@ -9,6 +9,13 @@ import { updatePassword } from "aws-amplify/auth";
 import { useThemeStore } from "@/store/useThemeStore";
 import { useGymStore } from "@/store/useGymStore";
 import type { GymInfo, NotifSettings } from "@/store/useGymStore";
+import {
+  useSendExpiryReminders,
+  useSendInactivityAlerts,
+  useRecentNotifications,
+} from "@/hooks/useNotifications";
+import { NOTIFICATION_TYPE_LABELS } from "@/types/notification";
+import type { NotificationResponse } from "@/types/notification";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -43,7 +50,7 @@ function SettingsPage(): React.JSX.Element {
     toast.success("Información del gimnasio guardada");
   };
 
-  // ── Notification settings form ────────────────────────────────────
+  // ── Notification settings form + send actions ─────────────────────
   const [notifForm, setNotifForm] = useState<NotifSettings>({
     criticalDays: gym.criticalDays,
     warningDays: gym.warningDays,
@@ -54,6 +61,10 @@ function SettingsPage(): React.JSX.Element {
     gym.saveNotifSettings(notifForm);
     toast.success("Configuración de alertas guardada");
   };
+
+  const expiryMutation = useSendExpiryReminders();
+  const inactivityMutation = useSendInactivityAlerts();
+  const { data: recentNotifs = [] } = useRecentNotifications(20);
 
   // ── Password change form ───────────────────────────────────────────
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
@@ -226,7 +237,8 @@ function SettingsPage(): React.JSX.Element {
           title={t("settings.notifications")}
           description={t("settings.notificationsDesc")}
         >
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Threshold config */}
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[--tx-muted]">
@@ -242,9 +254,7 @@ function SettingsPage(): React.JSX.Element {
                     setNotifForm((f) => ({ ...f, criticalDays: Number(e.target.value) }))
                   }
                 />
-                <p className="mt-1 text-xs text-[--tx-disabled]">
-                  Membresías en rojo — avisa con X días de anticipación
-                </p>
+                <p className="mt-1 text-xs text-[--tx-disabled]">Membresías en rojo</p>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[--tx-muted]">
@@ -260,9 +270,7 @@ function SettingsPage(): React.JSX.Element {
                     setNotifForm((f) => ({ ...f, warningDays: Number(e.target.value) }))
                   }
                 />
-                <p className="mt-1 text-xs text-[--tx-disabled]">
-                  Membresías en amarillo — lista ampliada
-                </p>
+                <p className="mt-1 text-xs text-[--tx-disabled]">Membresías en amarillo</p>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[--tx-muted]">
@@ -278,19 +286,84 @@ function SettingsPage(): React.JSX.Element {
                     setNotifForm((f) => ({ ...f, inactiveDays: Number(e.target.value) }))
                   }
                 />
-                <p className="mt-1 text-xs text-[--tx-disabled]">
-                  Umbral para reporte de alumnos inactivos
-                </p>
+                <p className="mt-1 text-xs text-[--tx-disabled]">Umbral de inactividad</p>
               </div>
             </div>
+
             <button
               onClick={handleNotifSave}
               className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all"
               style={goldActiveStyle}
             >
               <Save className="h-4 w-4" />
-              Guardar alertas
+              Guardar umbrales
             </button>
+
+            {/* Manual send triggers */}
+            <div className="border-t border-[--bd-default] pt-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">
+                Envío manual
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() =>
+                    expiryMutation.mutate({
+                      critical_days: notifForm.criticalDays,
+                      warning_days: notifForm.warningDays,
+                    })
+                  }
+                  disabled={expiryMutation.isPending}
+                  className="flex items-center gap-2 rounded-xl border border-[--bd-default] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold] disabled:opacity-50"
+                >
+                  {expiryMutation.isPending ? "Enviando..." : "Recordatorios de vencimiento"}
+                </button>
+                <button
+                  onClick={() =>
+                    inactivityMutation.mutate({ inactive_days: notifForm.inactiveDays })
+                  }
+                  disabled={inactivityMutation.isPending}
+                  className="flex items-center gap-2 rounded-xl border border-[--bd-default] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold] disabled:opacity-50"
+                >
+                  {inactivityMutation.isPending ? "Enviando..." : "Alertas de inactividad"}
+                </button>
+              </div>
+            </div>
+
+            {/* Recent notifications log */}
+            {recentNotifs.length > 0 && (
+              <div className="border-t border-[--bd-default] pt-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">
+                  Últimas notificaciones enviadas
+                </p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {recentNotifs.map((n: NotificationResponse) => (
+                    <div
+                      key={n.notification_id}
+                      className="flex items-center gap-3 rounded-xl bg-[--bg-muted] px-3 py-2.5"
+                    >
+                      <div
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{
+                          backgroundColor:
+                            n.status === "sent" ? "var(--color-success)" : "var(--color-danger)",
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-xs font-medium text-[--tx-primary]">
+                          {n.student_name ?? "—"} · {NOTIFICATION_TYPE_LABELS[n.notification_type]}
+                        </p>
+                        <p className="text-xs text-[--tx-disabled]">
+                          {new Date(n.sent_at).toLocaleString("es-MX", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </SettingSection>
 

@@ -19,6 +19,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { IncomeDay } from "@/types/report";
 import { useGymStore } from "@/store/useGymStore";
+import { useSendCustomNotification } from "@/hooks/useNotifications";
 
 export const Route = createFileRoute("/reportes/")({
   component: ReportesPage,
@@ -104,6 +105,7 @@ function ReportesPage(): React.JSX.Element {
   const todayStr = today.toISOString().split("T")[0];
 
   const defaultInactiveDays = useGymStore((s) => s.inactiveDays);
+  const notifyMutation = useSendCustomNotification();
 
   const [startDate, setStartDate] = useState(firstOfMonth);
   const [endDate, setEndDate] = useState(todayStr);
@@ -418,13 +420,22 @@ function ReportesPage(): React.JSX.Element {
                             WhatsApp
                           </a>
                         )}
-                        <a
-                          href={`mailto:${student.email}`}
-                          className="flex items-center gap-1 rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-muted] hover:border-[--gold-bd] hover:text-[--gold] transition-colors"
+                        <button
+                          onClick={() =>
+                            notifyMutation.mutate({
+                              studentId: student.student_id,
+                              data: {
+                                subject: `¡Te extrañamos en Fitness Room!`,
+                                message: `Hola ${student.student_name}, han pasado más de ${inactiveDays} días desde tu última visita. Te esperamos para seguir entrenando juntos. ¡Tu progreso te espera!`,
+                              },
+                            })
+                          }
+                          disabled={notifyMutation.isPending}
+                          className="flex items-center gap-1 rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-muted] hover:border-[--gold-bd] hover:text-[--gold] transition-colors disabled:opacity-50"
                         >
                           <Mail className="h-3.5 w-3.5" />
                           Email
-                        </a>
+                        </button>
                       </div>
                     </div>
                   ))}

@@ -24,6 +24,7 @@ from src.routers import (
     instructors,
     inventory,
     memberships,
+    notifications,
     reports,
     reservations,
     stats,
@@ -159,11 +160,48 @@ app.include_router(stats.router, prefix="/api/v1")
 app.include_router(transactions.router, prefix="/api/v1")
 app.include_router(inventory.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
+app.include_router(notifications.router, prefix="/api/v1")
 
 
 @logger.inject_lambda_context(log_event=True)
 @tracer.capture_lambda_handler
 def handler(event: dict[str, Any], context: LambdaContext) -> dict[str, Any]:
-    """AWS Lambda entry point — wraps FastAPI via Mangum."""
+    """AWS Lambda entry point.
+
+    Handles two event types:
+      1. HTTP requests from API Gateway v2  → Mangum → FastAPI
+      2. EventBridge scheduled events       → notification service
+    """
+    # EventBridge scheduled trigger
+    if event.get("source") == "aws.events" or event.get("detail-type") == "Scheduled Event":
+        return _handle_scheduled_event(event)
+
     mangum_handler = Mangum(app, lifespan="off")
     return mangum_handler(event, context)  # type: ignore[arg-type]
+
+
+def _handle_scheduled_event(event: dict[str, Any]) -> dict[str, Any]:
+    """Handle EventBridge scheduled notification triggers."""
+    from src.services.notification_service import NotificationService
+
+    cfg = get_settings()
+    svc = NotificationService()
+    action = event.get("detail", {}).get("action", "send_all")
+    results: dict[str, Any] = {}
+
+    if action in ("send_all", "send_expiry"):
+        result = svc.send_expiry_reminders(
+            critical_days=cfg.notification_critical_days,
+            warning_days=cfg.notification_warning_days,
+        )
+        results["expiry"] = {"sent": result.sent, "failed": result.failed, "skipped": result.skipped}
+        logger.info("Scheduled expiry reminders sent", **results["expiry"])
+
+    if action in ("send_all", "send_inactivity"):
+        result = svc.send_inactivity_alerts(
+            inactive_days=cfg.notification_inactive_days,
+        )
+        results["inactivity"] = {"sent": result.sent, "failed": result.failed, "skipped": result.skipped}
+        logger.info("Scheduled inactivity alerts sent", **results["inactivity"])
+
+    return {"statusCode": 200, "body": results}

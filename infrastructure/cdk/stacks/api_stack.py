@@ -14,9 +14,12 @@ from aws_cdk import (
     aws_apigatewayv2_integrations as apigwv2_integrations,
     aws_cognito as cognito,
     aws_dynamodb as dynamodb,
+    aws_events as events,
+    aws_events_targets as targets,
     aws_iam as iam,
     aws_lambda as lambda_,
     aws_logs as logs,
+    aws_ses as ses,
 )
 from constructs import Construct
 
@@ -32,6 +35,8 @@ class ApiStack(cdk.Stack):
         table: dynamodb.Table,
         user_pool: cognito.UserPool,
         frontend_url: str = "http://localhost:5173",
+        sender_email: str = "noreply@fitness-room.mx",
+        sender_name: str = "Fitness Room",
         **kwargs: object,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -53,6 +58,16 @@ class ApiStack(cdk.Stack):
         )
 
         table.grant_read_write_data(lambda_role)
+
+        # SES — allow the Lambda to send emails
+        lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="AllowSESSendEmail",
+                effect=iam.Effect.ALLOW,
+                actions=["ses:SendEmail", "ses:SendRawEmail"],
+                resources=["*"],
+            )
+        )
 
         dependencies_layer = lambda_.LayerVersion(
             self,
@@ -105,6 +120,8 @@ class ApiStack(cdk.Stack):
                 "POWERTOOLS_METRICS_NAMESPACE": "FitnessRoom",
                 "POWERTOOLS_LOG_LEVEL": "INFO" if env_name == "prod" else "DEBUG",
                 "FRONTEND_URL": frontend_url,
+                "SES_SENDER_EMAIL": sender_email,
+                "SES_SENDER_NAME": sender_name,
             },
             tracing=lambda_.Tracing.ACTIVE,
             log_retention=logs.RetentionDays.ONE_MONTH if env_name == "prod" else logs.RetentionDays.ONE_WEEK,
@@ -153,6 +170,45 @@ class ApiStack(cdk.Stack):
             methods=[apigwv2.HttpMethod.ANY],
             integration=lambda_integration,
             authorizer=jwt_authorizer,
+        )
+
+        # ── SES email identity ─────────────────────────────────────────────────
+        # Verifies the sender email address with SES.
+        # NOTE: After deploy, check the inbox of sender_email and click the
+        # verification link before emails can be sent.
+        ses.CfnEmailIdentity(
+            self,
+            "SenderEmailIdentity",
+            email_identity=sender_email,
+        )
+
+        # ── EventBridge daily notification schedule ────────────────────────────
+        # Fires every day at 09:00 CDMX (15:00 UTC, UTC-6)
+        notification_rule = events.Rule(
+            self,
+            "DailyNotificationRule",
+            rule_name=f"fitness-room-daily-notifications-{env_name}",
+            description="Trigger daily membership expiry and inactivity email notifications",
+            schedule=events.Schedule.cron(
+                hour="15",
+                minute="0",
+                week_day="*",
+                month="*",
+                year="*",
+            ),
+            enabled=env_name != "dev",  # disabled in dev to avoid accidental emails
+        )
+        notification_rule.add_target(
+            targets.LambdaFunction(
+                self.api_function,
+                event=events.RuleTargetInput.from_object(
+                    {
+                        "source": "aws.events",
+                        "detail-type": "Scheduled Event",
+                        "detail": {"action": "send_all"},
+                    }
+                ),
+            )
         )
 
         cdk.CfnOutput(
