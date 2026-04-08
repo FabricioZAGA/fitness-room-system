@@ -18,6 +18,7 @@ import {
 } from "@/hooks/useReports";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { IncomeDay } from "@/types/report";
+import { useGymStore } from "@/store/useGymStore";
 
 export const Route = createFileRoute("/reportes/")({
   component: ReportesPage,
@@ -102,11 +103,13 @@ function ReportesPage(): React.JSX.Element {
     .split("T")[0];
   const todayStr = today.toISOString().split("T")[0];
 
+  const defaultInactiveDays = useGymStore((s) => s.inactiveDays);
+
   const [startDate, setStartDate] = useState(firstOfMonth);
   const [endDate, setEndDate] = useState(todayStr);
   const [attendanceDays, setAttendanceDays] = useState(30);
   const [rankingDays, setRankingDays] = useState(30);
-  const [inactiveDays, setInactiveDays] = useState(14);
+  const [inactiveDays, setInactiveDays] = useState(defaultInactiveDays);
 
   const { data: income, isLoading: incomeLoading } = useIncomeReport({
     start_date: startDate,

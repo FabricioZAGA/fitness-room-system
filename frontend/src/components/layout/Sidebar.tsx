@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
+import { useGymStore } from "@/store/useGymStore";
 
 interface NavItem {
   label: string;
@@ -58,6 +59,7 @@ export function Sidebar(): React.JSX.Element {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const NAV_ITEMS = useNavItems();
+  const gymName = useGymStore((s) => s.name);
 
   const mainItems = NAV_ITEMS.filter((i) => i.section === "main");
   const operationsItems = NAV_ITEMS.filter((i) => i.section === "operations");
@@ -77,7 +79,7 @@ export function Sidebar(): React.JSX.Element {
           <Dumbbell className="h-7 w-7 text-[--gold-fg]" />
         </div>
         <div>
-          <span className="block text-lg font-bold text-[--tx-primary]">Fitness Room</span>
+          <span className="block text-lg font-bold text-[--tx-primary]">{gymName}</span>
           <span className="text-xs text-[--tx-muted]">{t("nav.managementSystem")}</span>
         </div>
       </div>
