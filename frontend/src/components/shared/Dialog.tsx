@@ -43,13 +43,14 @@ export function Dialog({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
       <div
         ref={ref}
         className={cn(
-          "relative w-full rounded-2xl border border-[--bd-default] bg-[--bg-base] shadow-2xl",
+          "relative w-full rounded-2xl border border-[--bd-default] shadow-2xl",
           widths[size]
         )}
+        style={{ backgroundColor: "var(--bg-elevated)" }}
       >
         <div className="flex items-start justify-between border-b border-[--bd-default] px-6 py-5">
           <div>

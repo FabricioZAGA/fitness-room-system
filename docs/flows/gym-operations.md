@@ -1,241 +1,243 @@
-# Flujos de Operación — Gimnasio Híbrido
+# Flujos Operativos — Fitness Room System
 
-## Visión General
-
-El sistema soporta un modelo **híbrido** donde los miembros pueden:
-- Asistir presencialmente al gimnasio
-- Tomar clases en línea (Zoom/Meet)
-- Reservar equipos o espacios específicos
+> **Estado:** Fase 1 completada. Todos los flujos descritos en este documento están implementados y operativos.
 
 ---
 
-## 1. Flujo de Llegada Presencial
+## Contexto del Negocio (México)
 
-```
-┌─────────────────┐
-│   Miembro llega │
-│   al gimnasio   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐     ┌──────────────────┐
-│ Escanea su QR   │────▶│ Sistema valida:  │
-│ en la entrada   │     │ • Membresía activa│
-└─────────────────┘     │ • No vencida     │
-                        │ • Clases restantes│
-                        └────────┬─────────┘
-                                 │
-              ┌──────────────────┼──────────────────┐
-              │                  │                  │
-              ▼                  ▼                  ▼
-      ┌───────────┐      ┌───────────┐      ┌───────────┐
-      │ ✅ Acceso │      │ ⚠️ Alerta │      │ ❌ Acceso │
-      │ permitido │      │ vence en  │      │ denegado  │
-      │           │      │ 3 días    │      │           │
-      └───────────┘      └───────────┘      └───────────┘
-              │                  │                  │
-              ▼                  ▼                  ▼
-      ┌───────────┐      ┌───────────┐      ┌───────────┐
-      │ Registra  │      │ Ofrece    │      │ Redirige  │
-      │ check-in  │      │ renovación│      │ a caja    │
-      └───────────┘      └───────────┘      └───────────┘
-```
+**Fitness Room** es un estudio de fitness en México con:
+- Un recepcionista en turno que opera el sistema
+- Instructores que imparten clases grupales
+- Miembros con distintos tipos de membresía (mensual, packs, etc.)
+- Pago típico en efectivo o transferencia (MXN)
+- Comunicación con miembros principalmente por WhatsApp (Fase 2)
 
-### Acciones del Staff en Recepción
-1. **Check-in rápido**: Escanear QR o buscar por nombre
-2. **Ver estado**: Membresía, clases restantes, próxima clase
-3. **Alertas visuales**: Colores claros (verde/amarillo/rojo)
-4. **Acción rápida**: Renovar, cobrar clase suelta, registrar visita
+**Operaciones por frecuencia:**
+- **Diario (múltiples veces):** Check-in de miembros
+- **Semanal:** Registro de nuevos miembros, asignación de membresías
+- **Mensual:** Programación de clases, renovaciones
+- **Esporádico:** Gestión de instructores, configuración
 
 ---
 
-## 2. Flujo de Reservación de Clase
+## 1. Flujo de Check-in (Operación Principal)
+
+Este es el flujo más crítico. Ocurre cada vez que llega un miembro al gimnasio.
 
 ```
-┌─────────────────┐
-│ Miembro abre    │
-│ la app/web      │
-└────────┬────────┘
+Miembro llega al gimnasio
          │
          ▼
-┌─────────────────┐
-│ Ve calendario   │
-│ de clases       │
-│ (día/semana)    │
-└────────┬────────┘
+Recepcionista abre /checkin
          │
          ▼
-┌─────────────────┐
-│ Selecciona      │
-│ clase deseada   │
-└────────┬────────┘
+Escribe 2+ letras del nombre
+         │
+         ▼  (búsqueda client-side, < 100ms)
+Lista de hasta 10 resultados
          │
          ▼
-┌─────────────────┐     ┌──────────────────┐
-│ Sistema valida  │────▶│ • Lugares disp.  │
-│                 │     │ • Membresía OK   │
-│                 │     │ • No duplicado   │
-└────────┬────────┘     └──────────────────┘
+Click en el miembro correcto
          │
-    ┌────┴────┐
-    │         │
-    ▼         ▼
-┌───────┐  ┌───────┐
-│ ✅    │  │ ⏳    │
-│Confirm│  │Lista  │
-│       │  │espera │
-└───────┘  └───────┘
+         ▼
+Sistema valida (POST /checkin en background):
+  1. Student.status == active | founder
+  2. Membresía activa existe
+  3. days_until_expiry > 0
+         │
+    ┌────┼────────────────┐
+    ▼    ▼                ▼
+  ✅    ⚠️ (<7 días)     ❌
+  Verde  Ámbar            Rojo
+    │    │                │
+    └────┴──── Click "Registrar Check-in"
+                         │
+                         ▼
+               CHECKIN#{timestamp} guardado en DynamoDB
 ```
 
-### Notificaciones
-- **24h antes**: Recordatorio de clase
-- **Lista de espera**: Notifica si se libera lugar
-- **Cancelación**: Mínimo 2h antes sin penalización
+**Reglas de acceso:**
+- `active` o `founder` → puede intentar
+- Sin membresía → `NO_MEMBERSHIP` → denegado
+- Membresía expirada (`days_until_expiry <= 0`) → `EXPIRED` → denegado
+- `days_until_expiry in [1..7]` → `EXPIRING_SOON` → permitido con alerta
+- `days_until_expiry >= 8` → `ALL_GOOD` → permitido
 
 ---
 
-## 3. Flujo de Clase (Instructor)
+## 2. Flujo de Nuevo Miembro
 
 ```
-┌─────────────────┐
-│ Instructor      │
-│ inicia sesión   │
-└────────┬────────┘
+Staff hace click en "Nuevo Miembro" (Dashboard o /students)
          │
          ▼
-┌─────────────────┐
-│ Ve sus clases   │
-│ del día         │
-└────────┬────────┘
+Modal: CreateStudentModal
+  • Nombre y apellido (requerido)
+  • Correo electrónico (requerido, único)
+  • Teléfono (opcional)
+  • Estado inicial: "Nuevo" (default)
+  • Notas (opcional)
          │
          ▼
-┌─────────────────┐
-│ Selecciona      │
-│ clase actual    │
-└────────┬────────┘
+POST /api/v1/students
          │
          ▼
-┌─────────────────────────────────────┐
-│           DURANTE LA CLASE          │
-├─────────────────────────────────────┤
-│ • Lista de asistentes              │
-│ • Marcar asistencia (tap rápido)   │
-│ • Ver notas médicas de miembros    │
-│ • Iniciar sesión virtual (Zoom)    │
-└────────┬────────────────────────────┘
+✅ Alumno registrado
          │
          ▼
-┌─────────────────┐
-│ Al terminar:    │
-│ • Confirmar     │
-│   asistencias   │
-│ • Notas de clase│
-└─────────────────┘
+[RECOMENDADO] Ir a perfil del alumno → asignar membresía inmediatamente
 ```
+
+**Nota:** El estado "Nuevo" no permite check-in. Cambiar a "Activo" o asignar membresía activa.
 
 ---
 
-## 4. Flujo de Administrador
+## 3. Flujo de Asignación de Membresía
 
-### Dashboard Principal
 ```
-┌─────────────────────────────────────────────────────┐
-│                    DASHBOARD                        │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌────────┐ │
-│  │ 👥 45   │  │ 📅 8    │  │ ⚠️ 12   │  │ 💰 $5k │ │
-│  │ Activos │  │ Clases  │  │ Por     │  │ Hoy    │ │
-│  │ hoy     │  │ hoy     │  │ vencer  │  │        │ │
-│  └─────────┘  └─────────┘  └─────────┘  └────────┘ │
-│                                                     │
-│  ┌─────────────────────────────────────────────┐   │
-│  │  ACCIONES RÁPIDAS                           │   │
-│  ├─────────────────────────────────────────────┤   │
-│  │  [+ Nuevo miembro]  [+ Nueva clase]         │   │
-│  │  [📋 Check-in]      [💳 Cobrar]             │   │
-│  └─────────────────────────────────────────────┘   │
-│                                                     │
-└─────────────────────────────────────────────────────┘
+Desde: perfil del alumno | módulo /memberships | dashboard "Nuevo Miembro"
+         │
+         ▼
+Modal: CreateMembershipModal
+  • Si viene de perfil de alumno: alumno pre-seleccionado
+  • Tipo de membresía (seleccionar)
+  • Fecha inicio (default: hoy)
+  • Fecha fin: calculada automáticamente según el tipo
+  • Precio pagado en MXN
+  • Para packs: total de clases pre-llenado
+         │
+         ▼
+POST /api/v1/memberships
+         │
+         ▼
+✅ Membresía activa. El alumno ya puede hacer check-in.
 ```
 
-### Flujo de Nuevo Miembro
-1. **Datos básicos**: Nombre, email, teléfono
-2. **Foto** (opcional): Para identificación
-3. **Contacto emergencia**: Nombre y teléfono
-4. **Notas médicas**: Condiciones, lesiones, restricciones
-5. **Selección de membresía**: Tipo y pago
-6. **Generación de QR**: Código único para check-in
+**Cálculo de fechas automáticas:**
+- `monthly` → +1 mes desde fecha inicio
+- `quarterly` → +3 meses
+- `semi_annual` → +6 meses
+- `annual` → +12 meses
+- `day_pass` → mismo día que inicio
+- Packs → sin fecha fin fija (solo clases restantes)
 
 ---
 
-## 5. Tipos de Membresía
+## 4. Flujo de Clase Grupal
 
-| Tipo | Descripción | Acceso |
-|------|-------------|--------|
-| **Mensual** | Acceso ilimitado 30 días | Todas las clases |
-| **Quincenal** | Acceso ilimitado 15 días | Todas las clases |
-| **Paquete 8** | 8 clases para usar en 45 días | Solo clases grupales |
-| **Paquete 12** | 12 clases para usar en 60 días | Solo clases grupales |
-| **Día suelto** | 1 visita única | Solo ese día |
-| **Fundador** | Membresía especial permanente | Acceso total + beneficios |
-
----
-
-## 6. Roles del Sistema
-
-### 👤 Miembro
-- Ver su membresía y clases restantes
-- Reservar/cancelar clases
-- Ver historial de asistencias
-- Actualizar datos de contacto
-
-### 🏋️ Instructor
-- Ver clases asignadas
-- Tomar asistencia
-- Ver información de miembros en su clase
-- Reportar incidentes
-
-### 📋 Recepcionista
-- Check-in de miembros
-- Registrar nuevos miembros
-- Cobrar membresías y clases sueltas
-- Ver calendario del día
-
-### 👑 Administrador
-- Todo lo anterior
-- Gestionar instructores
-- Reportes y métricas
-- Configuración del sistema
-
----
-
-## 7. Horario Típico de Gimnasio
+### Crear clase
 
 ```
-LUNES - VIERNES
-───────────────────────────────────────
-06:00 │ Apertura
-07:00 │ ████ Zumba (María)
-08:00 │ ████ Yoga (Carlos)
-09:00 │ ████ Spinning (Ana)
-10:00 │ 
-11:00 │ ████ Funcional (Pedro)
-12:00 │ 
-...
-17:00 │ ████ CrossFit (Luis)
-18:00 │ ████ Zumba (María)
-19:00 │ ████ Boxing (Jorge)
-20:00 │ ████ Yoga (Carlos)
-21:00 │ Cierre
-───────────────────────────────────────
+Staff hace click en "Nueva Clase" (/classes)
+         │
+         ▼
+Modal: CreateClassModal
+  • Tipo de clase (Zumba, Pilates, Yoga, etc.)
+  • Instructor (selección de lista de activos)
+  • Fecha y hora de inicio
+  • Duración en minutos
+  • Capacidad máxima
+  • Ubicación (Sala A, B, etc.)
+  • Link de clase online (opcional)
+         │
+         ▼
+POST /api/v1/classes
+✅ Clase aparece en calendario
+```
+
+### Agregar miembro a clase
+
+```
+Vista Calendario → click en clase → panel lateral
+  → botón "Añadir Miembro"
+         │
+         ▼
+Modal: AddToClassModal
+  • Buscar alumno por nombre
+  • Select del alumno
+         │
+         ▼
+POST /api/v1/reservations
+  • Si hay lugares: status = "confirmed"
+  • Si clase llena: status = "waitlisted"
+```
+
+### Marcar asistencia
+
+```
+POST /api/v1/reservations/{id}/attend
+  attended=true  → status = "attended", decrementa classes_remaining si es pack
+  attended=false → status = "no_show"
 ```
 
 ---
 
-## 8. Integraciones Futuras
+## 5. Flujo de Alerta de Vencimiento
 
-- **WhatsApp**: Recordatorios y confirmaciones
-- **Pagos en línea**: Stripe/MercadoPago
-- **Zoom**: Clases virtuales automáticas
-- **Control de acceso**: Torniquetes con QR
+```
+Dashboard carga (GET /api/v1/stats)
+         │
+         ▼
+Si expiring_memberships_7d > 0:
+  → Alerta naranja en dashboard
+  → Link directo a /memberships
+         │
+         ▼
+En /memberships:
+  Sección "Urgente" (≤7 días): borde rojo
+  Sección "Próximamente" (8-30 días): borde ámbar
+         │
+         ▼
+Botón "Renovar" en cada tarjeta
+  → Abre CreateMembershipModal con alumno pre-seleccionado
+  → Staff asigna nueva membresía con pago en MXN
+```
+
+---
+
+## 6. Tipos de Membresía Implementados
+
+| Tipo | Clave API | Duración | Clases |
+|------|-----------|----------|--------|
+| Mensual | `monthly` | 30 días | Sin límite |
+| Trimestral | `quarterly` | 90 días | Sin límite |
+| Semestral | `semi_annual` | 180 días | Sin límite |
+| Anual | `annual` | 365 días | Sin límite |
+| Pack 5 | `class_pack_5` | Sin fecha | 5 clases |
+| Pack 10 | `class_pack_10` | Sin fecha | 10 clases |
+| Pack 20 | `class_pack_20` | Sin fecha | 20 clases |
+| Día suelto | `day_pass` | 1 día | Sin límite |
+
+---
+
+## 7. Estados de Alumno
+
+| Estado | Clave | Check-in permitido | Descripción |
+|--------|-------|--------------------|-------------|
+| Nuevo | `new` | No | Recién registrado, sin membresía activa |
+| Activo | `active` | Sí (con membresía) | Miembro regular |
+| Fundador | `founder` | Sí (con membresía) | Miembro fundador, mismo acceso que activo |
+| Inactivo | `inactive` | No | Dado de baja temporalmente |
+
+---
+
+## 8. Clases Disponibles
+
+Zumba, Pilates, Yoga, Spinning, Cross Training, Entrenamiento Funcional,
+Body Combat, Danza, Stretching, Clase General.
+
+---
+
+## 9. Flujos Fase 2 (No implementados)
+
+Estos flujos están planeados pero **no están en el código actual**:
+
+- **WhatsApp:** Recordatorio automático 7 días antes del vencimiento via WhatsApp Business API
+- **Reportes financieros:** Corte de caja, ingresos por tipo de membresía
+- **QR Code:** Escaneo de QR en entrada para check-in sin búsqueda manual
+- **Notificaciones:** Email o SMS de confirmación de reservación
+
+---
+
+*Última actualización: 2026-04-08 — Fase 1 completa*

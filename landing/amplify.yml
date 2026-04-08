@@ -1,0 +1,18 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - cd landing
+        - npm ci
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: landing/out
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - landing/node_modules/**/*
+      - landing/.next/cache/**/*

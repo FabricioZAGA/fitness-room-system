@@ -39,7 +39,7 @@ export function CreateStudentModal({
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
+  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>): void {
     e.preventDefault();
     mutate(
       {
