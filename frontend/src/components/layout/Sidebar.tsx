@@ -44,9 +44,15 @@ function useNavItems(): NavItem[] {
 
 const navItemCls = cn(
   "flex items-center gap-4 rounded-xl px-4 py-3.5 text-base font-medium transition-all",
-  "text-[--tx-muted] hover:bg-[--bg-muted] hover:text-[--tx-primary]",
-  "[&.active]:bg-[--gold-bg] [&.active]:text-[--gold] [&.active]:border [&.active]:border-[--gold-bd]"
+  "text-[--tx-muted] hover:bg-[--bg-muted] hover:text-[--tx-primary]"
 );
+
+const navActiveProps = {
+  style: {
+    background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+    color: "var(--gold-fg)",
+  },
+} as const;
 
 export function Sidebar(): React.JSX.Element {
   const { user, logout } = useAuth();
@@ -101,7 +107,7 @@ export function Sidebar(): React.JSX.Element {
           {t("nav.mainMenu")}
         </p>
         {mainItems.map((item) => (
-          <Link key={item.to} to={item.to} className={navItemCls}>
+          <Link key={item.to} to={item.to} className={navItemCls} activeProps={navActiveProps}>
             <item.icon className="h-5 w-5 shrink-0" />
             {item.label}
           </Link>
@@ -111,7 +117,7 @@ export function Sidebar(): React.JSX.Element {
           {t("nav.administration")}
         </p>
         {adminItems.map((item) => (
-          <Link key={item.to} to={item.to} className={navItemCls}>
+          <Link key={item.to} to={item.to} className={navItemCls} activeProps={navActiveProps}>
             <item.icon className="h-5 w-5 shrink-0" />
             {item.label}
           </Link>

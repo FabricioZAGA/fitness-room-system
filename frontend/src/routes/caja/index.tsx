@@ -212,8 +212,8 @@ function CajaPage(): React.JSX.Element {
 
       {/* Register payment modal */}
       {showRegister && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
             <h2 className="mb-6 text-xl font-bold text-[--tx-primary]">Registrar Pago</h2>
             <div className="space-y-4">
               <div>
@@ -305,8 +305,8 @@ function CajaPage(): React.JSX.Element {
 
       {/* Cash cut confirm modal */}
       {showCutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[--gold-bg]">
               <Receipt className="h-7 w-7 text-[--gold]" />
             </div>

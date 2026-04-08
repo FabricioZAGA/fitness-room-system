@@ -156,6 +156,12 @@ function SettingSection({
   );
 }
 
+const goldActiveStyle = {
+  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+  color: "var(--gold-fg)",
+  border: "1px solid transparent",
+} as const;
+
 function ThemeButton({
   mode,
   icon: Icon,
@@ -173,11 +179,16 @@ function ThemeButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2.5 rounded-xl border px-5 py-3 text-sm font-medium transition-all ${
+      className="flex items-center gap-2.5 rounded-xl px-5 py-3 text-sm font-medium transition-all"
+      style={
         isActive
-          ? "border-[--gold-bd] bg-[--gold-bg] text-[--gold]"
-          : "border-[--bd-default] bg-[--bg-muted] text-[--tx-muted] hover:border-[--bd-subtle] hover:text-[--tx-primary]"
-      }`}
+          ? goldActiveStyle
+          : {
+              border: "1px solid var(--bd-default)",
+              background: "var(--bg-muted)",
+              color: "var(--tx-muted)",
+            }
+      }
     >
       <Icon className="h-4 w-4 shrink-0" />
       {label}
@@ -200,11 +211,16 @@ function LanguageButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-xl border px-5 py-3 text-sm font-medium transition-all ${
+      className="rounded-xl px-5 py-3 text-sm font-medium transition-all"
+      style={
         isActive
-          ? "border-[--gold-bd] bg-[--gold-bg] text-[--gold]"
-          : "border-[--bd-default] bg-[--bg-muted] text-[--tx-muted] hover:border-[--bd-subtle] hover:text-[--tx-primary]"
-      }`}
+          ? goldActiveStyle
+          : {
+              border: "1px solid var(--bd-default)",
+              background: "var(--bg-muted)",
+              color: "var(--tx-muted)",
+            }
+      }
     >
       {label}
     </button>

@@ -217,8 +217,8 @@ function InventarioPage(): React.JSX.Element {
 
       {/* Create product modal */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
             <h2 className="mb-6 text-xl font-bold text-[--tx-primary]">Nuevo Producto</h2>
             <div className="space-y-4">
               <div>
@@ -341,8 +341,8 @@ function InventarioPage(): React.JSX.Element {
 
       {/* Sell modal */}
       {sellProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
             <h2 className="mb-1 text-xl font-bold text-[--tx-primary]">Vender</h2>
             <p className="mb-6 text-[--tx-muted]">{sellProduct.name}</p>
             <div className="space-y-4">
@@ -411,8 +411,8 @@ function InventarioPage(): React.JSX.Element {
 
       {/* Restock modal */}
       {restockProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
             <h2 className="mb-1 text-xl font-bold text-[--tx-primary]">Reabastecer</h2>
             <p className="mb-6 text-[--tx-muted]">
               {restockProduct.name} — Stock actual: {restockProduct.stock}

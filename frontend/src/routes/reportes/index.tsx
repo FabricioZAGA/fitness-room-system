@@ -25,6 +25,75 @@ export const Route = createFileRoute("/reportes/")({
 
 type Tab = "income" | "attendance" | "rankings" | "inactive";
 
+// ─── Shared active-state style (solid gold, matches primary button) ──────────
+const goldActiveStyle = {
+  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+  color: "var(--gold-fg)",
+  border: "1px solid transparent",
+} as const;
+
+/** Primary tab button — solid gold when active */
+function TabBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all"
+      style={
+        active
+          ? goldActiveStyle
+          : {
+              border: "1px solid var(--bd-default)",
+              background: "var(--bg-surface)",
+              color: "var(--tx-muted)",
+            }
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Compact pill for day-range toggles */
+function DayPill({
+  days,
+  active,
+  onClick,
+  prefix = "",
+}: {
+  days: number;
+  active: boolean;
+  onClick: () => void;
+  prefix?: string;
+}): React.JSX.Element {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-xl px-4 py-2 text-sm font-semibold transition-all"
+      style={
+        active
+          ? goldActiveStyle
+          : {
+              border: "1px solid var(--bd-default)",
+              background: "transparent",
+              color: "var(--tx-muted)",
+            }
+      }
+    >
+      {prefix}{days} días
+    </button>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 function ReportesPage(): React.JSX.Element {
   const [tab, setTab] = useState<Tab>("income");
   const today = new Date();
@@ -51,13 +120,12 @@ function ReportesPage(): React.JSX.Element {
   const { data: inactive = [], isLoading: inactiveLoading } =
     useInactiveStudents(inactiveDays);
 
-  const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] =
-    [
-      { id: "income", label: "Ingresos", icon: DollarSign },
-      { id: "attendance", label: "Asistencia", icon: BarChart3 },
-      { id: "rankings", label: "Rankings", icon: Trophy },
-      { id: "inactive", label: "Inactivos", icon: UserX },
-    ];
+  const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: "income", label: "Ingresos", icon: DollarSign },
+    { id: "attendance", label: "Asistencia", icon: BarChart3 },
+    { id: "rankings", label: "Rankings", icon: Trophy },
+    { id: "inactive", label: "Inactivos", icon: UserX },
+  ];
 
   return (
     <div className="min-h-screen bg-[--bg-base] p-6">
@@ -69,25 +137,17 @@ function ReportesPage(): React.JSX.Element {
         </p>
       </div>
 
-      {/* Tabs */}
+      {/* Main tabs */}
       <div className="mb-8 flex flex-wrap gap-2">
         {tabs.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
-              tab === id
-                ? "border border-[--gold-bd] bg-[--gold-bg] text-[--gold]"
-                : "border border-[--bd-default] bg-[--bg-surface] text-[--tx-muted] hover:text-[--tx-primary]"
-            }`}
-          >
+          <TabBtn key={id} active={tab === id} onClick={() => setTab(id)}>
             <Icon className="h-4 w-4" />
             {label}
-          </button>
+          </TabBtn>
         ))}
       </div>
 
-      {/* Income tab */}
+      {/* ── Income ──────────────────────────────────────────────────────── */}
       {tab === "income" && (
         <div className="space-y-6">
           {/* Date filter */}
@@ -119,11 +179,7 @@ function ReportesPage(): React.JSX.Element {
             <>
               {/* Totals */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <IncomeCard
-                  label="Total del Período"
-                  value={formatCurrency(income.grand_total)}
-                  accent
-                />
+                <IncomeCard label="Total del Período" value={formatCurrency(income.grand_total)} accent />
                 <IncomeCard label="Efectivo" value={formatCurrency(income.total_cash)} />
                 <IncomeCard label="Tarjeta" value={formatCurrency(income.total_card)} />
                 <IncomeCard label="Transferencia" value={formatCurrency(income.total_transfer)} />
@@ -132,9 +188,7 @@ function ReportesPage(): React.JSX.Element {
               {/* By type */}
               {Object.keys(income.by_type).length > 0 && (
                 <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
-                  <h3 className="mb-4 text-base font-semibold text-[--tx-primary]">
-                    Por Categoría
-                  </h3>
+                  <h3 className="mb-4 text-base font-semibold text-[--tx-primary]">Por Categoría</h3>
                   <div className="space-y-3">
                     {Object.entries(income.by_type)
                       .sort(([, a], [, b]) => (b as number) - (a as number))
@@ -151,8 +205,7 @@ function ReportesPage(): React.JSX.Element {
                               <div
                                 className="h-2 rounded-full"
                                 style={{
-                                  background:
-                                    "linear-gradient(90deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                                  background: "linear-gradient(90deg, var(--gold) 0%, var(--gold-hover) 100%)",
                                   width: `${Math.min(
                                     100,
                                     income.grand_total > 0
@@ -172,9 +225,7 @@ function ReportesPage(): React.JSX.Element {
               {/* Daily breakdown */}
               <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface]">
                 <div className="border-b border-[--bd-default] px-6 py-4">
-                  <h3 className="text-base font-semibold text-[--tx-primary]">
-                    Detalle por Día
-                  </h3>
+                  <h3 className="text-base font-semibold text-[--tx-primary]">Detalle por Día</h3>
                 </div>
                 <div className="divide-y divide-[--bd-default]">
                   {income.days
@@ -182,9 +233,7 @@ function ReportesPage(): React.JSX.Element {
                     .reverse()
                     .map((day: IncomeDay) => (
                       <div key={day.date} className="flex items-center gap-4 px-6 py-3">
-                        <div className="w-28 text-sm text-[--tx-muted]">
-                          {formatDate(day.date)}
-                        </div>
+                        <div className="w-28 text-sm text-[--tx-muted]">{formatDate(day.date)}</div>
                         <div className="flex-1 text-xs text-[--tx-disabled]">
                           {day.count} movimiento{day.count !== 1 ? "s" : ""}
                         </div>
@@ -205,23 +254,18 @@ function ReportesPage(): React.JSX.Element {
         </div>
       )}
 
-      {/* Attendance tab */}
+      {/* ── Attendance ──────────────────────────────────────────────────── */}
       {tab === "attendance" && (
         <div className="space-y-6">
-          <div className="flex items-center gap-4 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
             <span className="text-sm text-[--tx-muted]">Últimos</span>
             {[7, 14, 30, 90].map((d) => (
-              <button
+              <DayPill
                 key={d}
+                days={d}
+                active={attendanceDays === d}
                 onClick={() => setAttendanceDays(d)}
-                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-                  attendanceDays === d
-                    ? "border border-[--gold-bd] bg-[--gold-bg] text-[--gold]"
-                    : "border border-[--bd-default] text-[--tx-muted] hover:text-[--tx-primary]"
-                }`}
-              >
-                {d} días
-              </button>
+              />
             ))}
           </div>
 
@@ -238,23 +282,18 @@ function ReportesPage(): React.JSX.Element {
         </div>
       )}
 
-      {/* Rankings tab */}
+      {/* ── Rankings ────────────────────────────────────────────────────── */}
       {tab === "rankings" && (
         <div className="space-y-6">
-          <div className="flex items-center gap-4 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
             <span className="text-sm text-[--tx-muted]">Últimos</span>
             {[7, 14, 30, 90].map((d) => (
-              <button
+              <DayPill
                 key={d}
+                days={d}
+                active={rankingDays === d}
                 onClick={() => setRankingDays(d)}
-                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-                  rankingDays === d
-                    ? "border border-[--gold-bd] bg-[--gold-bg] text-[--gold]"
-                    : "border border-[--bd-default] text-[--tx-muted] hover:text-[--tx-primary]"
-                }`}
-              >
-                {d} días
-              </button>
+              />
             ))}
           </div>
 
@@ -276,20 +315,18 @@ function ReportesPage(): React.JSX.Element {
                   {rankings.map((student, idx) => (
                     <div key={student.student_id} className="flex items-center gap-4 px-6 py-4">
                       <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                          idx === 0
-                            ? "text-[--gold-fg]"
-                            : idx === 1
-                            ? "bg-[--bg-muted] text-[--tx-muted]"
-                            : "bg-[--bg-muted] text-[--tx-disabled]"
-                        }`}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold"
                         style={
                           idx === 0
                             ? {
                                 background:
                                   "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                                color: "var(--gold-fg)",
                               }
-                            : {}
+                            : {
+                                background: "var(--bg-muted)",
+                                color: "var(--tx-disabled)",
+                              }
                         }
                       >
                         {idx + 1}
@@ -317,23 +354,19 @@ function ReportesPage(): React.JSX.Element {
         </div>
       )}
 
-      {/* Inactive tab */}
+      {/* ── Inactive ────────────────────────────────────────────────────── */}
       {tab === "inactive" && (
         <div className="space-y-6">
-          <div className="flex items-center gap-4 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
             <span className="text-sm text-[--tx-muted]">Sin visita en</span>
             {[7, 14, 21, 30].map((d) => (
-              <button
+              <DayPill
                 key={d}
+                days={d}
+                active={inactiveDays === d}
                 onClick={() => setInactiveDays(d)}
-                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-                  inactiveDays === d
-                    ? "border border-[--gold-bd] bg-[--gold-bg] text-[--gold]"
-                    : "border border-[--bd-default] text-[--tx-muted] hover:text-[--tx-primary]"
-                }`}
-              >
-                +{d} días
-              </button>
+                prefix="+"
+              />
             ))}
           </div>
 
@@ -360,7 +393,7 @@ function ReportesPage(): React.JSX.Element {
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[--gold-bd] bg-[--gold-bg] text-sm font-bold text-[--gold]">
                         {student.student_name.charAt(0).toUpperCase()}
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <Link
                           to="/students/$studentId"
                           params={{ studentId: student.student_id }}
@@ -370,7 +403,7 @@ function ReportesPage(): React.JSX.Element {
                         </Link>
                         <p className="text-xs text-[--tx-muted]">{student.email}</p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex shrink-0 gap-2">
                         {student.phone && (
                           <a
                             href={`https://wa.me/52${student.phone.replace(/\D/g, "")}`}
@@ -402,6 +435,8 @@ function ReportesPage(): React.JSX.Element {
   );
 }
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
 function IncomeCard({
   label,
   value,
@@ -413,13 +448,23 @@ function IncomeCard({
 }): React.JSX.Element {
   return (
     <div
-      className={`rounded-2xl border p-5 ${
+      className="rounded-2xl border p-5"
+      style={
         accent
-          ? "border-[--gold-bd] bg-[--gold-bg]"
-          : "border-[--bd-default] bg-[--bg-surface]"
-      }`}
+          ? {
+              border: "1px solid var(--gold-bd)",
+              background: "var(--gold-bg)",
+            }
+          : {
+              border: "1px solid var(--bd-default)",
+              background: "var(--bg-surface)",
+            }
+      }
     >
-      <p className={`text-2xl font-bold ${accent ? "text-[--gold]" : "text-[--tx-primary]"}`}>
+      <p
+        className="text-2xl font-bold"
+        style={{ color: accent ? "var(--gold)" : "var(--tx-primary)" }}
+      >
         {value}
       </p>
       <p className="mt-1 text-sm text-[--tx-muted]">{label}</p>
@@ -436,13 +481,17 @@ function AttStat({
   value: number;
   color?: "success" | "danger" | "warning";
 }): React.JSX.Element {
-  const colorCls = color
-    ? `border-[--color-${color}-bd] bg-[--color-${color}-bg]`
-    : "border-[--bd-default] bg-[--bg-surface]";
-  const textCls = color ? `text-[--color-${color}]` : "text-[--tx-primary]";
+  const borderColor = color ? `var(--color-${color}-bd)` : "var(--bd-default)";
+  const bgColor = color ? `var(--color-${color}-bg)` : "var(--bg-surface)";
+  const textColor = color ? `var(--color-${color})` : "var(--tx-primary)";
   return (
-    <div className={`rounded-2xl border p-5 ${colorCls}`}>
-      <p className={`text-3xl font-bold ${textCls}`}>{value}</p>
+    <div
+      className="rounded-2xl border p-5"
+      style={{ border: `1px solid ${borderColor}`, background: bgColor }}
+    >
+      <p className="text-3xl font-bold" style={{ color: textColor }}>
+        {value}
+      </p>
       <p className="mt-1 text-sm text-[--tx-muted]">{label}</p>
     </div>
   );
