@@ -3,6 +3,11 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+
+# ===== NEXT.JS (landing) =====
+landing/.next/
+landing/out/
+landing/node_modules/
 .env
 .env.*
 !.env.example
