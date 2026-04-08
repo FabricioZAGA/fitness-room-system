@@ -1,12 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import {
+  BarChart3,
   Calendar,
   CalendarCheck,
   CreditCard,
   Dumbbell,
   Home,
   LogOut,
+  Package,
   QrCode,
+  Receipt,
   Settings,
   UserCog,
   Users,
@@ -31,6 +34,9 @@ function useNavItems(): NavItem[] {
     { label: t("nav.classes"), to: "/classes", icon: Calendar, section: "main" },
     { label: t("nav.reservations"), to: "/reservations", icon: CalendarCheck, section: "main" },
     { label: t("nav.memberships"), to: "/memberships", icon: CreditCard, section: "main" },
+    { label: t("nav.caja"), to: "/caja", icon: Receipt, section: "main" },
+    { label: t("nav.inventario"), to: "/inventario", icon: Package, section: "main" },
+    { label: t("nav.reportes"), to: "/reportes", icon: BarChart3, section: "main" },
     { label: t("nav.instructors"), to: "/instructors", icon: UserCog, section: "admin" },
     { label: t("nav.settings"), to: "/settings", icon: Settings, section: "admin" },
   ];

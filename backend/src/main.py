@@ -18,7 +18,18 @@ from fastapi.responses import JSONResponse
 from mangum import Mangum
 
 from src.config import get_settings
-from src.routers import classes, health, instructors, memberships, reservations, stats, students
+from src.routers import (
+    classes,
+    health,
+    instructors,
+    inventory,
+    memberships,
+    reports,
+    reservations,
+    stats,
+    students,
+    transactions,
+)
 from src.utils.exceptions import (
     CapacityExceededException,
     FitnessRoomException,
@@ -38,11 +49,14 @@ app = FastAPI(
     title="Fitness Room API",
     description=(
         "Sistema de gestión integral para Fitness Room.\n\n"
-        "## Módulos disponibles (Fase 1)\n"
+        "## Módulos disponibles\n"
         "- **Alumnos** — Registro, perfil e historial\n"
         "- **Membresías** — Asignación, control y alertas\n"
         "- **Clases** — Calendario y gestión de sesiones\n"
-        "- **Reservas** — Reservación, lista de espera y asistencia\n\n"
+        "- **Reservas** — Reservación, lista de espera y asistencia\n"
+        "- **Transacciones** — Registro de pagos y corte de caja\n"
+        "- **Inventario** — Productos y ventas\n"
+        "- **Reportes** — Ingresos, asistencia y rankings\n\n"
         "## Autenticación\n"
         "Todos los endpoints (excepto `/health`) requieren un Bearer token de Cognito.\n"
         "Incluye el token en el header: `Authorization: Bearer <token>`"
@@ -58,6 +72,9 @@ app = FastAPI(
         {"name": "Memberships", "description": "Membership assignment and control"},
         {"name": "Classes", "description": "Fitness class session management"},
         {"name": "Reservations", "description": "Class reservations and waitlist"},
+        {"name": "Transactions", "description": "Payment recording and cash cuts (corte de caja)"},
+        {"name": "Inventory", "description": "Product inventory and sales"},
+        {"name": "Reports", "description": "Business intelligence — income, attendance, rankings"},
     ],
 )
 
@@ -139,6 +156,9 @@ app.include_router(classes.router, prefix="/api/v1")
 app.include_router(reservations.router, prefix="/api/v1")
 app.include_router(instructors.router, prefix="/api/v1")
 app.include_router(stats.router, prefix="/api/v1")
+app.include_router(transactions.router, prefix="/api/v1")
+app.include_router(inventory.router, prefix="/api/v1")
+app.include_router(reports.router, prefix="/api/v1")
 
 
 @logger.inject_lambda_context(log_event=True)

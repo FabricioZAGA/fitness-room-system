@@ -1,7 +1,7 @@
 /** Settings / configuration page. */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, Building2, Bell, ShieldCheck, Info, Moon, Sun } from "lucide-react";
+import { Building2, Bell, ShieldCheck, Info, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useThemeStore } from "@/store/useThemeStore";
 

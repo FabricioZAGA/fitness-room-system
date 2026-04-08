@@ -15,9 +15,12 @@ import { Route as CheckinRouteImport } from './routes/checkin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentsIndexRouteImport } from './routes/students/index'
 import { Route as ReservationsIndexRouteImport } from './routes/reservations/index'
+import { Route as ReportesIndexRouteImport } from './routes/reportes/index'
 import { Route as MembershipsIndexRouteImport } from './routes/memberships/index'
+import { Route as InventarioIndexRouteImport } from './routes/inventario/index'
 import { Route as InstructorsIndexRouteImport } from './routes/instructors/index'
 import { Route as ClassesIndexRouteImport } from './routes/classes/index'
+import { Route as CajaIndexRouteImport } from './routes/caja/index'
 import { Route as StudentsStudentIdIndexRouteImport } from './routes/students/$studentId/index'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -50,9 +53,19 @@ const ReservationsIndexRoute = ReservationsIndexRouteImport.update({
   path: '/reservations/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportesIndexRoute = ReportesIndexRouteImport.update({
+  id: '/reportes/',
+  path: '/reportes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MembershipsIndexRoute = MembershipsIndexRouteImport.update({
   id: '/memberships/',
   path: '/memberships/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventarioIndexRoute = InventarioIndexRouteImport.update({
+  id: '/inventario/',
+  path: '/inventario/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InstructorsIndexRoute = InstructorsIndexRouteImport.update({
@@ -63,6 +76,11 @@ const InstructorsIndexRoute = InstructorsIndexRouteImport.update({
 const ClassesIndexRoute = ClassesIndexRouteImport.update({
   id: '/classes/',
   path: '/classes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CajaIndexRoute = CajaIndexRouteImport.update({
+  id: '/caja/',
+  path: '/caja/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudentsStudentIdIndexRoute = StudentsStudentIdIndexRouteImport.update({
@@ -76,9 +94,12 @@ export interface FileRoutesByFullPath {
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/caja/': typeof CajaIndexRoute
   '/classes/': typeof ClassesIndexRoute
   '/instructors/': typeof InstructorsIndexRoute
+  '/inventario/': typeof InventarioIndexRoute
   '/memberships/': typeof MembershipsIndexRoute
+  '/reportes/': typeof ReportesIndexRoute
   '/reservations/': typeof ReservationsIndexRoute
   '/students/': typeof StudentsIndexRoute
   '/students/$studentId/': typeof StudentsStudentIdIndexRoute
@@ -88,9 +109,12 @@ export interface FileRoutesByTo {
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/caja': typeof CajaIndexRoute
   '/classes': typeof ClassesIndexRoute
   '/instructors': typeof InstructorsIndexRoute
+  '/inventario': typeof InventarioIndexRoute
   '/memberships': typeof MembershipsIndexRoute
+  '/reportes': typeof ReportesIndexRoute
   '/reservations': typeof ReservationsIndexRoute
   '/students': typeof StudentsIndexRoute
   '/students/$studentId': typeof StudentsStudentIdIndexRoute
@@ -101,9 +125,12 @@ export interface FileRoutesById {
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/caja/': typeof CajaIndexRoute
   '/classes/': typeof ClassesIndexRoute
   '/instructors/': typeof InstructorsIndexRoute
+  '/inventario/': typeof InventarioIndexRoute
   '/memberships/': typeof MembershipsIndexRoute
+  '/reportes/': typeof ReportesIndexRoute
   '/reservations/': typeof ReservationsIndexRoute
   '/students/': typeof StudentsIndexRoute
   '/students/$studentId/': typeof StudentsStudentIdIndexRoute
@@ -115,9 +142,12 @@ export interface FileRouteTypes {
     | '/checkin'
     | '/login'
     | '/settings'
+    | '/caja/'
     | '/classes/'
     | '/instructors/'
+    | '/inventario/'
     | '/memberships/'
+    | '/reportes/'
     | '/reservations/'
     | '/students/'
     | '/students/$studentId/'
@@ -127,9 +157,12 @@ export interface FileRouteTypes {
     | '/checkin'
     | '/login'
     | '/settings'
+    | '/caja'
     | '/classes'
     | '/instructors'
+    | '/inventario'
     | '/memberships'
+    | '/reportes'
     | '/reservations'
     | '/students'
     | '/students/$studentId'
@@ -139,9 +172,12 @@ export interface FileRouteTypes {
     | '/checkin'
     | '/login'
     | '/settings'
+    | '/caja/'
     | '/classes/'
     | '/instructors/'
+    | '/inventario/'
     | '/memberships/'
+    | '/reportes/'
     | '/reservations/'
     | '/students/'
     | '/students/$studentId/'
@@ -152,9 +188,12 @@ export interface RootRouteChildren {
   CheckinRoute: typeof CheckinRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
+  CajaIndexRoute: typeof CajaIndexRoute
   ClassesIndexRoute: typeof ClassesIndexRoute
   InstructorsIndexRoute: typeof InstructorsIndexRoute
+  InventarioIndexRoute: typeof InventarioIndexRoute
   MembershipsIndexRoute: typeof MembershipsIndexRoute
+  ReportesIndexRoute: typeof ReportesIndexRoute
   ReservationsIndexRoute: typeof ReservationsIndexRoute
   StudentsIndexRoute: typeof StudentsIndexRoute
   StudentsStudentIdIndexRoute: typeof StudentsStudentIdIndexRoute
@@ -204,11 +243,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReservationsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reportes/': {
+      id: '/reportes/'
+      path: '/reportes'
+      fullPath: '/reportes/'
+      preLoaderRoute: typeof ReportesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/memberships/': {
       id: '/memberships/'
       path: '/memberships'
       fullPath: '/memberships/'
       preLoaderRoute: typeof MembershipsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventario/': {
+      id: '/inventario/'
+      path: '/inventario'
+      fullPath: '/inventario/'
+      preLoaderRoute: typeof InventarioIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/instructors/': {
@@ -223,6 +276,13 @@ declare module '@tanstack/react-router' {
       path: '/classes'
       fullPath: '/classes/'
       preLoaderRoute: typeof ClassesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/caja/': {
+      id: '/caja/'
+      path: '/caja'
+      fullPath: '/caja/'
+      preLoaderRoute: typeof CajaIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/students/$studentId/': {
@@ -240,9 +300,12 @@ const rootRouteChildren: RootRouteChildren = {
   CheckinRoute: CheckinRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
+  CajaIndexRoute: CajaIndexRoute,
   ClassesIndexRoute: ClassesIndexRoute,
   InstructorsIndexRoute: InstructorsIndexRoute,
+  InventarioIndexRoute: InventarioIndexRoute,
   MembershipsIndexRoute: MembershipsIndexRoute,
+  ReportesIndexRoute: ReportesIndexRoute,
   ReservationsIndexRoute: ReservationsIndexRoute,
   StudentsIndexRoute: StudentsIndexRoute,
   StudentsStudentIdIndexRoute: StudentsStudentIdIndexRoute,
