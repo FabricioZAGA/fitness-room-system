@@ -45,71 +45,85 @@ function LoginPage(): React.JSX.Element {
   }
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="flex min-h-screen bg-[--bg-base]">
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 bg-gradient-to-br from-emerald-600 to-teal-700">
+      <div
+        className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12"
+        style={{ background: "linear-gradient(135deg, #0a0a0a 0%, #1a1500 50%, #0a0a0a 100%)" }}
+      >
         <div className="max-w-md text-center">
           <div className="mb-8 flex justify-center">
-            <div className="rounded-2xl bg-white/10 p-6 backdrop-blur-sm">
-              <Dumbbell className="h-20 w-20 text-white" />
+            <div
+              className="rounded-2xl p-6"
+              style={{
+                background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                boxShadow: "0 8px 32px var(--gold-bg)",
+              }}
+            >
+              <Dumbbell className="h-20 w-20" style={{ color: "var(--gold-fg)" }} />
             </div>
           </div>
-          <h1 className="mb-4 text-4xl font-bold text-white">Fitness Room</h1>
-          <p className="text-xl text-emerald-100">
+          <h1 className="mb-4 text-4xl font-bold text-[--tx-primary]">Fitness Room</h1>
+          <p className="text-xl text-[--tx-muted]">
             Sistema de gestión para tu gimnasio. Simple, rápido y fácil de usar.
           </p>
           <div className="mt-12 grid grid-cols-3 gap-6 text-center">
             <div>
-              <div className="text-3xl font-bold text-white">500+</div>
-              <div className="text-sm text-emerald-200">Miembros</div>
+              <div className="text-3xl font-bold text-[--gold]">500+</div>
+              <div className="text-sm text-[--tx-muted]">Miembros</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-white">50+</div>
-              <div className="text-sm text-emerald-200">Clases/semana</div>
+              <div className="text-3xl font-bold text-[--gold]">50+</div>
+              <div className="text-sm text-[--tx-muted]">Clases/semana</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-white">10+</div>
-              <div className="text-sm text-emerald-200">Instructores</div>
+              <div className="text-3xl font-bold text-[--gold]">10+</div>
+              <div className="text-sm text-[--tx-muted]">Instructores</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Right side - Login form */}
-      <div className="flex w-full lg:w-1/2 flex-col justify-center px-8 py-12 sm:px-12 lg:px-16">
+      <div className="flex w-full lg:w-1/2 flex-col justify-center px-8 py-12 sm:px-12 lg:px-16 bg-[--bg-surface]">
         <div className="mx-auto w-full max-w-md">
           {/* Mobile logo */}
           <div className="mb-8 flex justify-center lg:hidden">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-emerald-600 p-3">
-                <Dumbbell className="h-8 w-8 text-white" />
+              <div
+                className="rounded-xl p-3"
+                style={{
+                  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                }}
+              >
+                <Dumbbell className="h-8 w-8" style={{ color: "var(--gold-fg)" }} />
               </div>
-              <span className="text-2xl font-bold text-white">Fitness Room</span>
+              <span className="text-2xl font-bold text-[--tx-primary]">Fitness Room</span>
             </div>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-white">¡Bienvenido!</h2>
-            <p className="mt-2 text-lg text-slate-400">
+            <h2 className="text-3xl font-bold text-[--tx-primary]">¡Bienvenido!</h2>
+            <p className="mt-2 text-lg text-[--tx-muted]">
               Ingresa tus datos para acceder al sistema
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 rounded-xl bg-red-500/10 border border-red-500/20 p-4">
-              <p className="text-sm text-red-400">{error}</p>
+            <div className="mb-6 rounded-xl bg-[--color-danger-bg] border border-[--color-danger-bd] p-4">
+              <p className="text-sm text-[--color-danger]">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-300">
+              <label htmlFor="email" className="mb-2 block text-sm font-medium text-[--tx-primary]">
                 Correo electrónico
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                  <Mail className="h-5 w-5 text-slate-500" />
+                  <Mail className="h-5 w-5 text-[--tx-disabled]" />
                 </div>
                 <input
                   id="email"
@@ -118,19 +132,19 @@ function LoginPage(): React.JSX.Element {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
                   required
-                  className="w-full rounded-xl border-2 border-slate-700 bg-slate-800/50 py-4 pl-12 pr-4 text-lg text-white placeholder-slate-500 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full rounded-xl border-2 border-[--bd-default] bg-[--bg-input] py-4 pl-12 pr-4 text-lg text-[--tx-primary] placeholder-[--tx-disabled] transition-colors focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bg]"
                 />
               </div>
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-300">
+              <label htmlFor="password" className="mb-2 block text-sm font-medium text-[--tx-primary]">
                 Contraseña
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                  <Lock className="h-5 w-5 text-slate-500" />
+                  <Lock className="h-5 w-5 text-[--tx-disabled]" />
                 </div>
                 <input
                   id="password"
@@ -139,12 +153,12 @@ function LoginPage(): React.JSX.Element {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full rounded-xl border-2 border-slate-700 bg-slate-800/50 py-4 pl-12 pr-14 text-lg text-white placeholder-slate-500 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full rounded-xl border-2 border-[--bd-default] bg-[--bg-input] py-4 pl-12 pr-14 text-lg text-[--tx-primary] placeholder-[--tx-disabled] transition-colors focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bg]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-slate-300"
+                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-[--tx-disabled] hover:text-[--tx-primary]"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -155,7 +169,12 @@ function LoginPage(): React.JSX.Element {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-xl bg-emerald-600 py-4 text-lg font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-xl py-4 text-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: "var(--gold)",
+              color: "var(--gold-fg)",
+              boxShadow: "0 4px 16px var(--gold-bg)",
+            }}
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -170,9 +189,9 @@ function LoginPage(): React.JSX.Element {
 
           {/* Help text */}
           <div className="mt-8 text-center">
-            <p className="text-slate-500">
+            <p className="text-[--tx-muted]">
               ¿Problemas para acceder?{" "}
-              <a href="#" className="text-emerald-500 hover:text-emerald-400">
+              <a href="#" className="text-[--gold] hover:text-[--gold-hover]">
                 Contacta al administrador
               </a>
             </p>
@@ -180,8 +199,8 @@ function LoginPage(): React.JSX.Element {
 
           {/* Dev mode indicator */}
           {import.meta.env.VITE_APP_ENV === "local" && (
-            <div className="mt-6 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-center">
-              <p className="text-xs text-amber-400">
+            <div className="mt-6 rounded-lg bg-[--color-warning-bg] border border-[--color-warning-bd] p-3 text-center">
+              <p className="text-xs text-[--color-warning]">
                 🛠️ Modo desarrollo — Login automático activado
               </p>
             </div>

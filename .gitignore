@@ -111,3 +111,6 @@ secrets/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# ===== AI / PROMPTS =====
+PROMPT*.md

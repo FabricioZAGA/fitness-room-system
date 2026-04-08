@@ -102,17 +102,17 @@ export function ClassCalendar({
     viewYear === today.getFullYear() && viewMonth === today.getMonth();
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
+    <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+      <div className="flex items-center justify-between border-b border-[--bd-default] px-6 py-4">
         <div className="flex items-center gap-4">
-          <h2 className="text-xl font-bold text-white">
+          <h2 className="text-xl font-bold text-[--tx-primary]">
             {MONTH_NAMES[viewMonth]} {viewYear}
           </h2>
           {!isCurrentMonth && (
             <button
               onClick={goToToday}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-400 hover:border-slate-600 hover:text-white transition-colors"
+              className="rounded-lg border border-[--bd-subtle] px-3 py-1.5 text-sm text-[--tx-muted] hover:border-[--bd-default] hover:text-[--tx-primary] transition-colors"
             >
               Hoy
             </button>
@@ -121,13 +121,13 @@ export function ClassCalendar({
         <div className="flex gap-2">
           <button
             onClick={prevMonth}
-            className="rounded-xl border border-slate-700 p-2 text-slate-400 hover:border-slate-600 hover:text-white transition-colors"
+            className="rounded-xl border border-[--bd-subtle] p-2 text-[--tx-muted] hover:border-[--bd-default] hover:text-[--tx-primary] transition-colors"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             onClick={nextMonth}
-            className="rounded-xl border border-slate-700 p-2 text-slate-400 hover:border-slate-600 hover:text-white transition-colors"
+            className="rounded-xl border border-[--bd-subtle] p-2 text-[--tx-muted] hover:border-[--bd-default] hover:text-[--tx-primary] transition-colors"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -135,11 +135,11 @@ export function ClassCalendar({
       </div>
 
       {/* Day headers */}
-      <div className="grid grid-cols-7 border-b border-slate-800">
+      <div className="grid grid-cols-7 border-b border-[--bd-default]">
         {DAYS_OF_WEEK.map((d) => (
           <div
             key={d}
-            className="py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500"
+            className="py-3 text-center text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]"
           >
             {d}
           </div>
@@ -159,9 +159,9 @@ export function ClassCalendar({
               onClick={() => {
                 if (cell.dateStr && onDayClick) onDayClick(cell.dateStr);
               }}
-              className={`min-h-[100px] border-b border-r border-slate-800/60 p-2 transition-colors
-                ${cell.day === null ? "bg-slate-950/30" : ""}
-                ${hasClasses && cell.day !== null ? "cursor-pointer hover:bg-slate-800/30" : ""}
+              className={`min-h-[100px] border-b border-r border-[--bd-default]/60 p-2 transition-colors
+                ${cell.day === null ? "bg-[--bg-base]/30" : ""}
+                ${hasClasses && cell.day !== null ? "cursor-pointer hover:bg-[--bg-muted]/30" : ""}
                 ${idx % 7 === 6 ? "border-r-0" : ""}
               `}
             >
@@ -171,8 +171,8 @@ export function ClassCalendar({
                   <div
                     className={`mb-1.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium
                       ${isToday
-                        ? "bg-emerald-500 text-white font-bold"
-                        : "text-slate-400"
+                        ? "bg-[--color-success] text-[--tx-primary] font-bold"
+                        : "text-[--tx-muted]"
                       }`}
                   >
                     {cell.day}
@@ -189,7 +189,7 @@ export function ClassCalendar({
                         }}
                         className={`w-full rounded-md px-1.5 py-1 text-left text-xs transition-opacity hover:opacity-80
                           ${cls.is_cancelled ? "opacity-40 line-through" : ""}
-                          ${CLASS_TYPE_COLORS[cls.class_type] || "bg-slate-700 text-slate-300 border-slate-600"}`}
+                          ${CLASS_TYPE_COLORS[cls.class_type] || "bg-[--bg-muted] text-[--tx-primary] border-[--bd-subtle]"}`}
                       >
                         <div className="font-semibold truncate">
                           {formatTime(cls.start_time)} {CLASS_TYPE_LABELS[cls.class_type]}
@@ -201,7 +201,7 @@ export function ClassCalendar({
                       </button>
                     ))}
                     {dayClasses.length > 3 && (
-                      <div className="pl-1 text-xs text-slate-500">
+                      <div className="pl-1 text-xs text-[--tx-disabled]">
                         +{dayClasses.length - 3} más
                       </div>
                     )}

@@ -140,14 +140,18 @@ export function CreateStudentModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+            className="rounded-xl border border-[--bd-default] px-5 py-2.5 text-sm font-medium text-[--tx-muted] transition-colors hover:border-[--bd-subtle] hover:text-[--tx-primary]"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+            className="rounded-xl px-5 py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
+            style={{
+              backgroundColor: "var(--gold)",
+              color: "var(--gold-fg)",
+            }}
           >
             {isPending ? "Guardando..." : "Registrar Alumno"}
           </button>
@@ -166,7 +170,7 @@ function Field({
 }): React.JSX.Element {
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-zinc-400">
+      <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
         {label}
       </label>
       {children}
@@ -179,4 +183,4 @@ function cn(...classes: string[]): string {
 }
 
 const inputCls =
-  "w-full rounded-lg border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/30";
+  "w-full rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]";

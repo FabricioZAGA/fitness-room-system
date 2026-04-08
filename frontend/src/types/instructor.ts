@@ -50,7 +50,7 @@ export const INSTRUCTOR_STATUS_LABELS: Record<InstructorStatus, string> = {
 };
 
 export const INSTRUCTOR_STATUS_COLORS: Record<InstructorStatus, string> = {
-  active: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  inactive: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-  on_leave: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  active: "bg-[--color-success-bg] text-[--color-success] border-[--color-success-bd]",
+  inactive: "bg-[--tx-disabled-bg] text-[--tx-disabled] border-[--tx-disabled-bd]",
+  on_leave: "bg-[--color-warning-bg] text-[--color-warning] border-[--color-warning-bd]",
 };

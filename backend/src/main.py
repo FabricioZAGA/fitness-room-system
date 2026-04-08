@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 from mangum import Mangum
 
 from src.config import get_settings
-from src.routers import classes, health, instructors, memberships, reservations, students
+from src.routers import classes, health, instructors, memberships, reservations, stats, students
 from src.utils.exceptions import (
     CapacityExceededException,
     FitnessRoomException,
@@ -61,14 +61,17 @@ app = FastAPI(
     ],
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"]
+_cors_origins = (
+    ["*"]
     if settings.is_local
     else [
+        settings.frontend_url,
         "http://localhost:5173",
-        "http://localhost:3000",
-    ],
+    ]
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -135,6 +138,7 @@ app.include_router(memberships.router, prefix="/api/v1")
 app.include_router(classes.router, prefix="/api/v1")
 app.include_router(reservations.router, prefix="/api/v1")
 app.include_router(instructors.router, prefix="/api/v1")
+app.include_router(stats.router, prefix="/api/v1")
 
 
 @logger.inject_lambda_context(log_event=True)

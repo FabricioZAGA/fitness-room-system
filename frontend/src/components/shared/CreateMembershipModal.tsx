@@ -226,14 +226,21 @@ export function CreateMembershipModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:border-slate-600 hover:text-white"
+            className="rounded-xl border border-[--bd-subtle] px-5 py-2.5 text-sm font-medium text-[--tx-muted] transition-colors hover:border-[--bd-default] hover:text-[--tx-primary]"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 disabled:opacity-50"
+            className="rounded-xl px-5 py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
+            style={{
+              background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+              color: "var(--gold-fg)",
+              boxShadow: "0 10px 25px var(--gold-bg)"
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
           >
             {isPending ? "Guardando..." : "Asignar Membresía"}
           </button>
@@ -252,11 +259,11 @@ function Field({
 }): React.JSX.Element {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-slate-300">{label}</label>
+      <label className="mb-1.5 block text-sm font-medium text-[--tx-primary]">{label}</label>
       {children}
     </div>
   );
 }
 
 const inputCls =
-  "w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20";
+  "w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]";

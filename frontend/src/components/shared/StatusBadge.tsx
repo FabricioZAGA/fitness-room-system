@@ -4,10 +4,10 @@ import type { MembershipStatus } from "@/types/membership";
 import type { ReservationStatus } from "@/types/reservation";
 
 const STUDENT_STATUS_STYLES: Record<StudentStatus, string> = {
-  active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  inactive: "bg-slate-500/15 text-slate-400 border-slate-500/30",
-  founder: "bg-violet-500/15 text-violet-400 border-violet-500/30",
-  new: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  active: "bg-[--color-success-bg] text-[--color-success] border-[--color-success-bd]",
+  inactive: "bg-[--tx-disabled-bg] text-[--tx-disabled] border-[--tx-disabled-bd]",
+  founder: "bg-[--color-info-bg] text-[--color-info] border-[--color-info-bd]",
+  new: "bg-[--color-primary-bg] text-[--color-primary] border-[--color-primary-bd]",
 };
 
 const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
@@ -18,10 +18,10 @@ const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
 };
 
 const MEMBERSHIP_STATUS_STYLES: Record<MembershipStatus, string> = {
-  active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  expired: "bg-red-500/15 text-red-400 border-red-500/30",
-  cancelled: "bg-slate-500/15 text-slate-400 border-slate-500/30",
-  pending: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  active: "bg-[--color-success-bg] text-[--color-success] border-[--color-success-bd]",
+  expired: "bg-[--color-danger-bg] text-[--color-danger] border-[--color-danger-bd]",
+  cancelled: "bg-[--tx-disabled-bg] text-[--tx-disabled] border-[--tx-disabled-bd]",
+  pending: "bg-[--color-warning-bg] text-[--color-warning] border-[--color-warning-bd]",
 };
 
 const MEMBERSHIP_STATUS_LABELS: Record<MembershipStatus, string> = {
@@ -32,11 +32,11 @@ const MEMBERSHIP_STATUS_LABELS: Record<MembershipStatus, string> = {
 };
 
 const RESERVATION_STATUS_STYLES: Record<ReservationStatus, string> = {
-  confirmed: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  waitlisted: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  cancelled: "bg-slate-500/15 text-slate-400 border-slate-500/30",
-  attended: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  no_show: "bg-red-500/15 text-red-400 border-red-500/30",
+  confirmed: "bg-[--color-success-bg] text-[--color-success] border-[--color-success-bd]",
+  waitlisted: "bg-[--color-warning-bg] text-[--color-warning] border-[--color-warning-bd]",
+  cancelled: "bg-[--tx-disabled-bg] text-[--tx-disabled] border-[--tx-disabled-bd]",
+  attended: "bg-[--color-primary-bg] text-[--color-primary] border-[--color-primary-bd]",
+  no_show: "bg-[--color-danger-bg] text-[--color-danger] border-[--color-danger-bd]",
 };
 
 const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {

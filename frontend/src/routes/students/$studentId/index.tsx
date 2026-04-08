@@ -20,11 +20,11 @@ export const Route = createFileRoute("/students/$studentId/")({
 });
 
 const ATTENDANCE_ICON: Record<string, React.ReactNode> = {
-  attended: <CheckCircle2 className="h-4 w-4 text-emerald-400" />,
-  no_show:  <XCircle className="h-4 w-4 text-red-400" />,
-  confirmed: <Clock className="h-4 w-4 text-amber-400" />,
-  waitlisted: <Clock className="h-4 w-4 text-slate-500" />,
-  cancelled:  <XCircle className="h-4 w-4 text-slate-500" />,
+  attended: <CheckCircle2 className="h-4 w-4 text-[--color-success]" />,
+  no_show:  <XCircle className="h-4 w-4 text-[--color-danger]" />,
+  confirmed: <Clock className="h-4 w-4 text-[--color-warning]" />,
+  waitlisted: <Clock className="h-4 w-4 text-[--tx-disabled]" />,
+  cancelled:  <XCircle className="h-4 w-4 text-[--tx-disabled]" />,
 };
 
 function StudentDetailPage(): React.JSX.Element {
@@ -56,7 +56,7 @@ function StudentDetailPage(): React.JSX.Element {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[--gold] border-t-transparent" />
       </div>
     );
   }
@@ -64,8 +64,8 @@ function StudentDetailPage(): React.JSX.Element {
   if (!student) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
-        <p className="text-lg text-slate-400">Miembro no encontrado.</p>
-        <Link to="/students" className="text-emerald-400 hover:text-emerald-300">
+        <p className="text-lg text-[--tx-muted]">Miembro no encontrado.</p>
+        <Link to="/students" className="text-[--gold] hover:text-[--gold-hover]">
           ← Volver a miembros
         </Link>
       </div>
@@ -78,11 +78,11 @@ function StudentDetailPage(): React.JSX.Element {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-950 p-6">
+      <div className="min-h-screen bg-[--bg-base] p-6">
         {/* Back */}
         <Link
           to="/students"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
+          className="mb-6 inline-flex items-center gap-2 text-sm text-[--tx-muted] hover:text-[--tx-primary] transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Volver a miembros
@@ -91,12 +91,17 @@ function StudentDetailPage(): React.JSX.Element {
         {/* Hero header */}
         <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-5">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-2xl font-bold text-white shadow-lg shadow-emerald-500/20">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl text-2xl font-bold shadow-lg"
+              style={{
+                background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                color: "var(--gold-fg)",
+                boxShadow: "0 10px 25px var(--gold-bg)"
+              }}>
               {getInitials(student.full_name)}
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">{student.full_name}</h1>
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-400">
+              <h1 className="text-3xl font-bold text-[--tx-primary]">{student.full_name}</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[--tx-muted]">
                 <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{student.email}</span>
                 {student.phone && (
                   <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{student.phone}</span>
@@ -110,7 +115,7 @@ function StudentDetailPage(): React.JSX.Element {
           <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={() => setEditOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-300 transition-all hover:border-slate-600 hover:text-white"
+              className="flex items-center gap-2 rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--bd-default] hover:text-[--tx-primary]"
             >
               <Pencil className="h-4 w-4" />
               Editar
@@ -119,7 +124,7 @@ function StudentDetailPage(): React.JSX.Element {
               <button
                 onClick={() => deactivate(studentId)}
                 disabled={deactivating}
-                className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-xl border border-[--color-danger-bd] bg-[--color-danger-bg] px-4 py-2.5 text-sm font-medium text-[--color-danger] transition-all hover:bg-[--color-danger-bg] disabled:opacity-50"
               >
                 <PowerOff className="h-4 w-4" />
                 Desactivar
@@ -128,7 +133,7 @@ function StudentDetailPage(): React.JSX.Element {
               <button
                 onClick={() => activate(studentId)}
                 disabled={activating}
-                className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-400 transition-all hover:bg-emerald-500/20 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-xl border border-[--color-success-bd] bg-[--color-success-bg] px-4 py-2.5 text-sm font-medium text-[--color-success] transition-all hover:bg-[--color-success-bg] disabled:opacity-50"
               >
                 <Power className="h-4 w-4" />
                 Activar
@@ -140,21 +145,21 @@ function StudentDetailPage(): React.JSX.Element {
         {/* Quick stats */}
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
           <StatCard
-            icon={<CreditCard className="h-6 w-6 text-emerald-400" />}
+            icon={<CreditCard className="h-6 w-6 text-[--color-success]" />}
             label="Membresía activa"
             value={activeMembership ? MEMBERSHIP_TYPE_LABELS[activeMembership.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS] : "Sin membresía"}
             sub={activeMembership ? `Vence ${formatDate(activeMembership.end_date)}` : "Asigna una membresía"}
             color="emerald"
           />
           <StatCard
-            icon={<Calendar className="h-6 w-6 text-blue-400" />}
+            icon={<Calendar className="h-6 w-6 text-[--color-info]" />}
             label="Reservaciones"
             value={String(reservations.length)}
             sub={`${attendedCount} asistencias`}
             color="blue"
           />
           <StatCard
-            icon={<User className="h-6 w-6 text-slate-400" />}
+            icon={<User className="h-6 w-6 text-[--tx-muted]" />}
             label="Miembro desde"
             value={formatDate(student.created_at)}
             sub={student.notes ?? "Sin notas"}
@@ -164,12 +169,16 @@ function StudentDetailPage(): React.JSX.Element {
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Memberships */}
-          <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+          <section className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-white">Membresías</h2>
+              <h2 className="text-base font-semibold text-[--tx-primary]">Membresías</h2>
               <button
                 onClick={() => setMembershipModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors"
+                className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                style={{
+                  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                  color: "var(--gold-fg)"
+                }}
               >
                 <Plus className="h-3.5 w-3.5" />
                 Nueva
@@ -178,8 +187,8 @@ function StudentDetailPage(): React.JSX.Element {
 
             {memberships.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
-                <CreditCard className="mb-3 h-10 w-10 text-slate-700" />
-                <p className="text-slate-400">Sin membresías registradas</p>
+                <CreditCard className="mb-3 h-10 w-10 text-[--tx-disabled]" />
+                <p className="text-[--tx-muted]">Sin membresías registradas</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -188,21 +197,21 @@ function StudentDetailPage(): React.JSX.Element {
                     key={m.membership_id}
                     className={`rounded-xl border p-4 transition-all ${
                       m.status === "active"
-                        ? "border-emerald-500/20 bg-emerald-500/5"
-                        : "border-slate-800 bg-slate-800/50"
+                        ? "border-[--color-success-bd] bg-[--color-success-bg]"
+                        : "border-[--bd-default] bg-[--bg-muted]/50"
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <p className="font-semibold text-white">
+                      <p className="font-semibold text-[--tx-primary]">
                         {MEMBERSHIP_TYPE_LABELS[m.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS]}
                       </p>
                       <MembershipStatusBadge status={m.status} />
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[--tx-muted]">
                       <span>{formatDate(m.start_date)} → {formatDate(m.end_date)}</span>
-                      <span className="font-medium text-white">{formatCurrency(m.price_paid)}</span>
+                      <span className="font-medium text-[--tx-primary]">{formatCurrency(m.price_paid)}</span>
                       {m.classes_remaining !== null && (
-                        <span className="text-emerald-400">{m.classes_remaining} clases restantes</span>
+                        <span className="text-[--color-success]">{m.classes_remaining} clases restantes</span>
                       )}
                     </div>
                   </div>
@@ -212,11 +221,11 @@ function StudentDetailPage(): React.JSX.Element {
           </section>
 
           {/* Reservation history */}
-          <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-            <h2 className="mb-5 text-base font-semibold text-white">
+          <section className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
+            <h2 className="mb-5 text-base font-semibold text-[--tx-primary]">
               Historial de clases
               {reservations.length > 0 && (
-                <span className="ml-2 rounded-full bg-slate-800 px-2 py-0.5 text-xs font-normal text-slate-400">
+                <span className="ml-2 rounded-full bg-[--bg-muted] px-2 py-0.5 text-xs font-normal text-[--tx-muted]">
                   {reservations.length}
                 </span>
               )}
@@ -224,8 +233,8 @@ function StudentDetailPage(): React.JSX.Element {
 
             {reservations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
-                <Calendar className="mb-3 h-10 w-10 text-slate-700" />
-                <p className="text-slate-400">Sin reservaciones registradas</p>
+                <Calendar className="mb-3 h-10 w-10 text-[--tx-disabled]" />
+                <p className="text-[--tx-muted]">Sin reservaciones registradas</p>
               </div>
             ) : (
               <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
@@ -234,19 +243,19 @@ function StudentDetailPage(): React.JSX.Element {
                   return (
                     <div
                       key={res.reservation_id}
-                      className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-800/40 px-4 py-3"
+                      className="flex items-center justify-between rounded-xl border border-[--bd-default] bg-[--bg-muted]/40 px-4 py-3"
                     >
                       <div className="flex items-center gap-3">
                         <span>{ATTENDANCE_ICON[res.status] ?? ATTENDANCE_ICON["confirmed"]}</span>
                         <div>
-                          <p className="text-sm font-medium text-white">
+                          <p className="text-sm font-medium text-[--tx-primary]">
                             {cls
                               ? CLASS_TYPE_LABELS[cls.type as keyof typeof CLASS_TYPE_LABELS] ?? cls.type
                               : "Clase"}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-[--tx-disabled]">
                             {cls ? formatDate(cls.date) : res.class_date ? formatDate(res.class_date) : "—"}
-                            {cls && <span className="ml-2 text-slate-600">· {cls.instructor}</span>}
+                            {cls && <span className="ml-2 text-[--tx-disabled]">· {cls.instructor}</span>}
                           </p>
                         </div>
                       </div>
@@ -283,14 +292,14 @@ function StatCard({
   sub: string;
   color: "emerald" | "blue" | "slate";
 }): React.JSX.Element {
-  const border = { emerald: "border-emerald-500/20 bg-emerald-500/5", blue: "border-blue-500/20 bg-blue-500/5", slate: "border-slate-700 bg-slate-800/50" }[color];
+  const border = { emerald: "border-[--color-success-bd] bg-[--color-success-bg]", blue: "border-[--color-info-bd] bg-[--color-info-bg]", slate: "border-[--bd-subtle] bg-[--bg-muted]/50" }[color];
   return (
     <div className={`flex items-center gap-4 rounded-2xl border p-5 ${border}`}>
       <div className="shrink-0">{icon}</div>
       <div className="min-w-0">
-        <p className="truncate text-xs text-slate-500">{label}</p>
-        <p className="mt-0.5 truncate text-lg font-bold text-white">{value}</p>
-        <p className="truncate text-xs text-slate-500">{sub}</p>
+        <p className="truncate text-xs text-[--tx-disabled]">{label}</p>
+        <p className="mt-0.5 truncate text-lg font-bold text-[--tx-primary]">{value}</p>
+        <p className="truncate text-xs text-[--tx-disabled]">{sub}</p>
       </div>
     </div>
   );
@@ -307,8 +316,8 @@ function InfoRow({
 }): React.JSX.Element {
   return (
     <div className={className}>
-      <dt className="text-xs text-slate-500">{label}</dt>
-      <dd className="mt-0.5 text-sm text-slate-200">{value}</dd>
+      <dt className="text-xs text-[--tx-disabled]">{label}</dt>
+      <dd className="mt-0.5 text-sm text-[--tx-primary]">{value}</dd>
     </div>
   );
 }

@@ -32,9 +32,9 @@ export const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {
 };
 
 export const RESERVATION_STATUS_COLORS: Record<ReservationStatus, string> = {
-  confirmed: "bg-green-500/20 text-green-400 border-green-500/30",
-  waitlisted: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  cancelled: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
-  attended: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  no_show: "bg-red-500/20 text-red-400 border-red-500/30",
+  confirmed: "bg-[--color-success-bg] text-[--color-success] border-[--color-success-bd]",
+  waitlisted: "bg-[--color-warning-bg] text-[--color-warning] border-[--color-warning-bd]",
+  cancelled: "bg-[--tx-disabled-bg] text-[--tx-disabled] border-[--tx-disabled-bd]",
+  attended: "bg-[--color-primary-bg] text-[--color-primary] border-[--color-primary-bd]",
+  no_show: "bg-[--color-danger-bg] text-[--color-danger] border-[--color-danger-bd]",
 };

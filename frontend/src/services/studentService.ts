@@ -49,4 +49,12 @@ export const studentService = {
   async delete(studentId: string): Promise<void> {
     await apiClient.delete(`/students/${studentId}`);
   },
+
+  /** Record a gym entry check-in for a student. Requires backend POST /students/:id/checkin */
+  async checkin(studentId: string): Promise<{ checked_in_at: string }> {
+    const response = await apiClient.post<{ checked_in_at: string }>(
+      `/students/${studentId}/checkin`
+    );
+    return response.data;
+  },
 } as const;

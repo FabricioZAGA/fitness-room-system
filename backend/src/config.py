@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     cognito_user_pool_id: str = Field(default="", description="Cognito User Pool ID")
     cognito_client_id: str = Field(default="", description="Cognito App Client ID")
     cognito_region: str = Field(default="us-east-1", description="Cognito region")
+    frontend_url: str = Field(
+        default="http://localhost:5173",
+        description="Frontend URL for CORS allowed origins",
+    )
 
     powertools_service_name: str = Field(
         default="fitness-room-api", description="Lambda Powertools service name"

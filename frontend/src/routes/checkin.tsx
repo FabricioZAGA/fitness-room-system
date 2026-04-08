@@ -5,7 +5,7 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useStudents } from "@/hooks/useStudents";
+import { useStudents, useCheckin } from "@/hooks/useStudents";
 import { useMembershipsForStudent, useActiveMembership } from "@/hooks/useMemberships";
 import { useReservationsForStudent } from "@/hooks/useReservations";
 import { useClasses } from "@/hooks/useClasses";
@@ -47,20 +47,20 @@ function CheckinPage(): React.JSX.Element {
   const showResults = searchTerm.length >= 2;
 
   return (
-    <div className="min-h-screen bg-slate-950 p-6">
+    <div className="min-h-screen bg-[--bg-base] p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Check-in</h1>
-        <p className="mt-1 text-lg text-slate-400">
+        <h1 className="text-3xl font-bold text-[--tx-primary]">Check-in</h1>
+        <p className="mt-1 text-lg text-[--tx-muted]">
           Busca al miembro por nombre o escanea su código QR
         </p>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Search Panel */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
           <div className="relative">
-            <Search className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-500" />
+            <Search className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-[--tx-disabled]" />
             <input
               type="text"
               value={searchTerm}
@@ -70,7 +70,7 @@ function CheckinPage(): React.JSX.Element {
               }}
               placeholder="Escribe el nombre del miembro..."
               autoFocus
-              className="w-full rounded-xl border-2 border-slate-700 bg-slate-800 py-5 pl-14 pr-4 text-xl text-white placeholder-slate-500 transition-colors focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl border-2 border-[--bd-subtle] bg-[--bg-muted] py-5 pl-14 pr-4 text-xl text-[--tx-primary] placeholder-[--tx-disabled] transition-colors focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]"
             />
           </div>
 
@@ -78,7 +78,7 @@ function CheckinPage(): React.JSX.Element {
           {showResults && (
             <div className="mt-4 space-y-2">
               {students.length === 0 ? (
-                <p className="py-8 text-center text-slate-500">
+                <p className="py-8 text-center text-[--tx-disabled]">
                   No se encontraron miembros
                 </p>
               ) : (
@@ -88,22 +88,22 @@ function CheckinPage(): React.JSX.Element {
                     onClick={() => setSelectedStudent(student)}
                     className={`w-full rounded-xl border-2 p-4 text-left transition-all ${
                       selectedStudent?.student_id === student.student_id
-                        ? "border-emerald-500 bg-emerald-500/10"
-                        : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                        ? "border-[--gold] bg-[--gold-bg]"
+                        : "border-[--bd-subtle] bg-[--bg-muted] hover:border-[--gold-bd]"
                     }`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-700 text-xl font-bold text-white">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[--bg-elevated] text-xl font-bold text-[--tx-primary]">
                         {student.first_name.charAt(0)}
                         {student.last_name.charAt(0)}
                       </div>
                       <div className="flex-1">
-                        <p className="text-lg font-semibold text-white">
+                        <p className="text-lg font-semibold text-[--tx-primary]">
                           {student.full_name}
                         </p>
-                        <p className="text-sm text-slate-400">{student.email}</p>
+                        <p className="text-sm text-[--tx-muted]">{student.email}</p>
                       </div>
-                      <ArrowRight className="h-5 w-5 text-slate-500" />
+                      <ArrowRight className="h-5 w-5 text-[--tx-disabled]" />
                     </div>
                   </button>
                 ))
@@ -113,15 +113,15 @@ function CheckinPage(): React.JSX.Element {
         </div>
 
         {/* Member Status Panel */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
           {selectedStudent ? (
             <MemberStatusCard student={selectedStudent} />
           ) : (
             <div className="flex h-full flex-col items-center justify-center py-16 text-center">
-              <div className="mb-4 rounded-full bg-slate-800 p-6">
-                <User className="h-12 w-12 text-slate-600" />
+              <div className="mb-4 rounded-full bg-[--bg-muted] p-6">
+                <User className="h-12 w-12 text-[--tx-disabled]" />
               </div>
-              <p className="text-xl text-slate-500">
+              <p className="text-xl text-[--tx-disabled]">
                 Selecciona un miembro para ver su estado
               </p>
             </div>
@@ -133,6 +133,7 @@ function CheckinPage(): React.JSX.Element {
 }
 
 function MemberStatusCard({ student }: { student: Student }): React.JSX.Element {
+  const { mutate: registerCheckin, isPending: isCheckingIn } = useCheckin();
   const { data: membership } = useActiveMembership(student.student_id);
   const { data: membershipsData } = useMembershipsForStudent(student.student_id);
   const { data: reservationsData } = useReservationsForStudent(student.student_id);
@@ -164,29 +165,29 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
         className={`rounded-xl p-6 ${
           canEnter
             ? isExpiringSoon
-              ? "bg-amber-500/10 border-2 border-amber-500/30"
-              : "bg-emerald-500/10 border-2 border-emerald-500/30"
-            : "bg-red-500/10 border-2 border-red-500/30"
+              ? "bg-[--color-warning-bg] border-2 border-[--color-warning-bd]"
+              : "bg-[--color-success-bg] border-2 border-[--color-success-bd]"
+            : "bg-[--color-danger-bg] border-2 border-[--color-danger-bd]"
         }`}
       >
         <div className="flex items-center gap-4">
           {canEnter ? (
             isExpiringSoon ? (
-              <AlertTriangle className="h-12 w-12 text-amber-500" />
+              <AlertTriangle className="h-12 w-12 text-[--color-warning]" />
             ) : (
-              <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+              <CheckCircle2 className="h-12 w-12 text-[--color-success]" />
             )
           ) : (
-            <XCircle className="h-12 w-12 text-red-500" />
+            <XCircle className="h-12 w-12 text-[--color-danger]" />
           )}
           <div>
             <p
               className={`text-2xl font-bold ${
                 canEnter
                   ? isExpiringSoon
-                    ? "text-amber-500"
-                    : "text-emerald-500"
-                  : "text-red-500"
+                    ? "text-[--color-warning]"
+                    : "text-[--color-success]"
+                  : "text-[--color-danger]"
               }`}
             >
               {canEnter
@@ -195,7 +196,7 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
                   : "✅ Acceso Permitido"
                 : "❌ Acceso Denegado"}
             </p>
-            <p className="text-slate-400">
+            <p className="text-[--tx-muted]">
               {!isActive
                 ? "El miembro está inactivo"
                 : !hasMembership
@@ -211,15 +212,21 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
       </div>
 
       {/* Member Info */}
-      <div className="rounded-xl border border-slate-700 bg-slate-800 p-5">
+      <div className="rounded-xl border border-[--bd-subtle] bg-[--bg-muted] p-5">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-2xl font-bold text-white">
+          <div
+            className="flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold"
+            style={{
+              background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+              color: "var(--gold-fg)",
+            }}
+          >
             {getInitials(student.full_name)}
           </div>
           <div>
-            <p className="text-xl font-bold text-white">{student.full_name}</p>
-            <p className="text-slate-400">{student.email}</p>
-            {student.phone && <p className="text-slate-500">{student.phone}</p>}
+            <p className="text-xl font-bold text-[--tx-primary]">{student.full_name}</p>
+            <p className="text-[--tx-muted]">{student.email}</p>
+            {student.phone && <p className="text-[--tx-disabled]">{student.phone}</p>}
           </div>
         </div>
       </div>
@@ -252,35 +259,43 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
 
       {/* Today's reservations */}
       {todayReservations.length > 0 && (
-        <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
-          <p className="mb-2 text-sm font-semibold text-blue-400">Clases de hoy ({todayReservations.length})</p>
+        <div className="rounded-xl border border-[--color-info-bd] bg-[--color-info-bg] p-4">
+          <p className="mb-2 text-sm font-semibold text-[--color-info]">Clases de hoy ({todayReservations.length})</p>
           <div className="space-y-1">
             {todayReservations.map((r) => {
               const cls = classMap[r.class_id ?? ""];
               return (
                 <div key={r.reservation_id} className="flex items-center justify-between text-sm">
-                  <span className="text-slate-300">
+                  <span className="text-[--tx-primary]">
                     {cls ? `${cls.type} · ${cls.time}` : (r.class_date ?? "—")}
                   </span>
-                  <span className={r.status === "confirmed" ? "text-emerald-400" : "text-amber-400"}>
+                  <span className={r.status === "confirmed" ? "text-[--color-success]" : "text-[--color-warning]"}>
                     {r.status === "confirmed" ? "Confirmada" : "En espera"}
                   </span>
                 </div>
               );
             })}
-            </div>
+          </div>
         </div>
       )}
 
       {/* Quick Actions */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <button className="rounded-xl bg-emerald-600 py-4 text-lg font-semibold text-white transition-colors hover:bg-emerald-500">
-          ✓ Registrar Check-in
+        <button
+          onClick={() => registerCheckin(student.student_id)}
+          disabled={!canEnter || isCheckingIn}
+          className="rounded-xl py-4 text-lg font-semibold text-[--tx-primary] transition-all disabled:cursor-not-allowed disabled:opacity-50"
+          style={{
+            backgroundColor: canEnter ? "var(--gold)" : "var(--bg-muted)",
+            color: canEnter ? "var(--gold-fg)" : "var(--tx-disabled)",
+          }}
+        >
+          {isCheckingIn ? "Registrando..." : "✓ Registrar Check-in"}
         </button>
         <Link
           to="/students/$studentId"
           params={{ studentId: student.student_id }}
-          className="rounded-xl border-2 border-slate-700 py-4 text-center text-lg font-semibold text-white transition-colors hover:border-slate-600 hover:bg-slate-800"
+          className="rounded-xl border-2 border-[--bd-subtle] py-4 text-center text-lg font-semibold text-[--tx-primary] transition-colors hover:border-[--bd-default] hover:bg-[--bg-muted]"
         >
           Ver Perfil Completo
         </Link>
@@ -288,8 +303,8 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
 
       {/* Membership History */}
       {allMemberships.length > 1 && (
-        <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">
-          <p className="mb-3 text-sm font-medium text-slate-400">
+        <div className="rounded-xl border border-[--bd-subtle] bg-[--bg-muted]/50 p-4">
+          <p className="mb-3 text-sm font-medium text-[--tx-muted]">
             Historial de membresías ({allMemberships.length})
           </p>
           <div className="space-y-2">
@@ -298,8 +313,8 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
                 key={m.membership_id}
                 className="flex items-center justify-between text-sm"
               >
-                <span className="text-slate-300">{m.membership_type}</span>
-                <span className="text-slate-500">
+                <span className="text-[--tx-primary]">{m.membership_type}</span>
+                <span className="text-[--tx-disabled]">
                   {formatDate(m.start_date)} - {formatDate(m.end_date)}
                 </span>
               </div>
@@ -323,15 +338,15 @@ function InfoCard({
   color: "emerald" | "amber" | "slate";
 }): React.JSX.Element {
   const colorClasses = {
-    emerald: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-    amber: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-    slate: "border-slate-700 bg-slate-800 text-slate-300",
+    emerald: "border-[--color-success-bd] bg-[--color-success-bg] text-[--color-success]",
+    amber: "border-[--color-warning-bd] bg-[--color-warning-bg] text-[--color-warning]",
+    slate: "border-[--bd-subtle] bg-[--bg-muted] text-[--tx-primary]",
   };
 
   return (
     <div className={`rounded-xl border p-4 ${colorClasses[color]}`}>
       <Icon className="mb-2 h-5 w-5" />
-      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-xs text-[--tx-disabled]">{label}</p>
       <p className="text-lg font-bold">{value}</p>
     </div>
   );

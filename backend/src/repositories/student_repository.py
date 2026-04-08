@@ -1,6 +1,6 @@
 """Student repository — DynamoDB access patterns for Students."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from boto3.dynamodb.conditions import Attr
 
@@ -8,6 +8,9 @@ from src.models.common import utc_now
 from src.models.student import StudentCreate, StudentDynamoItem, StudentStatus, StudentUpdate
 from src.repositories.dynamo_repository import DynamoRepository
 from src.utils.exceptions import ResourceAlreadyExistsException, ResourceNotFoundException
+
+if TYPE_CHECKING:
+    from src.models.checkin import CheckinDynamoItem
 
 
 class StudentRepository(DynamoRepository):
@@ -131,3 +134,11 @@ class StudentRepository(DynamoRepository):
             limit=1000,
         )
         return any(i.get("email") == email for i in items)
+
+    def put_checkin(self, item: "CheckinDynamoItem") -> None:
+        """Store a check-in record in DynamoDB.
+
+        Access pattern: PUT PK=STUDENT#id, SK=CHECKIN#{timestamp}.
+        No condition expression — always overwrites (timestamp guarantees uniqueness).
+        """
+        self.put_item(item.model_dump(mode="json"))

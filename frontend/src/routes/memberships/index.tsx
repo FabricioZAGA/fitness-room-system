@@ -33,18 +33,25 @@ function MembershipsPage(): React.JSX.Element {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-950 p-6">
+      <div className="min-h-screen bg-[--bg-base] p-6">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Membresías</h1>
-            <p className="mt-1 text-lg text-slate-400">
+            <h1 className="text-3xl font-bold text-[--tx-primary]">Membresías</h1>
+            <p className="mt-1 text-lg text-[--tx-muted]">
               Alertas de vencimiento y gestión de planes
             </p>
           </div>
           <button
             onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500"
+            className="flex items-center gap-2 rounded-xl px-5 py-3 text-base font-semibold transition-all"
+            style={{
+              background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+              color: "var(--gold-fg)",
+              boxShadow: "0 10px 25px var(--gold-bg)"
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
           >
             <Plus className="h-5 w-5" />
             Nueva Membresía
@@ -53,38 +60,38 @@ function MembershipsPage(): React.JSX.Element {
 
         {/* Summary cards */}
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5">
+          <div className="rounded-2xl border border-[--color-danger-bd] bg-[--color-danger-bg] p-5">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-red-500/20 p-3">
-                <AlertTriangle className="h-6 w-6 text-red-400" />
+              <div className="rounded-xl bg-[--color-danger-bg] p-3">
+                <AlertTriangle className="h-6 w-6 text-[--color-danger]" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-white">{critical.length}</p>
-                <p className="text-sm text-red-400">Vencen esta semana</p>
+                <p className="text-3xl font-bold text-[--tx-primary]">{critical.length}</p>
+                <p className="text-sm text-[--color-danger]">Vencen esta semana</p>
               </div>
             </div>
           </div>
-          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-5">
+          <div className="rounded-2xl border border-[--color-warning-bd] bg-[--color-warning-bg] p-5">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-amber-500/20 p-3">
-                <CreditCard className="h-6 w-6 text-amber-400" />
+              <div className="rounded-xl bg-[--color-warning-bg] p-3">
+                <CreditCard className="h-6 w-6 text-[--color-warning]" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-white">{all30.length}</p>
-                <p className="text-sm text-amber-400">Vencen en 30 días</p>
+                <p className="text-3xl font-bold text-[--tx-primary]">{all30.length}</p>
+                <p className="text-sm text-[--color-warning]">Vencen en 30 días</p>
               </div>
             </div>
           </div>
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5">
+          <div className="rounded-2xl border border-[--color-success-bd] bg-[--color-success-bg] p-5">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-emerald-500/20 p-3">
-                <DollarSign className="h-6 w-6 text-emerald-400" />
+              <div className="rounded-xl bg-[--color-success-bg] p-3">
+                <DollarSign className="h-6 w-6 text-[--color-success]" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-white">
+                <p className="text-3xl font-bold text-[--tx-primary]">
                   {formatCurrency(all30.reduce((sum, m) => sum + (m.price_paid ?? 0), 0))}
                 </p>
-                <p className="text-sm text-emerald-400">Renovaciones pendientes</p>
+                <p className="text-sm text-[--color-success]">Renovaciones pendientes</p>
               </div>
             </div>
           </div>
@@ -92,22 +99,22 @@ function MembershipsPage(): React.JSX.Element {
 
         {isLoading ? (
           <div className="flex h-48 items-center justify-center">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-[--gold] border-t-transparent" />
           </div>
         ) : all30.length === 0 ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 py-20 text-center">
-            <CreditCard className="mx-auto mb-4 h-16 w-16 text-slate-700" />
-            <p className="text-xl text-slate-400">
+          <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] py-20 text-center">
+            <CreditCard className="mx-auto mb-4 h-16 w-16 text-[--tx-disabled]" />
+            <p className="text-xl text-[--tx-muted]">
               No hay membresías por vencer en los próximos 30 días
             </p>
-            <p className="mt-2 text-slate-500">¡Todo al día!</p>
+            <p className="mt-2 text-[--tx-disabled]">¡Todo al día!</p>
           </div>
         ) : (
           <div className="space-y-6">
             {/* CRITICAL — vencen en 7 días */}
             {critical.length > 0 && (
               <section>
-                <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-red-400">
+                <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-[--color-danger]">
                   <AlertTriangle className="h-5 w-5" />
                   Urgente — vencen en 7 días ({critical.length})
                 </h2>
@@ -122,7 +129,7 @@ function MembershipsPage(): React.JSX.Element {
             {/* WARNING — 8-30 días */}
             {warning.length > 0 && (
               <section>
-                <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-amber-400">
+                <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-[--color-warning]">
                   <CreditCard className="h-5 w-5" />
                   Próximamente — 8 a 30 días ({warning.length})
                 </h2>
@@ -163,18 +170,18 @@ function MembershipCard({
   const days = m.days_until_expiry ?? 0;
 
   const borderColor =
-    urgency === "critical" ? "border-red-500/20" : "border-amber-500/20";
+    urgency === "critical" ? "border-[--color-danger-bd]" : "border-[--color-warning-bd]";
   const bgColor =
-    urgency === "critical" ? "hover:border-red-500/40" : "hover:border-amber-500/40";
-  const daysColor = urgency === "critical" ? "text-red-400" : "text-amber-400";
+    urgency === "critical" ? "hover:border-[--color-danger-bd]" : "hover:border-[--color-warning-bd]";
+  const daysColor = urgency === "critical" ? "text-[--color-danger]" : "text-[--color-warning]";
   const daysBg =
     urgency === "critical"
-      ? "bg-red-500/10 border border-red-500/20"
-      : "bg-amber-500/10 border border-amber-500/20";
+      ? "bg-[--color-danger-bg] border border-[--color-danger-bd]"
+      : "bg-[--color-warning-bg] border border-[--color-warning-bd]";
 
   return (
     <div
-      className={`flex items-center justify-between rounded-2xl border bg-slate-900 p-5 transition-all ${borderColor} ${bgColor}`}
+      className={`flex items-center justify-between rounded-2xl border bg-[--bg-surface] p-5 transition-all ${borderColor} ${bgColor}`}
     >
       <div className="flex items-center gap-5">
         {/* Days countdown */}
@@ -182,26 +189,26 @@ function MembershipCard({
           className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl ${daysBg}`}
         >
           <p className={`text-2xl font-bold ${daysColor}`}>{days}</p>
-          <p className="text-xs text-slate-500">días</p>
+          <p className="text-xs text-[--tx-disabled]">días</p>
         </div>
 
         {/* Info */}
         <div>
           <div className="flex items-center gap-3 mb-1">
             {studentName && (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-xs font-bold text-emerald-400">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[--color-success-bg] text-xs font-bold text-[--color-success]">
                 {getInitials(studentName)}
               </div>
             )}
             <Link
               to="/students/$studentId"
               params={{ studentId: m.student_id }}
-              className="text-lg font-semibold text-white hover:text-emerald-400 transition-colors"
+              className="text-lg font-semibold text-[--tx-primary] hover:text-[--color-success] transition-colors"
             >
               {studentName ?? "Ver miembro →"}
             </Link>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-slate-400">
+          <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-[--tx-muted]">
             <span className="flex items-center gap-1.5">
               <CreditCard className="h-3.5 w-3.5" />
               {MEMBERSHIP_TYPE_LABELS[m.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS]}
@@ -222,7 +229,14 @@ function MembershipCard({
       {onRenew && (
         <button
           onClick={onRenew}
-          className="hidden shrink-0 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 sm:flex items-center gap-2"
+          className="hidden shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all sm:flex items-center gap-2"
+          style={{
+            background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+            color: "var(--gold-fg)",
+            boxShadow: "0 10px 25px var(--gold-bg)"
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
         >
           Renovar
         </button>

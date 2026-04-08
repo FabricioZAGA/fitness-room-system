@@ -55,19 +55,19 @@ function ReservationsPage(): React.JSX.Element {
   const selectedClass = allClasses.find((c) => c.class_id === selectedClassId);
 
   return (
-    <div className="min-h-screen bg-slate-950 p-6">
+    <div className="min-h-screen bg-[--bg-base] p-6">
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Reservaciones</h1>
-          <p className="mt-1 text-lg text-slate-400">
+          <h1 className="text-3xl font-bold text-[--tx-primary]">Reservaciones</h1>
+          <p className="mt-1 text-lg text-[--tx-muted]">
             Gestiona las reservaciones de cada clase
           </p>
         </div>
       </div>
 
       {/* Date filter + Class selector */}
-      <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900 p-6">
+      <div className="mb-6 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
         {/* Quick filters */}
         <div className="mb-4 flex gap-2">
           {(["today", "week", "all"] as const).map((f) => (
@@ -76,28 +76,37 @@ function ReservationsPage(): React.JSX.Element {
               onClick={() => { setDateFilter(f); setSelectedClassId(""); }}
               className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
                 dateFilter === f
-                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
-                  : "border border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600 hover:text-white"
+                  ? "shadow-lg"
+                  : "border border-[--bd-subtle] bg-[--bg-muted] text-[--tx-muted] hover:border-[--bd-default] hover:text-[--tx-primary]"
               }`}
+              style={
+                dateFilter === f
+                  ? {
+                      background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                      color: "var(--gold-fg)",
+                      boxShadow: "0 10px 25px var(--gold-bg)"
+                    }
+                  : undefined
+              }
             >
               {f === "today" ? "Hoy" : f === "week" ? "Esta semana" : "Todas"}
             </button>
           ))}
           {dateFilter === "today" && (
-            <span className="ml-2 flex items-center text-sm text-slate-500">
+            <span className="ml-2 flex items-center text-sm text-[--tx-disabled]">
               {today}
             </span>
           )}
         </div>
 
-        <label className="mb-3 block text-sm font-medium text-slate-300">
+        <label className="mb-3 block text-sm font-medium text-[--tx-primary]">
           Selecciona una clase{classes.length > 0 ? ` (${classes.length})` : ""}
         </label>
         {classesLoading ? (
-          <div className="h-14 w-full animate-pulse rounded-xl bg-slate-800" />
+          <div className="h-14 w-full animate-pulse rounded-xl bg-[--bg-muted]" />
         ) : classes.length === 0 ? (
-          <div className="rounded-xl bg-slate-800/30 py-6 text-center">
-            <p className="text-slate-500">
+          <div className="rounded-xl bg-[--bg-muted]/30 py-6 text-center">
+            <p className="text-[--tx-disabled]">
               {dateFilter === "today" ? "No hay clases hoy" : dateFilter === "week" ? "No hay clases esta semana" : "No hay clases registradas"}
             </p>
           </div>
@@ -105,7 +114,7 @@ function ReservationsPage(): React.JSX.Element {
           <select
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            className="w-full rounded-xl border-2 border-slate-700 bg-slate-800 px-4 py-4 text-base text-white focus:border-emerald-500 focus:outline-none"
+            className="w-full rounded-xl border-2 border-[--bd-subtle] bg-[--bg-muted] px-4 py-4 text-base text-[--tx-primary] focus:border-[--gold] focus:outline-none"
           >
             <option value="">— Selecciona una clase —</option>
             {classes.map((cls) => (
@@ -120,39 +129,39 @@ function ReservationsPage(): React.JSX.Element {
 
       {/* Reservations content */}
       {!selectedClassId ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 py-20 text-center">
-          <CalendarCheck className="mx-auto mb-4 h-16 w-16 text-slate-700" />
-          <p className="text-xl text-slate-400">
+        <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] py-20 text-center">
+          <CalendarCheck className="mx-auto mb-4 h-16 w-16 text-[--tx-disabled]" />
+          <p className="text-xl text-[--tx-muted]">
             Selecciona una clase para ver y gestionar sus reservaciones
           </p>
         </div>
       ) : resLoading ? (
         <div className="flex h-48 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[--gold] border-t-transparent" />
         </div>
       ) : (
         <>
           {/* Summary bar + Add button */}
           {selectedClass && (
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900 p-5">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-5">
               <div className="flex flex-wrap gap-6">
                 <div>
-                  <p className="text-xs text-slate-500">Capacidad</p>
-                  <p className="text-2xl font-bold text-white">{selectedClass.capacity}</p>
+                  <p className="text-xs text-[--tx-disabled]">Capacidad</p>
+                  <p className="text-2xl font-bold text-[--tx-primary]">{selectedClass.capacity}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Reservadas</p>
-                  <p className="text-2xl font-bold text-emerald-400">
+                  <p className="text-xs text-[--tx-disabled]">Reservadas</p>
+                  <p className="text-2xl font-bold text-[--color-success]">
                     {selectedClass.reservations_count}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Disponibles</p>
+                  <p className="text-xs text-[--tx-disabled]">Disponibles</p>
                   <p
                     className={`text-2xl font-bold ${
                       selectedClass.available_spots === 0
-                        ? "text-amber-400"
-                        : "text-white"
+                        ? "text-[--color-warning]"
+                        : "text-[--tx-primary]"
                     }`}
                   >
                     {selectedClass.available_spots}
@@ -161,7 +170,14 @@ function ReservationsPage(): React.JSX.Element {
               </div>
               <button
                 onClick={() => setModalOpen(true)}
-                className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500"
+                className="flex items-center gap-2 rounded-xl px-5 py-3 text-base font-semibold transition-all"
+                style={{
+                  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                  color: "var(--gold-fg)",
+                  boxShadow: "0 10px 25px var(--gold-bg)"
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
               >
                 <UserPlus className="h-5 w-5" />
                 Añadir Miembro
@@ -170,14 +186,18 @@ function ReservationsPage(): React.JSX.Element {
           )}
 
           {reservations.length === 0 ? (
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 py-16 text-center">
-              <Users className="mx-auto mb-4 h-12 w-12 text-slate-700" />
-              <p className="text-lg text-slate-400">
+            <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] py-16 text-center">
+              <Users className="mx-auto mb-4 h-12 w-12 text-[--tx-disabled]" />
+              <p className="text-lg text-[--tx-muted]">
                 No hay reservaciones para esta clase
               </p>
               <button
                 onClick={() => setModalOpen(true)}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-base font-semibold text-white"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-base font-semibold"
+                style={{
+                  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                  color: "var(--gold-fg)"
+                }}
               >
                 <Plus className="h-5 w-5" />
                 Añadir primer miembro
@@ -191,20 +211,20 @@ function ReservationsPage(): React.JSX.Element {
                 return (
                   <div
                     key={res.reservation_id}
-                    className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900 p-5"
+                    className="flex items-center justify-between rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-5"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-bold text-emerald-400">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[--color-success-bg] text-sm font-bold text-[--color-success]">
                         {member ? member.initials : res.student_id.slice(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-lg font-semibold text-white">
+                        <p className="text-lg font-semibold text-[--tx-primary]">
                           {member ? member.name : `ID: ${res.student_id.slice(0, 8)}...`}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <ReservationStatusBadge status={res.status} />
                           {res.waitlist_position !== null && (
-                            <span className="text-xs text-amber-400">
+                            <span className="text-xs text-[--color-warning]">
                               Lista de espera #{res.waitlist_position}
                             </span>
                           )}
@@ -224,7 +244,7 @@ function ReservationsPage(): React.JSX.Element {
                                 attended: true,
                               })
                             }
-                            className="rounded-lg bg-emerald-500/10 p-2 text-emerald-400 transition-colors hover:bg-emerald-500/20"
+                            className="rounded-lg bg-[--color-success-bg] p-2 text-[--color-success] transition-colors hover:bg-[--color-success-bg]"
                             title="Marcar asistencia"
                           >
                             <CheckCircle2 className="h-5 w-5" />
@@ -237,7 +257,7 @@ function ReservationsPage(): React.JSX.Element {
                                 attended: false,
                               })
                             }
-                            className="rounded-lg bg-amber-500/10 p-2 text-amber-400 transition-colors hover:bg-amber-500/20"
+                            className="rounded-lg bg-[--color-warning-bg] p-2 text-[--color-warning] transition-colors hover:bg-[--color-warning-bg]"
                             title="Marcar no-show"
                           >
                             <Clock className="h-5 w-5" />
@@ -251,7 +271,7 @@ function ReservationsPage(): React.JSX.Element {
                             studentId: res.student_id,
                           })
                         }
-                        className="rounded-lg bg-red-500/10 p-2 text-red-400 transition-colors hover:bg-red-500/20"
+                        className="rounded-lg bg-[--color-danger-bg] p-2 text-[--color-danger] transition-colors hover:bg-[--color-danger-bg]"
                         title="Cancelar reservación"
                       >
                         <XCircle className="h-5 w-5" />

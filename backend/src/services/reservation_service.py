@@ -154,6 +154,9 @@ class ReservationService:
     ) -> ReservationResponse:
         """Mark a student as attended or no-show for a class session.
 
+        If attended=True and the student has a class-pack membership,
+        decrements classes_remaining atomically.
+
         Args:
             class_id: The class ID.
             student_id: The student's ID.
@@ -167,6 +170,28 @@ class ReservationService:
             extra={"student_id": student_id, "class_id": class_id, "attended": attended},
         )
         item = self._reservation_repo.mark_attendance(class_id, student_id, attended)
+
+        # Decrement class pack counter if student attended
+        if attended:
+            active_membership = self._membership_repo.get_active_for_student(student_id)
+            if (
+                active_membership is not None
+                and active_membership.classes_remaining is not None
+                and active_membership.classes_remaining > 0
+            ):
+                self._membership_repo.decrement_classes_remaining(
+                    student_id=student_id,
+                    membership_id=active_membership.membership_id,
+                )
+                logger.info(
+                    "Decremented class pack counter",
+                    extra={
+                        "student_id": student_id,
+                        "membership_id": active_membership.membership_id,
+                        "remaining_before": active_membership.classes_remaining,
+                    },
+                )
+
         return item.to_response()
 
     def get_waitlist_for_class(

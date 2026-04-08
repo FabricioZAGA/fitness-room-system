@@ -103,3 +103,15 @@ export function useDeactivateStudent() {
     },
   });
 }
+
+export function useCheckin() {
+  return useMutation({
+    mutationFn: (studentId: string) => studentService.checkin(studentId),
+    onSuccess: () => {
+      toast.success("✓ Check-in registrado exitosamente.");
+    },
+    onError: () => {
+      toast.error("Error al registrar el check-in. Verifica la conexión.");
+    },
+  });
+}

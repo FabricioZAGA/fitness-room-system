@@ -75,7 +75,7 @@ export function EditInstructorModal({
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-300">
+            <label className="mb-1.5 block text-sm font-medium text-[--tx-primary]">
               Nombre
             </label>
             <input
@@ -83,11 +83,11 @@ export function EditInstructorModal({
               value={form.first_name ?? ""}
               onChange={handleChange}
               required
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none"
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-300">
+            <label className="mb-1.5 block text-sm font-medium text-[--tx-primary]">
               Apellido
             </label>
             <input
@@ -95,13 +95,13 @@ export function EditInstructorModal({
               value={form.last_name ?? ""}
               onChange={handleChange}
               required
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none"
             />
           </div>
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-300">
+          <label className="mb-1.5 block text-sm font-medium text-[--tx-primary]">
             Correo electrónico
           </label>
           <input
@@ -110,25 +110,25 @@ export function EditInstructorModal({
             value={form.email ?? ""}
             onChange={handleChange}
             required
-            className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+            className="w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none"
           />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-300">
-            Teléfono <span className="text-slate-500">(opcional)</span>
+          <label className="mb-1.5 block text-sm font-medium text-[--tx-primary]">
+            Teléfono <span className="text-[--tx-disabled]">(opcional)</span>
           </label>
           <input
             name="phone"
             type="tel"
             value={form.phone ?? ""}
             onChange={handleChange}
-            className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+            className="w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-300">
+          <label className="mb-2 block text-sm font-medium text-[--tx-primary]">
             Especialidades
           </label>
           <div className="flex flex-wrap gap-2">
@@ -141,8 +141,8 @@ export function EditInstructorModal({
                   onClick={() => toggleSpecialty(s)}
                   className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
                     selected
-                      ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                      : "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600"
+                      ? "border-[--color-success-bd] bg-[--color-success-bg] text-[--color-success]"
+                      : "border-[--bd-subtle] bg-[--bg-muted] text-[--tx-muted] hover:border-[--bd-default]"
                   }`}
                 >
                   {s}
@@ -153,15 +153,15 @@ export function EditInstructorModal({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-300">
-            Biografía <span className="text-slate-500">(opcional)</span>
+          <label className="mb-1.5 block text-sm font-medium text-[--tx-primary]">
+            Biografía <span className="text-[--tx-disabled]">(opcional)</span>
           </label>
           <textarea
             name="bio"
             value={form.bio ?? ""}
             onChange={handleChange}
             rows={3}
-            className="w-full resize-none rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+            className="w-full resize-none rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none"
           />
         </div>
 
@@ -169,14 +169,20 @@ export function EditInstructorModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            className="rounded-xl border border-[--bd-subtle] px-5 py-2.5 text-sm font-medium text-[--tx-muted] hover:text-[--tx-primary] transition-colors"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+            className="rounded-xl px-5 py-2.5 text-sm font-semibold disabled:opacity-50 transition-colors"
+            style={{
+              background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+              color: "var(--gold-fg)"
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
           >
             {isPending ? "Guardando…" : "Guardar cambios"}
           </button>

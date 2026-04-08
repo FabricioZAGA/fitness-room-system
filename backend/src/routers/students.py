@@ -4,8 +4,10 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, status
 
+from src.models.checkin import CheckinResponse
 from src.models.common import MessageResponse, PaginatedResponse
 from src.models.student import StudentCreate, StudentResponse, StudentStatus, StudentUpdate
+from src.services.checkin_service import CheckinService
 from src.services.student_service import StudentService
 from src.utils.auth import get_current_user
 
@@ -15,6 +17,11 @@ router = APIRouter(prefix="/students", tags=["Students"])
 def get_service() -> StudentService:
     """Dependency: return a StudentService instance."""
     return StudentService()
+
+
+def get_checkin_service() -> CheckinService:
+    """Dependency: return a CheckinService instance."""
+    return CheckinService()
 
 
 @router.post(
@@ -140,3 +147,25 @@ def delete_student(
     """Delete a student by ID."""
     service.delete_student(student_id)
     return MessageResponse(message=f"Student '{student_id}' deleted successfully.")
+
+
+@router.post(
+    "/{student_id}/checkin",
+    response_model=CheckinResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Register Check-in",
+    description=(
+        "Record a gym entry check-in for a student. "
+        "Validates student status and active membership. "
+        "Always records the attempt (allowed or denied). "
+        "Returns can_enter=True if the student is allowed to enter."
+    ),
+    tags=["Students"],
+)
+def checkin_student(
+    student_id: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: CheckinService = Depends(get_checkin_service),
+) -> CheckinResponse:
+    """Register a gym entry check-in."""
+    return service.checkin(student_id)

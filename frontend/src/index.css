@@ -1,19 +1,117 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --color-primary: #6d28d9;
-    --color-primary-foreground: #ffffff;
-    --color-accent: #a855f7;
-    --color-background: #09090b;
-    --color-card: #18181b;
-    --radius: 0.75rem;
-    --font-family: "Inter", "system-ui", sans-serif;
-  }
+/* ─────────────────────────────────────────────
+   DESIGN TOKENS — Dark (default)
+   ───────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  /* Backgrounds */
+  --bg-base: #0a0a0a;
+  --bg-surface: #111111;
+  --bg-elevated: #1a1a1a;
+  --bg-muted: #222222;
+  --bg-input: #1a1a1a;
 
+  /* Borders */
+  --bd-default: #2a2a2a;
+  --bd-subtle: #1e1e1e;
+
+  /* Text */
+  --tx-primary: #f0f0f0;
+  --tx-muted: #888888;
+  --tx-disabled: #555555;
+
+  /* Brand — Gold */
+  --gold: #d4af37;
+  --gold-hover: #e5c158;
+  --gold-active: #c49c26;
+  --gold-bg: rgba(212, 175, 55, 0.10);
+  --gold-bd: rgba(212, 175, 55, 0.25);
+  --gold-fg: #0a0a0a;
+
+  /* Status colors */
+  --color-success: #22c55e;
+  --color-success-bg: rgba(34, 197, 94, 0.10);
+  --color-success-bd: rgba(34, 197, 94, 0.25);
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.10);
+  --color-warning-bd: rgba(245, 158, 11, 0.25);
+  --color-danger: #ef4444;
+  --color-danger-bg: rgba(239, 68, 68, 0.10);
+  --color-danger-bd: rgba(239, 68, 68, 0.25);
+  --color-info: #3b82f6;
+  --color-info-bg: rgba(59, 130, 246, 0.10);
+  --color-info-bd: rgba(59, 130, 246, 0.25);
+
+  /* Legacy compat — keep working until SWE-1.6 migration */
+  --color-primary: var(--gold);
+  --color-primary-foreground: var(--gold-fg);
+  --color-accent: var(--gold-hover);
+  --color-background: var(--bg-base);
+  --color-card: var(--bg-surface);
+  --radius: 0.75rem;
+  --font-family: "Inter", "system-ui", sans-serif;
+}
+
+/* ─────────────────────────────────────────────
+   DESIGN TOKENS — Light
+   ───────────────────────────────────────────── */
+[data-theme="light"] {
+  /* Backgrounds */
+  --bg-base: #f5f5f5;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-muted: #eeeeee;
+  --bg-input: #f8f8f8;
+
+  /* Borders */
+  --bd-default: #e0e0e0;
+  --bd-subtle: #ebebeb;
+
+  /* Text */
+  --tx-primary: #0a0a0a;
+  --tx-muted: #666666;
+  --tx-disabled: #aaaaaa;
+
+  /* Brand — Gold (darker for readability on light bg) */
+  --gold: #a67c00;
+  --gold-hover: #c09000;
+  --gold-active: #8a6800;
+  --gold-bg: rgba(166, 124, 0, 0.08);
+  --gold-bd: rgba(166, 124, 0, 0.25);
+  --gold-fg: #ffffff;
+
+  /* Status colors */
+  --color-success: #16a34a;
+  --color-success-bg: rgba(22, 163, 74, 0.10);
+  --color-success-bd: rgba(22, 163, 74, 0.25);
+  --color-warning: #d97706;
+  --color-warning-bg: rgba(217, 119, 6, 0.10);
+  --color-warning-bd: rgba(217, 119, 6, 0.25);
+  --color-danger: #dc2626;
+  --color-danger-bg: rgba(220, 38, 38, 0.10);
+  --color-danger-bd: rgba(220, 38, 38, 0.25);
+  --color-info: #2563eb;
+  --color-info-bg: rgba(37, 99, 235, 0.10);
+  --color-info-bd: rgba(37, 99, 235, 0.25);
+
+  /* Legacy compat */
+  --color-primary: var(--gold);
+  --color-primary-foreground: var(--gold-fg);
+  --color-accent: var(--gold-hover);
+  --color-background: var(--bg-base);
+  --color-card: var(--bg-surface);
+  --radius: 0.75rem;
+  --font-family: "Inter", "system-ui", sans-serif;
+}
+
+/* ─────────────────────────────────────────────
+   BASE STYLES
+   ───────────────────────────────────────────── */
+@layer base {
   * {
     box-sizing: border-box;
-    border-color: theme("colors.zinc.800");
+    border-color: var(--bd-default);
   }
 
   html {
@@ -22,8 +120,8 @@
   }
 
   body {
-    background-color: var(--color-background);
-    color: theme("colors.zinc.100");
+    background-color: var(--bg-base);
+    color: var(--tx-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -34,36 +132,113 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: theme("colors.zinc.900");
+    background: var(--bg-muted);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: theme("colors.zinc.700");
+    background: var(--bd-default);
     border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: theme("colors.zinc.600");
+    background: var(--tx-disabled);
   }
 }
 
+/* ─────────────────────────────────────────────
+   COMPONENT UTILITIES (token-based)
+   ───────────────────────────────────────────── */
 @layer components {
+  /* Surfaces */
+  .surface-base { background-color: var(--bg-base); }
+  .surface { background-color: var(--bg-surface); }
+  .surface-elevated { background-color: var(--bg-elevated); }
+  .surface-muted { background-color: var(--bg-muted); }
+
+  /* Cards */
   .card {
-    background-color: var(--color-card);
+    background-color: var(--bg-surface);
     border-radius: var(--radius);
-    border: 1px solid theme("colors.zinc.800");
+    border: 1px solid var(--bd-default);
   }
 
+  .card-elevated {
+    background-color: var(--bg-elevated);
+    border-radius: var(--radius);
+    border: 1px solid var(--bd-default);
+  }
+
+  /* Gold brand buttons */
   .btn-primary {
-    background-color: var(--color-primary);
-    color: var(--color-primary-foreground);
+    background-color: var(--gold);
+    color: var(--gold-fg);
     border-radius: calc(var(--radius) - 2px);
     padding: 0.5rem 1rem;
-    font-weight: 500;
-    transition: opacity 0.15s;
+    font-weight: 600;
+    transition: background-color 0.15s, opacity 0.15s;
   }
 
   .btn-primary:hover {
-    opacity: 0.9;
+    background-color: var(--gold-hover);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--tx-muted);
+    border: 1px solid var(--bd-default);
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--gold-bd);
+    color: var(--tx-primary);
+  }
+
+  /* Inputs */
+  .input {
+    width: 100%;
+    background-color: var(--bg-input);
+    border: 1px solid var(--bd-default);
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.625rem 1rem;
+    color: var(--tx-primary);
+    font-size: 0.875rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .input::placeholder {
+    color: var(--tx-disabled);
+  }
+
+  .input:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-bg);
+  }
+
+  /* Gold accent items */
+  .gold-badge {
+    background-color: var(--gold-bg);
+    border: 1px solid var(--gold-bd);
+    color: var(--gold);
+    border-radius: 9999px;
+    padding: 0.125rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  /* Nav active state */
+  .nav-active {
+    background-color: var(--gold-bg);
+    color: var(--gold);
+    border: 1px solid var(--gold-bd);
   }
 }

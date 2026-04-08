@@ -9,9 +9,27 @@ import { configureAmplify } from "./lib/amplify";
 import { applyTheme } from "./config/theme";
 import { routeTree } from "./routeTree.gen";
 import { AuthProvider } from "./contexts/AuthContext";
+import "./i18n";
 
 configureAmplify();
-applyTheme();
+
+// Apply saved theme from localStorage before first render to prevent flash
+try {
+  const saved = localStorage.getItem("fitness-room-theme");
+  if (saved) {
+    const parsed = JSON.parse(saved) as { state?: { theme?: { mode?: string } } };
+    const savedMode = parsed?.state?.theme?.mode;
+    if (savedMode === "light" || savedMode === "dark") {
+      applyTheme({ mode: savedMode });
+    } else {
+      applyTheme();
+    }
+  } else {
+    applyTheme();
+  }
+} catch {
+  applyTheme();
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {

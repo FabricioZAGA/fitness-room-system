@@ -31,6 +31,7 @@ class ApiStack(cdk.Stack):
         env_name: str,
         table: dynamodb.Table,
         user_pool: cognito.UserPool,
+        frontend_url: str = "http://localhost:5173",
         **kwargs: object,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -103,6 +104,7 @@ class ApiStack(cdk.Stack):
                 "POWERTOOLS_SERVICE_NAME": "fitness-room-api",
                 "POWERTOOLS_METRICS_NAMESPACE": "FitnessRoom",
                 "POWERTOOLS_LOG_LEVEL": "INFO" if env_name == "prod" else "DEBUG",
+                "FRONTEND_URL": frontend_url,
             },
             tracing=lambda_.Tracing.ACTIVE,
             log_retention=logs.RetentionDays.ONE_MONTH if env_name == "prod" else logs.RetentionDays.ONE_WEEK,
@@ -111,7 +113,7 @@ class ApiStack(cdk.Stack):
         jwt_authorizer = apigwv2_authorizers.HttpJwtAuthorizer(
             "CognitoAuthorizer",
             jwt_issuer=f"https://cognito-idp.{self.region}.amazonaws.com/{user_pool.user_pool_id}",
-            jwt_audience=[],
+            jwt_audience=[user_pool.user_pool_id],
             identity_source=["$request.header.Authorization"],
         )
 

@@ -28,18 +28,25 @@ function InstructorsPage(): React.JSX.Element {
   const activeCount = instructors.filter((i) => i.status === "active").length;
 
   return (
-    <div className="min-h-screen bg-slate-950 p-6">
+    <div className="min-h-screen bg-[--bg-base] p-6">
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Instructores</h1>
-          <p className="mt-1 text-lg text-slate-400">
+          <h1 className="text-3xl font-bold text-[--tx-primary]">Instructores</h1>
+          <p className="mt-1 text-lg text-[--tx-muted]">
             {activeCount} activos · {instructors.length} total
           </p>
         </div>
         <button
           onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500"
+          className="flex items-center gap-2 rounded-xl px-5 py-3 text-base font-semibold transition-all"
+          style={{
+            background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+            color: "var(--gold-fg)",
+            boxShadow: "0 10px 25px var(--gold-bg)"
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
         >
           <Plus className="h-5 w-5" />
           Nuevo Instructor
@@ -50,19 +57,23 @@ function InstructorsPage(): React.JSX.Element {
       {isLoading ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 animate-pulse rounded-2xl bg-slate-800" />
+            <div key={i} className="h-64 animate-pulse rounded-2xl bg-[--bg-muted]" />
           ))}
         </div>
       ) : instructors.length === 0 ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-12 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-800">
-            <Award className="h-8 w-8 text-slate-600" />
+        <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-12 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[--bg-muted]">
+            <Award className="h-8 w-8 text-[--tx-disabled]" />
           </div>
-          <p className="text-xl text-slate-400">No hay instructores registrados</p>
-          <p className="mt-2 text-slate-500">Agrega instructores para asignarlos a las clases</p>
+          <p className="text-xl text-[--tx-muted]">No hay instructores registrados</p>
+          <p className="mt-2 text-[--tx-disabled]">Agrega instructores para asignarlos a las clases</p>
           <button
             onClick={() => setCreateOpen(true)}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold"
+            style={{
+              background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+              color: "var(--gold-fg)"
+            }}
           >
             <Plus className="h-4 w-4" />
             Agregar primer instructor
@@ -73,18 +84,22 @@ function InstructorsPage(): React.JSX.Element {
           {instructors.map((instructor) => (
             <div
               key={instructor.instructor_id}
-              className={`rounded-2xl border bg-slate-900 p-6 transition-all hover:border-slate-700 ${
-                instructor.status === "active" ? "border-slate-800" : "border-slate-800/50 opacity-75"
+              className={`rounded-2xl border bg-[--bg-surface] p-6 transition-all hover:border-[--bd-subtle] ${
+                instructor.status === "active" ? "border-[--bd-default]" : "border-[--bd-default]/50 opacity-75"
               }`}
             >
               {/* Header row */}
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-lg font-bold text-white">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-lg font-bold"
+                    style={{
+                      background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                      color: "var(--gold-fg)"
+                    }}>
                     {instructor.first_name.charAt(0)}{instructor.last_name.charAt(0)}
                   </div>
                   <div>
-                    <h3 className="font-bold text-white">
+                    <h3 className="font-bold text-[--tx-primary]">
                       {instructor.first_name} {instructor.last_name}
                     </h3>
                     <span className={`mt-1 inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${INSTRUCTOR_STATUS_COLORS[instructor.status]}`}>
@@ -97,7 +112,7 @@ function InstructorsPage(): React.JSX.Element {
                 <div className="flex shrink-0 items-center gap-1">
                   <button
                     onClick={() => setEditTarget(instructor)}
-                    className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-800 hover:text-white"
+                    className="rounded-lg p-2 text-[--tx-disabled] transition-colors hover:bg-[--bg-muted] hover:text-[--tx-primary]"
                     title="Editar"
                   >
                     <Pencil className="h-4 w-4" />
@@ -105,7 +120,7 @@ function InstructorsPage(): React.JSX.Element {
                   {instructor.status === "active" || instructor.status === "on_leave" ? (
                     <button
                       onClick={() => deactivate(instructor.instructor_id)}
-                      className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-amber-500/10 hover:text-amber-400"
+                      className="rounded-lg p-2 text-[--tx-disabled] transition-colors hover:bg-[--color-warning-bg] hover:text-[--color-warning]"
                       title="Desactivar"
                     >
                       <PowerOff className="h-4 w-4" />
@@ -113,7 +128,7 @@ function InstructorsPage(): React.JSX.Element {
                   ) : (
                     <button
                       onClick={() => activate(instructor.instructor_id)}
-                      className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-emerald-500/10 hover:text-emerald-400"
+                      className="rounded-lg p-2 text-[--tx-disabled] transition-colors hover:bg-[--color-success-bg] hover:text-[--color-success]"
                       title="Activar"
                     >
                       <Power className="h-4 w-4" />
@@ -125,7 +140,7 @@ function InstructorsPage(): React.JSX.Element {
                         deleteInstructor(instructor.instructor_id);
                       }
                     }}
-                    className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    className="rounded-lg p-2 text-[--tx-disabled] transition-colors hover:bg-[--color-danger-bg] hover:text-[--color-danger]"
                     title="Eliminar"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -135,12 +150,12 @@ function InstructorsPage(): React.JSX.Element {
 
               {/* Contact */}
               <div className="mb-4 space-y-1.5">
-                <div className="flex items-center gap-2 text-sm text-slate-400">
+                <div className="flex items-center gap-2 text-sm text-[--tx-muted]">
                   <Mail className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">{instructor.email}</span>
                 </div>
                 {instructor.phone && (
-                  <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <div className="flex items-center gap-2 text-sm text-[--tx-muted]">
                     <Phone className="h-3.5 w-3.5 shrink-0" />
                     {instructor.phone}
                   </div>
@@ -152,12 +167,12 @@ function InstructorsPage(): React.JSX.Element {
                 <div className="mb-4">
                   <div className="flex flex-wrap gap-1.5">
                     {instructor.specialties.slice(0, 4).map((s) => (
-                      <span key={s} className="rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
+                      <span key={s} className="rounded-lg bg-[--bg-muted] px-2.5 py-1 text-xs font-medium text-[--tx-primary]">
                         {s}
                       </span>
                     ))}
                     {instructor.specialties.length > 4 && (
-                      <span className="rounded-lg bg-slate-800 px-2.5 py-1 text-xs text-slate-500">
+                      <span className="rounded-lg bg-[--bg-muted] px-2.5 py-1 text-xs text-[--tx-disabled]">
                         +{instructor.specialties.length - 4}
                       </span>
                     )}
@@ -167,18 +182,18 @@ function InstructorsPage(): React.JSX.Element {
 
               {/* Bio */}
               {instructor.bio && (
-                <p className="mb-4 line-clamp-2 text-xs text-slate-500">{instructor.bio}</p>
+                <p className="mb-4 line-clamp-2 text-xs text-[--tx-disabled]">{instructor.bio}</p>
               )}
 
               {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 border-t border-slate-800 pt-4">
-                <div className="rounded-xl bg-slate-800/50 p-3 text-center">
-                  <p className="text-2xl font-bold text-emerald-400">{instructor.classes_this_week}</p>
-                  <p className="text-xs text-slate-500">Esta semana</p>
+              <div className="grid grid-cols-2 gap-3 border-t border-[--bd-default] pt-4">
+                <div className="rounded-xl bg-[--bg-muted]/50 p-3 text-center">
+                  <p className="text-2xl font-bold text-[--color-success]">{instructor.classes_this_week}</p>
+                  <p className="text-xs text-[--tx-disabled]">Esta semana</p>
                 </div>
-                <div className="rounded-xl bg-slate-800/50 p-3 text-center">
-                  <p className="text-2xl font-bold text-slate-300">{instructor.total_classes_taught}</p>
-                  <p className="text-xs text-slate-500">Total clases</p>
+                <div className="rounded-xl bg-[--bg-muted]/50 p-3 text-center">
+                  <p className="text-2xl font-bold text-[--tx-primary]">{instructor.total_classes_taught}</p>
+                  <p className="text-xs text-[--tx-disabled]">Total clases</p>
                 </div>
               </div>
             </div>

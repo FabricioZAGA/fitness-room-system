@@ -7,9 +7,9 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps): React.JSX.Element {
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-950">
+    <div className="flex h-screen overflow-hidden bg-[--bg-base]">
       <Sidebar />
-      <main className="flex flex-1 flex-col overflow-y-auto bg-slate-950">
+      <main className="flex flex-1 flex-col overflow-y-auto bg-[--bg-base]">
         <div className="flex-1">{children}</div>
       </main>
     </div>

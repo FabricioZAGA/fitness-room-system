@@ -56,6 +56,7 @@ api_stack = ApiStack(
     env_name=env_name,
     table=database_stack.table,
     user_pool=auth_stack.user_pool,
+    frontend_url="http://localhost:5173" if env_name == "dev" else "https://app.fitnessroom.com" if env_name == "prod" else "https://staging.fitnessroom.com",
     env=aws_env,
     tags=common_tags,
 )

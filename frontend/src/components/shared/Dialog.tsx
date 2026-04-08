@@ -47,20 +47,20 @@ export function Dialog({
       <div
         ref={ref}
         className={cn(
-          "relative w-full rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl",
+          "relative w-full rounded-2xl border border-[--bd-default] bg-[--bg-base] shadow-2xl",
           widths[size]
         )}
       >
-        <div className="flex items-start justify-between border-b border-slate-800 px-6 py-5">
+        <div className="flex items-start justify-between border-b border-[--bd-default] px-6 py-5">
           <div>
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
+            <h2 className="text-lg font-semibold text-[--tx-primary]">{title}</h2>
             {description && (
-              <p className="mt-0.5 text-sm text-slate-500">{description}</p>
+              <p className="mt-0.5 text-sm text-[--tx-disabled]">{description}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="ml-4 rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-white"
+            className="ml-4 rounded-lg p-1.5 text-[--tx-disabled] transition-colors hover:bg-[--bg-muted] hover:text-[--tx-primary]"
           >
             <X className="h-4 w-4" />
           </button>
