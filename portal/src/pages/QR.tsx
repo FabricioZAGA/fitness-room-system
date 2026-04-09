@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
-import { portalApi } from '../services/api'
+import { portalApi, type UserRole } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { Container, PageHeader, LoadingState } from '../components'
 
 const isDev = import.meta.env.DEV
 
 const mockQRData = {
-  student_id: 'dev-student-123',
-  student_name: 'Juan Pérez',
+  role: 'student' as UserRole,
+  user_id: 'dev-student-123',
+  user_name: 'Juan Pérez',
   qr_base64: '', // Will generate a placeholder QR
   mime_type: 'image/png',
 }
@@ -65,7 +66,7 @@ export default function QR() {
             />
           ) : null}
           <p style={{ color: '#ffffff', fontWeight: 600, marginBottom: '8px', fontSize: '18px', margin: '0 0 8px 0' }}>
-            {displayQRData?.student_name}
+            {displayQRData?.user_name}
           </p>
           <p style={{ fontSize: '14px', color: '#d4af37', opacity: 0.9, marginBottom: '16px', margin: '0 0 16px 0' }}>
             Muestra este código en la recepción
