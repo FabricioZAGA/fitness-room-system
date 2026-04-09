@@ -5,6 +5,7 @@ Provides:
 - User Pool Client (for frontend SPA)
 - Admin group for studio administrators
 - Staff group for instructors
+- Student group for student portal access
 
 Outputs exported for use by ApiStack and frontend config.
 """
@@ -110,6 +111,15 @@ class AuthStack(cdk.Stack):
             precedence=2,
         )
 
+        cognito.CfnUserPoolGroup(
+            self,
+            "StudentGroup",
+            user_pool_id=self.user_pool.user_pool_id,
+            group_name="student",
+            description="Students — portal access only",
+            precedence=3,
+        )
+
         cdk.CfnOutput(
             self,
             "UserPoolId",
@@ -133,18 +143,28 @@ class AuthStack(cdk.Stack):
 
     def _get_callback_urls(self, env_name: str) -> list[str]:
         """Return OAuth callback URLs based on environment."""
-        urls = ["http://localhost:5173/auth/callback"]
+        urls = [
+            "http://localhost:5173/auth/callback",
+            "http://localhost:3001/auth/callback",
+        ]
         if env_name == "prod":
             urls.append("https://app.fitnessroom.com/auth/callback")
+            urls.append("https://portal.fitnessroom.com/auth/callback")
         elif env_name == "staging":
             urls.append("https://staging.fitnessroom.com/auth/callback")
+            urls.append("https://staging-portal.fitnessroom.com/auth/callback")
         return urls
 
     def _get_logout_urls(self, env_name: str) -> list[str]:
         """Return OAuth logout URLs based on environment."""
-        urls = ["http://localhost:5173/auth/logout"]
+        urls = [
+            "http://localhost:5173/auth/logout",
+            "http://localhost:3001/auth/logout",
+        ]
         if env_name == "prod":
             urls.append("https://app.fitnessroom.com/auth/logout")
+            urls.append("https://portal.fitnessroom.com/auth/logout")
         elif env_name == "staging":
             urls.append("https://staging.fitnessroom.com/auth/logout")
+            urls.append("https://staging-portal.fitnessroom.com/auth/logout")
         return urls
