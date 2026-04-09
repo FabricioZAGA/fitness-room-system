@@ -6,23 +6,21 @@ import { Container, Card, PageHeader, LoadingState } from '../components'
 const isDev = import.meta.env.DEV
 
 const mockReservations: ReservationsResponse = {
-  role: 'student',
+  role: 'staff',
   items: [
     {
-      reservation_id: 'res-1',
-      student_id: 'dev-student-123',
       class_id: 'class-1',
+      class_name: 'Yoga Avanzado',
       class_date: '2024-04-10 18:00',
-      status: 'confirmed',
-      created_at: '2024-04-08T10:00:00Z',
+      instructor_id: 'dev-instructor-123',
+      status: 'scheduled',
     },
     {
-      reservation_id: 'res-2',
-      student_id: 'dev-student-123',
       class_id: 'class-2',
+      class_name: 'Pilates Core',
       class_date: '2024-04-12 10:00',
-      status: 'confirmed',
-      created_at: '2024-04-08T10:00:00Z',
+      instructor_id: 'dev-instructor-123',
+      status: 'scheduled',
     },
   ],
 }

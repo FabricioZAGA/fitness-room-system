@@ -6,14 +6,16 @@ import { Container, Card, PageHeader, LoadingState } from '../components'
 const isDev = import.meta.env.DEV
 
 const mockProfile: Profile = {
-  role: 'student',
-  student_id: 'dev-student-123',
-  first_name: 'Juan',
-  last_name: 'Pérez',
-  email: 'juan.perez@example.com',
-  phone: '+52 55 1234 5678',
+  role: 'staff',
+  instructor_id: 'dev-instructor-123',
+  first_name: 'Carlos',
+  last_name: 'Rodríguez',
+  email: 'carlos.rodriguez@example.com',
+  phone: '+52 55 9876 5432',
   status: 'active',
-  created_at: '2024-01-15T10:30:00Z',
+  specialties: ['Yoga', 'Pilates', 'Spinning'],
+  bio: 'Instructor certificado con 10 años de experiencia en fitness y bienestar.',
+  created_at: '2023-06-15T10:30:00Z',
   updated_at: '2024-04-01T15:45:00Z',
 }
 

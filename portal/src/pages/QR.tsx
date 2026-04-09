@@ -6,9 +6,9 @@ import { Container, PageHeader, LoadingState } from '../components'
 const isDev = import.meta.env.DEV
 
 const mockQRData = {
-  role: 'student' as UserRole,
-  user_id: 'dev-student-123',
-  user_name: 'Juan Pérez',
+  role: 'staff' as UserRole,
+  user_id: 'dev-instructor-123',
+  user_name: 'Carlos Rodríguez',
   qr_base64: '', // Will generate a placeholder QR
   mime_type: 'image/png',
 }

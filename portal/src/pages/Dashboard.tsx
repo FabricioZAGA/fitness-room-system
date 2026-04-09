@@ -7,30 +7,22 @@ const isDev = import.meta.env.DEV
 
 // Mock data for development
 const mockProfile: Profile = {
-  role: 'student',
-  student_id: 'dev-student-123',
-  first_name: 'Juan',
-  last_name: 'Pérez',
-  email: 'juan.perez@example.com',
-  phone: '+52 55 1234 5678',
+  role: 'staff',
+  instructor_id: 'dev-instructor-123',
+  first_name: 'Carlos',
+  last_name: 'Rodríguez',
+  email: 'carlos.rodriguez@example.com',
+  phone: '+52 55 9876 5432',
   status: 'active',
-  created_at: '2024-01-15T10:30:00Z',
+  specialties: ['Yoga', 'Pilates', 'Spinning'],
+  bio: 'Instructor certificado con 10 años de experiencia en fitness y bienestar.',
+  created_at: '2023-06-15T10:30:00Z',
   updated_at: '2024-04-01T15:45:00Z',
 }
 
 const mockMembership: MembershipResponse = {
-  role: 'student',
-  membership: {
-    membership_id: 'mem-123',
-    student_id: 'dev-student-123',
-    membership_type: 'Mensual',
-    status: 'active',
-    start_date: '2024-04-01',
-    end_date: '2024-05-01',
-    price_paid: 1200,
-    days_until_expiry: 15,
-    classes_remaining: null,
-  },
+  role: 'staff',
+  membership: null,
 }
 
 export default function Dashboard() {
