@@ -3,6 +3,7 @@
 import type { PaginatedResponse } from "@/types/common";
 import type {
   CreateMembershipRequest,
+  FreezeMembershipRequest,
   Membership,
   UpdateMembershipRequest,
 } from "@/types/membership";
@@ -61,6 +62,21 @@ export const membershipService = {
   async cancel(studentId: string, membershipId: string): Promise<Membership> {
     const response = await apiClient.post<Membership>(
       `/memberships/student/${studentId}/${membershipId}/cancel`
+    );
+    return response.data;
+  },
+
+  async freeze(studentId: string, membershipId: string, data: FreezeMembershipRequest): Promise<Membership> {
+    const response = await apiClient.post<Membership>(
+      `/memberships/student/${studentId}/${membershipId}/freeze`,
+      data
+    );
+    return response.data;
+  },
+
+  async unfreeze(studentId: string, membershipId: string): Promise<Membership> {
+    const response = await apiClient.post<Membership>(
+      `/memberships/student/${studentId}/${membershipId}/unfreeze`
     );
     return response.data;
   },

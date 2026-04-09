@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 
 from src.models.common import PaginatedResponse
-from src.models.membership import MembershipCreate, MembershipResponse, MembershipUpdate
+from src.models.membership import FreezeMembershipRequest, MembershipCreate, MembershipResponse, MembershipUpdate
 from src.services.membership_service import MembershipService
 from src.utils.auth import get_current_user
 
@@ -139,3 +139,36 @@ def cancel_membership(
 ) -> MembershipResponse:
     """Cancel a membership."""
     return service.cancel_membership(student_id, membership_id)
+
+
+@router.post(
+    "/student/{student_id}/{membership_id}/freeze",
+    response_model=MembershipResponse,
+    summary="Freeze Membership",
+    description="Freeze an active membership for N days (max 180). Expiry date is extended by the same number of days. Useful for injuries, travel, or illness.",  # noqa: E501
+)
+def freeze_membership(
+    student_id: str,
+    membership_id: str,
+    data: FreezeMembershipRequest,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: MembershipService = Depends(get_service),
+) -> MembershipResponse:
+    """Freeze a membership."""
+    return service.freeze_membership(student_id, membership_id, data)
+
+
+@router.post(
+    "/student/{student_id}/{membership_id}/unfreeze",
+    response_model=MembershipResponse,
+    summary="Unfreeze Membership",
+    description="Unfreeze a frozen membership, restoring it to active status.",
+)
+def unfreeze_membership(
+    student_id: str,
+    membership_id: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: MembershipService = Depends(get_service),
+) -> MembershipResponse:
+    """Unfreeze a membership."""
+    return service.unfreeze_membership(student_id, membership_id)

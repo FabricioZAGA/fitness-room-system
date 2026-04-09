@@ -42,6 +42,7 @@ class MembershipStatus(StrEnum):
     """Membership lifecycle status."""
 
     ACTIVE = "active"
+    FROZEN = "frozen"
     EXPIRED = "expired"
     CANCELLED = "cancelled"
     PENDING = "pending"
@@ -92,6 +93,12 @@ class MembershipUpdate(BaseModel):
     notes: str | None = Field(default=None, max_length=500)
 
 
+class FreezeMembershipRequest(BaseModel):
+    """Schema for freezing a membership."""
+
+    days: int = Field(..., ge=1, le=180, description="Number of days to freeze (max 180)")
+
+
 class MembershipResponse(TimestampedModel):
     """Schema returned in API responses."""
 
@@ -106,6 +113,10 @@ class MembershipResponse(TimestampedModel):
     classes_remaining: int | None = None
     notes: str | None = None
     days_until_expiry: int | None = None
+    is_frozen: bool = False
+    freeze_start_date: date | None = None
+    freeze_end_date: date | None = None
+    frozen_days_accumulated: int = 0
 
     def model_post_init(self, __context: object) -> None:
         """Compute days until expiry."""
@@ -138,6 +149,10 @@ class MembershipDynamoItem(BaseModel):
     classes_total: int | None = None
     classes_remaining: int | None = None
     notes: str | None = None
+    is_frozen: bool = False
+    freeze_start_date: str | None = None
+    freeze_end_date: str | None = None
+    frozen_days_accumulated: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -192,6 +207,10 @@ class MembershipDynamoItem(BaseModel):
             classes_total=self.classes_total,
             classes_remaining=self.classes_remaining,
             notes=self.notes,
+            is_frozen=self.is_frozen,
+            freeze_start_date=date.fromisoformat(self.freeze_start_date) if self.freeze_start_date else None,
+            freeze_end_date=date.fromisoformat(self.freeze_end_date) if self.freeze_end_date else None,
+            frozen_days_accumulated=self.frozen_days_accumulated,
             created_at=self.created_at,
             updated_at=self.updated_at,
         )

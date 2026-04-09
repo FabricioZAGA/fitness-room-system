@@ -2,15 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeft, CreditCard, Calendar, Plus, Power, PowerOff,
   Pencil, Mail, Phone, User, CheckCircle2, XCircle, Clock,
+  Snowflake, QrCode, Download,
 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useStudent, useActivateStudent, useDeactivateStudent } from "@/hooks/useStudents";
-import { useMembershipsForStudent } from "@/hooks/useMemberships";
+import { useStudent, useActivateStudent, useDeactivateStudent, useStudentQr } from "@/hooks/useStudents";
+import { useMembershipsForStudent, useFreezeMembership, useUnfreezeMembership } from "@/hooks/useMemberships";
 import { useReservationsForStudent } from "@/hooks/useReservations";
 import { useClasses } from "@/hooks/useClasses";
 import { StudentStatusBadge, MembershipStatusBadge, ReservationStatusBadge } from "@/components/shared/StatusBadge";
 import { CreateMembershipModal } from "@/components/shared/CreateMembershipModal";
 import { EditStudentModal } from "@/components/shared/EditStudentModal";
+import { Dialog } from "@/components/shared/Dialog";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import { CLASS_TYPE_LABELS } from "@/types/class";
 import { formatDate, formatCurrency, getInitials } from "@/lib/utils";
@@ -31,6 +33,10 @@ function StudentDetailPage(): React.JSX.Element {
   const { studentId } = Route.useParams();
   const [membershipModalOpen, setMembershipModalOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [freezeOpen, setFreezeOpen] = useState(false);
+  const [freezeMembershipId, setFreezeMembershipId] = useState<string | null>(null);
+  const [freezeDays, setFreezeDays] = useState(14);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const { data: student, isLoading } = useStudent(studentId);
   const { data: membershipsData } = useMembershipsForStudent(studentId);
@@ -40,6 +46,9 @@ function StudentDetailPage(): React.JSX.Element {
   const { data: classesData } = useClasses({ limit: 200 });
   const { mutate: activate, isPending: activating } = useActivateStudent();
   const { mutate: deactivate, isPending: deactivating } = useDeactivateStudent();
+  const { mutate: freeze, isPending: freezing } = useFreezeMembership();
+  const { mutate: unfreeze, isPending: unfreezing } = useUnfreezeMembership();
+  const { data: qrData } = useStudentQr(qrOpen ? studentId : "");
 
   const classMap = useMemo(() => {
     const map: Record<string, { type: string; date: string; instructor: string }> = {};
@@ -112,7 +121,14 @@ function StudentDetailPage(): React.JSX.Element {
           </div>
 
           {/* Actions */}
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <button
+              onClick={() => setQrOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]"
+            >
+              <QrCode className="h-4 w-4" />
+              QR
+            </button>
             <button
               onClick={() => setEditOpen(true)}
               className="flex items-center gap-2 rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--bd-default] hover:text-[--tx-primary]"
@@ -198,20 +214,49 @@ function StudentDetailPage(): React.JSX.Element {
                     className={`rounded-xl border p-4 transition-all ${
                       m.status === "active"
                         ? "border-[--color-success-bd] bg-[--color-success-bg]"
+                        : m.status === "frozen"
+                        ? "border-[--color-info-bd] bg-[--color-info-bg]"
                         : "border-[--bd-default] bg-[--bg-muted]/50"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold text-[--tx-primary]">
                         {MEMBERSHIP_TYPE_LABELS[m.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS]}
                       </p>
-                      <MembershipStatusBadge status={m.status} />
+                      <div className="flex items-center gap-2">
+                        <MembershipStatusBadge status={m.status} />
+                        {m.status === "active" && (
+                          <button
+                            onClick={() => { setFreezeMembershipId(m.membership_id); setFreezeOpen(true); }}
+                            className="flex items-center gap-1 rounded-lg border border-[--color-info-bd] bg-[--color-info-bg] px-2 py-1 text-xs font-medium text-[--color-info] transition-all hover:opacity-80"
+                          >
+                            <Snowflake className="h-3 w-3" />
+                            Congelar
+                          </button>
+                        )}
+                        {m.status === "frozen" && (
+                          <button
+                            onClick={() => unfreeze({ studentId, membershipId: m.membership_id })}
+                            disabled={unfreezing}
+                            className="flex items-center gap-1 rounded-lg border border-[--color-success-bd] bg-[--color-success-bg] px-2 py-1 text-xs font-medium text-[--color-success] transition-all hover:opacity-80 disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="h-3 w-3" />
+                            Reactivar
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[--tx-muted]">
                       <span>{formatDate(m.start_date)} → {formatDate(m.end_date)}</span>
                       <span className="font-medium text-[--tx-primary]">{formatCurrency(m.price_paid)}</span>
                       {m.classes_remaining !== null && (
                         <span className="text-[--color-success]">{m.classes_remaining} clases restantes</span>
+                      )}
+                      {m.is_frozen && m.freeze_end_date && (
+                        <span className="flex items-center gap-1 text-[--color-info]">
+                          <Snowflake className="h-3 w-3" />
+                          Congelada hasta {formatDate(m.freeze_end_date)}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -279,6 +324,107 @@ function StudentDetailPage(): React.JSX.Element {
         onClose={() => setEditOpen(false)}
         student={student}
       />
+
+      {/* Freeze membership modal */}
+      <Dialog open={freezeOpen} onClose={() => setFreezeOpen(false)} title="Congelar Membresía">
+        <div className="space-y-5">
+          <p className="text-sm text-[--tx-muted]">
+            La membresía será suspendida y la fecha de vencimiento se extenderá por los días
+            seleccionados. Ideal para lesiones, viajes o imprevistos.
+          </p>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-[--tx-muted]">
+              Días a congelar
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {[7, 14, 21, 30, 60, 90].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setFreezeDays(d)}
+                  className="rounded-xl px-4 py-2 text-sm font-semibold transition-all"
+                  style={
+                    freezeDays === d
+                      ? { background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)", color: "var(--gold-fg)" }
+                      : { border: "1px solid var(--bd-default)", background: "var(--bg-muted)", color: "var(--tx-muted)" }
+                  }
+                >
+                  {d} días
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              min={1}
+              max={180}
+              value={freezeDays}
+              onChange={(e) => setFreezeDays(Math.max(1, Math.min(180, Number(e.target.value))))}
+              className="mt-3 w-full rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]"
+              placeholder="O escribe días personalizados (1-180)"
+            />
+          </div>
+          <div className="rounded-xl border border-[--color-info-bd] bg-[--color-info-bg] p-3 text-xs text-[--color-info]">
+            La fecha de vencimiento se extenderá <strong>{freezeDays} días</strong> automáticamente.
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => setFreezeOpen(false)}
+              className="rounded-xl border border-[--bd-default] px-4 py-2.5 text-sm text-[--tx-muted] transition-all hover:border-[--bd-subtle] hover:text-[--tx-primary]"
+            >
+              Cancelar
+            </button>
+            <button
+              disabled={freezing || !freezeMembershipId}
+              onClick={() => {
+                if (!freezeMembershipId) return;
+                freeze(
+                  { studentId, membershipId: freezeMembershipId, data: { days: freezeDays } },
+                  { onSuccess: () => setFreezeOpen(false) }
+                );
+              }}
+              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
+              style={{
+                background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                color: "var(--gold-fg)",
+              }}
+            >
+              <Snowflake className="h-4 w-4" />
+              {freezing ? "Congelando..." : "Confirmar"}
+            </button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* QR modal */}
+      <Dialog open={qrOpen} onClose={() => setQrOpen(false)} title={`Código QR — ${student.full_name}`}>
+        <div className="flex flex-col items-center gap-5">
+          <p className="text-center text-sm text-[--tx-muted]">
+            El alumno puede mostrar este código en la recepción o kiosco para hacer check-in.
+          </p>
+          {qrData ? (
+            <>
+              <div className="rounded-2xl border-4 border-[--gold] bg-white p-2">
+                <img
+                  src={`data:${qrData.mime_type};base64,${qrData.qr_base64}`}
+                  alt={`QR de ${qrData.student_name}`}
+                  className="h-56 w-56"
+                />
+              </div>
+              <a
+                href={`data:${qrData.mime_type};base64,${qrData.qr_base64}`}
+                download={`qr_${studentId}.png`}
+                className="flex items-center gap-2 rounded-xl border border-[--bd-default] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]"
+              >
+                <Download className="h-4 w-4" />
+                Descargar QR
+              </a>
+            </>
+          ) : (
+            <div className="flex h-56 w-56 items-center justify-center rounded-2xl border border-[--bd-default] bg-[--bg-muted]">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[--gold] border-t-transparent" />
+            </div>
+          )}
+        </div>
+      </Dialog>
     </>
   );
 }

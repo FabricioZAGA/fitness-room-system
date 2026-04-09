@@ -42,6 +42,34 @@ const FEATURES = [
     tag: "Gestión de equipo",
   },
   {
+    icon: "📲",
+    title: "Check-in por QR",
+    description:
+      "Cada alumno tiene su código QR único. El kiosco de entrada lo escanea con la cámara y registra el acceso automáticamente — sin tocar nada. Ideal para horas pico.",
+    tag: "Kiosco de entrada",
+  },
+  {
+    icon: "❄️",
+    title: "Congelar Membresía",
+    description:
+      "¿Lesión o viaje? Congela la membresía de 7 a 180 días. La fecha de vencimiento se extiende automáticamente. El historial queda registrado con total transparencia.",
+    tag: "Hasta 180 días",
+  },
+  {
+    icon: "📊",
+    title: "Exportar Reportes",
+    description:
+      "Descarga tus reportes de ingresos, rankings y alumnos inactivos en Excel o PDF. Con diseño corporativo y colores de tu gimnasio. Listo para presentar o archivar.",
+    tag: "Excel + PDF",
+  },
+  {
+    icon: "📧",
+    title: "Notificaciones Email",
+    description:
+      "Envío automático diario de recordatorios a alumnos con membresía próxima a vencer. Alertas de inactividad y notificaciones personalizadas. Configurado con AWS SES.",
+    tag: "Automático",
+  },
+  {
     icon: "🌙",
     title: "Modo Oscuro y Claro",
     description:

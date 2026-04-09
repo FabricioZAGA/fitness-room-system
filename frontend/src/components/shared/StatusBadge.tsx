@@ -19,6 +19,7 @@ const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
 
 const MEMBERSHIP_STATUS_STYLES: Record<MembershipStatus, string> = {
   active: "bg-[--color-success-bg] text-[--color-success] border-[--color-success-bd]",
+  frozen: "bg-[--color-info-bg] text-[--color-info] border-[--color-info-bd]",
   expired: "bg-[--color-danger-bg] text-[--color-danger] border-[--color-danger-bd]",
   cancelled: "bg-[--tx-disabled-bg] text-[--tx-disabled] border-[--tx-disabled-bd]",
   pending: "bg-[--color-warning-bg] text-[--color-warning] border-[--color-warning-bd]",
@@ -26,6 +27,7 @@ const MEMBERSHIP_STATUS_STYLES: Record<MembershipStatus, string> = {
 
 const MEMBERSHIP_STATUS_LABELS: Record<MembershipStatus, string> = {
   active: "Activa",
+  frozen: "Congelada",
   expired: "Vencida",
   cancelled: "Cancelada",
   pending: "Pendiente",

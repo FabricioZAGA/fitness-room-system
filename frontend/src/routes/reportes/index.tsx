@@ -9,6 +9,8 @@ import {
   CalendarDays,
   Mail,
   Phone,
+  FileSpreadsheet,
+  FileText,
 } from "lucide-react";
 import {
   useIncomeReport,
@@ -20,6 +22,14 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import type { IncomeDay } from "@/types/report";
 import { useGymStore } from "@/store/useGymStore";
 import { useSendCustomNotification } from "@/hooks/useNotifications";
+import {
+  exportIncomeExcel,
+  exportIncomePDF,
+  exportRankingsExcel,
+  exportRankingsPDF,
+  exportInactiveExcel,
+  exportInactivePDF,
+} from "@/lib/exportReports";
 
 export const Route = createFileRoute("/reportes/")({
   component: ReportesPage,
@@ -105,6 +115,7 @@ function ReportesPage(): React.JSX.Element {
   const todayStr = today.toISOString().split("T")[0];
 
   const defaultInactiveDays = useGymStore((s) => s.inactiveDays);
+  const gymName = useGymStore((s) => s.name);
   const notifyMutation = useSendCustomNotification();
 
   const [startDate, setStartDate] = useState(firstOfMonth);
@@ -155,7 +166,7 @@ function ReportesPage(): React.JSX.Element {
       {/* ── Income ──────────────────────────────────────────────────────── */}
       {tab === "income" && (
         <div className="space-y-6">
-          {/* Date filter */}
+          {/* Date filter + export */}
           <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
             <div className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-[--tx-muted]" />
@@ -176,6 +187,24 @@ function ReportesPage(): React.JSX.Element {
                 className="rounded-xl border border-[--bd-default] bg-[--bg-muted] px-3 py-2 text-sm text-[--tx-primary] focus:border-[--gold] focus:outline-none"
               />
             </div>
+            {income && (
+              <div className="ml-auto flex gap-2">
+                <button
+                  onClick={() => exportIncomeExcel(income, `${startDate} al ${endDate}`, gymName)}
+                  className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Excel
+                </button>
+                <button
+                  onClick={() => exportIncomePDF(income, `${startDate} al ${endDate}`, gymName)}
+                  className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
+                >
+                  <FileText className="h-4 w-4" />
+                  PDF
+                </button>
+              </div>
+            )}
           </div>
 
           {incomeLoading ? (
@@ -300,6 +329,24 @@ function ReportesPage(): React.JSX.Element {
                 onClick={() => setRankingDays(d)}
               />
             ))}
+            {rankings.length > 0 && (
+              <div className="ml-auto flex gap-2">
+                <button
+                  onClick={() => exportRankingsExcel(rankings, rankingDays, gymName)}
+                  className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Excel
+                </button>
+                <button
+                  onClick={() => exportRankingsPDF(rankings, rankingDays, gymName)}
+                  className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
+                >
+                  <FileText className="h-4 w-4" />
+                  PDF
+                </button>
+              </div>
+            )}
           </div>
 
           {rankingsLoading ? (
@@ -373,6 +420,24 @@ function ReportesPage(): React.JSX.Element {
                 prefix="+"
               />
             ))}
+            {inactive.length > 0 && (
+              <div className="ml-auto flex gap-2">
+                <button
+                  onClick={() => exportInactiveExcel(inactive, inactiveDays, gymName)}
+                  className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Excel
+                </button>
+                <button
+                  onClick={() => exportInactivePDF(inactive, inactiveDays, gymName)}
+                  className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
+                >
+                  <FileText className="h-4 w-4" />
+                  PDF
+                </button>
+              </div>
+            )}
           </div>
 
           {inactiveLoading ? (

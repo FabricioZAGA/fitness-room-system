@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as CheckinKioskRouteImport } from './routes/checkin-kiosk'
 import { Route as CheckinRouteImport } from './routes/checkin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentsIndexRouteImport } from './routes/students/index'
@@ -31,6 +32,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckinKioskRoute = CheckinKioskRouteImport.update({
+  id: '/checkin-kiosk',
+  path: '/checkin-kiosk',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckinRoute = CheckinRouteImport.update({
@@ -92,6 +98,7 @@ const StudentsStudentIdIndexRoute = StudentsStudentIdIndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
+  '/checkin-kiosk': typeof CheckinKioskRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/caja/': typeof CajaIndexRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
+  '/checkin-kiosk': typeof CheckinKioskRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/caja': typeof CajaIndexRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
+  '/checkin-kiosk': typeof CheckinKioskRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/caja/': typeof CajaIndexRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/checkin'
+    | '/checkin-kiosk'
     | '/login'
     | '/settings'
     | '/caja/'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/checkin'
+    | '/checkin-kiosk'
     | '/login'
     | '/settings'
     | '/caja'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/checkin'
+    | '/checkin-kiosk'
     | '/login'
     | '/settings'
     | '/caja/'
@@ -186,6 +198,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CheckinRoute: typeof CheckinRoute
+  CheckinKioskRoute: typeof CheckinKioskRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   CajaIndexRoute: typeof CajaIndexRoute
@@ -213,6 +226,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkin-kiosk': {
+      id: '/checkin-kiosk'
+      path: '/checkin-kiosk'
+      fullPath: '/checkin-kiosk'
+      preLoaderRoute: typeof CheckinKioskRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkin': {
@@ -298,6 +318,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CheckinRoute: CheckinRoute,
+  CheckinKioskRoute: CheckinKioskRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   CajaIndexRoute: CajaIndexRoute,

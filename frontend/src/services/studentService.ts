@@ -57,4 +57,15 @@ export const studentService = {
     );
     return response.data;
   },
+
+  /** Get a base64-encoded QR code PNG for a student. */
+  async getQr(studentId: string): Promise<{
+    student_id: string;
+    student_name: string;
+    qr_base64: string;
+    mime_type: string;
+  }> {
+    const response = await apiClient.get(`/students/${studentId}/qr`);
+    return response.data;
+  },
 } as const;

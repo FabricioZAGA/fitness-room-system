@@ -115,3 +115,12 @@ export function useCheckin() {
     },
   });
 }
+
+export function useStudentQr(studentId: string) {
+  return useQuery({
+    queryKey: [STUDENTS_KEY, studentId, "qr"],
+    queryFn: () => studentService.getQr(studentId),
+    enabled: Boolean(studentId),
+    staleTime: 1000 * 60 * 60,
+  });
+}

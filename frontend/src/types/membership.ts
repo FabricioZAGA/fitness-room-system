@@ -10,7 +10,7 @@ export type MembershipType =
   | "class_pack_20"
   | "day_pass";
 
-export type MembershipStatus = "active" | "expired" | "cancelled" | "pending";
+export type MembershipStatus = "active" | "frozen" | "expired" | "cancelled" | "pending";
 
 export interface Membership {
   membership_id: string;
@@ -24,8 +24,16 @@ export interface Membership {
   classes_remaining: number | null;
   days_until_expiry: number | null;
   notes: string | null;
+  is_frozen: boolean;
+  freeze_start_date: string | null;
+  freeze_end_date: string | null;
+  frozen_days_accumulated: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface FreezeMembershipRequest {
+  days: number;
 }
 
 export interface CreateMembershipRequest {

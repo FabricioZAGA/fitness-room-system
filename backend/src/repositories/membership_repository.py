@@ -1,6 +1,6 @@
 """Membership repository — DynamoDB access patterns for Memberships."""
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from src.models.common import utc_now
@@ -136,6 +136,41 @@ class MembershipRepository(DynamoRepository):
             f"MEMBERSHIP#{membership_id}",
             updates,
         )
+        return MembershipDynamoItem.model_validate(raw)
+
+    def freeze(self, student_id: str, membership_id: str, days: int) -> MembershipDynamoItem:
+        """Freeze a membership for N days, extending end_date accordingly."""
+        item = self.get_by_id(student_id, membership_id)
+        today = date.today()
+        freeze_end = today + timedelta(days=days)
+        new_end = date.fromisoformat(item.end_date) + timedelta(days=days)
+        accumulated = item.frozen_days_accumulated + days
+
+        updates: dict[str, Any] = {
+            "status": MembershipStatus.FROZEN.value,
+            "is_frozen": True,
+            "freeze_start_date": today.isoformat(),
+            "freeze_end_date": freeze_end.isoformat(),
+            "frozen_days_accumulated": accumulated,
+            "end_date": new_end.isoformat(),
+            "GSI1SK": f"EXPIRY#{new_end.isoformat()}#STUDENT#{student_id}",
+            "GSI3SK": f"INACTIVE_MEMBERSHIP#{membership_id}",
+            "updated_at": utc_now().isoformat(),
+        }
+        raw = self.update_item(f"STUDENT#{student_id}", f"MEMBERSHIP#{membership_id}", updates)
+        return MembershipDynamoItem.model_validate(raw)
+
+    def unfreeze(self, student_id: str, membership_id: str) -> MembershipDynamoItem:
+        """Unfreeze a membership, restoring it to active status."""
+        updates: dict[str, Any] = {
+            "status": MembershipStatus.ACTIVE.value,
+            "is_frozen": False,
+            "freeze_start_date": None,
+            "freeze_end_date": None,
+            "GSI3SK": "ACTIVE_MEMBERSHIP",
+            "updated_at": utc_now().isoformat(),
+        }
+        raw = self.update_item(f"STUDENT#{student_id}", f"MEMBERSHIP#{membership_id}", updates)
         return MembershipDynamoItem.model_validate(raw)
 
     def decrement_classes_remaining(self, student_id: str, membership_id: str) -> int:

@@ -5,6 +5,7 @@ from typing import Any
 from aws_lambda_powertools import Logger
 
 from src.models.membership import (
+    FreezeMembershipRequest,
     MembershipCreate,
     MembershipResponse,
     MembershipStatus,
@@ -113,3 +114,33 @@ class MembershipService:
         """List memberships expiring within the next N days (for renewal alerts)."""
         items, next_key = self._membership_repo.list_expiring_soon(days=days)
         return [i.to_response() for i in items], next_key
+
+    def freeze_membership(
+        self, student_id: str, membership_id: str, data: FreezeMembershipRequest
+    ) -> MembershipResponse:
+        """Freeze a membership for N days, extending expiry accordingly.
+
+        Business rules:
+        - Membership must be active (not already frozen, cancelled, or expired).
+        - Maximum 180 days freeze per request.
+        """
+        logger.info("Freezing membership", extra={"membership_id": membership_id})
+        item = self._membership_repo.get_by_id(student_id, membership_id)
+        if item.status != MembershipStatus.ACTIVE.value:
+            raise_bad_request(
+                f"Membership '{membership_id}' is not active (status: {item.status}). "
+                "Only active memberships can be frozen."
+            )
+        result = self._membership_repo.freeze(student_id, membership_id, data.days)
+        return result.to_response()
+
+    def unfreeze_membership(self, student_id: str, membership_id: str) -> MembershipResponse:
+        """Unfreeze a frozen membership, restoring active status."""
+        logger.info("Unfreezing membership", extra={"membership_id": membership_id})
+        item = self._membership_repo.get_by_id(student_id, membership_id)
+        if item.status != MembershipStatus.FROZEN.value:
+            raise_bad_request(
+                f"Membership '{membership_id}' is not frozen (status: {item.status})."
+            )
+        result = self._membership_repo.unfreeze(student_id, membership_id)
+        return result.to_response()

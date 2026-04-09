@@ -290,6 +290,7 @@ DELETE /api/v1/students/{id}             Eliminar
 POST /api/v1/students/{id}/activate      Activar
 POST /api/v1/students/{id}/deactivate    Desactivar
 POST /api/v1/students/{id}/checkin       Registrar check-in
+GET  /api/v1/students/{id}/qr            Generar código QR (base64 PNG)
 
 GET  /api/v1/memberships                 Lista membresías
 POST /api/v1/memberships                 Asignar membresía
@@ -298,6 +299,8 @@ GET  /api/v1/memberships/{id}           Detalle
 GET  /api/v1/memberships/student/{id}   Membresías de alumno
 GET  /api/v1/memberships/student/{id}/active  Membresía activa
 POST /api/v1/memberships/{id}/renew      Renovar
+POST /api/v1/memberships/student/{id}/{membership_id}/freeze    Congelar membresía
+POST /api/v1/memberships/student/{id}/{membership_id}/unfreeze  Descongelar membresía
 
 GET  /api/v1/classes                     Lista clases
 POST /api/v1/classes                     Crear clase
@@ -325,11 +328,12 @@ POST /api/v1/instructors/{id}/deactivate Desactivar
 | Fase | Módulos | Estado |
 |---|---|---|
 | **Fase 1** | Alumnos, Membresías, Clases, Reservas, Instructores, Check-in | ✅ Completado |
-| **Fase 2** | Notificaciones WhatsApp/Email, Reportes financieros | 🔜 Planeado |
-| **Fase 3** | Corte de caja, Inventario de equipo | 🔜 Planeado |
-| **Fase 4** | Rankings, Métricas de fidelización, Motivación | 🔜 Planeado |
+| **Fase 2** | Notificaciones Email (SES), Reportes financieros, Caja, Inventario | ✅ Completado |
+| **Fase 2.5** | QR Check-in, Freeze de membresía, Exportar reportes PDF/Excel | ✅ Completado |
+| **Fase 3** | WhatsApp Business API, Corte de caja avanzado | 🔜 Planeado |
+| **Fase 4** | Rankings de fidelización, Métricas de motivación, App móvil | 🔜 Planeado |
 
-**Fase 2 — WhatsApp** es crítica para México. API de WhatsApp Business para recordatorios de renovación.
+**Fase 3 — WhatsApp** es crítica para México. API de WhatsApp Business para recordatorios de renovación directos al celular.
 
 ---
 
@@ -432,4 +436,4 @@ cdk deploy HostingStack --profile salle-cajas
 
 ---
 
-*Actualizado: 2026-04-08 | Fase 1 completada*
+*Actualizado: 2026-04-08 | Fase 2.5 completada — QR check-in, freeze membresía, exportar reportes*

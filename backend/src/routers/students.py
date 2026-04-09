@@ -1,8 +1,13 @@
 """Students router — CRUD endpoints for student management."""
 
+import base64
+import io
 from typing import Any
 
+import qrcode
+import qrcode.image.svg
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import JSONResponse
 
 from src.models.checkin import CheckinResponse
 from src.models.common import MessageResponse, PaginatedResponse
@@ -169,3 +174,41 @@ def checkin_student(
 ) -> CheckinResponse:
     """Register a gym entry check-in."""
     return service.checkin(student_id)
+
+
+@router.get(
+    "/{student_id}/qr",
+    summary="Get Student QR Code",
+    description=(
+        "Generate a QR code PNG image for a student's check-in. "
+        "Returns the image as a base64-encoded string with metadata. "
+        "The QR code encodes the student_id, readable by the kiosk scanner."
+    ),
+)
+def get_student_qr(
+    student_id: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: StudentService = Depends(get_service),
+) -> JSONResponse:
+    """Return a base64-encoded QR code PNG for the student."""
+    student = service.get_student(student_id)
+    qr = qrcode.QRCode(
+        version=2,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(student_id)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    return JSONResponse(
+        content={
+            "student_id": student_id,
+            "student_name": student.full_name,
+            "qr_base64": b64,
+            "mime_type": "image/png",
+        }
+    )
