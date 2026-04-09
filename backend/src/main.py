@@ -25,6 +25,7 @@ from src.routers import (
     inventory,
     memberships,
     notifications,
+    portal,
     reports,
     reservations,
     stats,
@@ -161,6 +162,7 @@ app.include_router(transactions.router, prefix="/api/v1")
 app.include_router(inventory.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
+app.include_router(portal.router, prefix="/api/v1")
 
 
 @logger.inject_lambda_context(log_event=True)
