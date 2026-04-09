@@ -15,6 +15,7 @@ from src.models.inventory import (
 from src.models.transaction import PaymentMethod, TransactionCreate, TransactionType
 from src.repositories.inventory_repository import InventoryRepository
 from src.repositories.transaction_repository import TransactionRepository
+from src.services.notification_service import NotificationService
 from src.utils.exceptions import InvalidOperationException
 
 logger = Logger()
@@ -107,6 +108,28 @@ class InventoryService:
 
         # Decrement stock atomically
         self._inventory.decrement_stock(data.product_id, data.quantity)
+
+        # Check if stock is now at or below threshold and send notification
+        updated_product = self._inventory.get_product(data.product_id)
+        if updated_product.stock <= updated_product.low_stock_threshold:
+            logger.warning(
+                "Low stock alert",
+                extra={
+                    "product_id": product.product_id,
+                    "product_name": product.name,
+                    "current_stock": updated_product.stock,
+                    "threshold": updated_product.low_stock_threshold,
+                },
+            )
+            try:
+                notification_service = NotificationService()
+                notification_service.send_low_stock_alert(
+                    product_name=product.name,
+                    current_stock=updated_product.stock,
+                    threshold=updated_product.low_stock_threshold,
+                )
+            except Exception as e:
+                logger.error("Failed to send low stock notification", extra={"error": str(e)})
 
         # Record the sale
         sale_item = self._inventory.create_sale(data, unit_price=product.price)

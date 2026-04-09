@@ -107,3 +107,30 @@ def require_group(group: str) -> Any:
         return current_user
 
     return _check_group
+
+
+def require_student_group() -> Any:
+    """Return a dependency that requires the user to belong to the 'student' group.
+
+    Usage:
+        @router.get("/my-profile", dependencies=[Depends(require_student_group())])
+    """
+
+    async def _check_student_group(
+        current_user: dict[str, Any] = Depends(get_current_user),
+    ) -> None:
+        # In local dev, allow access
+        from src.config import get_settings
+
+        settings = get_settings()
+        if settings.is_local:
+            return
+
+        user_groups: list[str] = current_user.get("cognito:groups", [])
+        if "student" not in user_groups:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access restricted to 'student' group members.",
+            )
+
+    return _check_student_group

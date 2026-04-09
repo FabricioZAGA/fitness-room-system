@@ -17,6 +17,7 @@ class NotificationType(StrEnum):
     EXPIRY_REMINDER = "expiry_reminder"
     INACTIVITY_ALERT = "inactivity_alert"
     CUSTOM = "custom"
+    LOW_STOCK = "low_stock"
 
 
 class NotificationStatus(StrEnum):

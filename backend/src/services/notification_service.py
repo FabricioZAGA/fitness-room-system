@@ -4,6 +4,7 @@ Supports:
   - Bulk expiry reminders (all students with memberships expiring soon)
   - Bulk inactivity alerts (all students with no recent check-in)
   - Custom single-student notification
+  - Low stock alerts (automatic notification when inventory reaches threshold)
 
 In local development (ENVIRONMENT=local) emails are NOT sent — they are
 logged at INFO level so the flow can be tested without SES credentials.
@@ -32,6 +33,7 @@ from src.services.email_templates import (
     custom_notification_html,
     expiry_reminder_html,
     inactivity_alert_html,
+    low_stock_alert_html,
 )
 
 logger = Logger()
@@ -63,6 +65,8 @@ class NotificationService:
 
         # SES client — only real calls in non-local environments
         self._ses = boto3.client("ses", region_name=self._settings.aws_region)
+        # Cognito client for listing admin users
+        self._cognito = boto3.client("cognito-idp", region_name=self._settings.cognito_region)
 
     # ──────────────────────────────────────────────────────────────────
     # Public — bulk triggers
@@ -236,6 +240,49 @@ class NotificationService:
             dry_run=dry_run,
         )
 
+    def send_low_stock_alert(
+        self,
+        product_name: str,
+        current_stock: int,
+        threshold: int,
+        dry_run: bool = False,
+    ) -> list[NotificationResponse]:
+        """Send low stock alert to all users in the 'admin' Cognito group."""
+        subject = f"📦 Alerta: {product_name} - Stock bajo"
+        html_body = low_stock_alert_html(
+            product_name=product_name,
+            current_stock=current_stock,
+            threshold=threshold,
+            gym_name=self._settings.ses_sender_name,
+        )
+
+        # Get admin emails from Cognito
+        admin_emails = self._get_admin_emails()
+
+        # Fallback to ses_sender_email if no admins found
+        if not admin_emails:
+            logger.warning("No admin users found in Cognito, using fallback email")
+            admin_emails = [self._settings.ses_sender_email]
+
+        # Send to each admin
+        results = []
+        for email in admin_emails:
+            try:
+                result = self._send_and_log(
+                    student_id=None,
+                    student_name=None,
+                    recipient_email=email,
+                    subject=subject,
+                    html_body=html_body,
+                    notification_type=NotificationType.LOW_STOCK,
+                    dry_run=dry_run,
+                )
+                results.append(result)
+            except Exception as e:
+                logger.error("Failed to send low stock alert to admin", email=email, error=str(e))
+
+        return results
+
     def list_recent(self, limit: int = 50) -> list[NotificationResponse]:
         """Return the most recent notification logs."""
         items, _ = self._notif_repo.list_recent(limit=limit)
@@ -251,6 +298,45 @@ class NotificationService:
     # ──────────────────────────────────────────────────────────────────
     # Private helpers
     # ──────────────────────────────────────────────────────────────────
+
+    def _get_admin_emails(self) -> list[str]:
+        """Get list of email addresses for all users in the 'admin' Cognito group."""
+        admin_emails = []
+        try:
+            response = self._cognito.list_users_in_group(
+                UserPoolId=self._settings.cognito_user_pool_id,
+                GroupName="admin",
+                Limit=60,
+            )
+            for user in response.get("Users", []):
+                for attr in user.get("Attributes", []):
+                    if attr.get("Name") == "email":
+                        email = attr.get("Value")
+                        if email:
+                            admin_emails.append(email)
+                            break
+
+            # Handle pagination if more than 60 users
+            while "NextToken" in response:
+                response = self._cognito.list_users_in_group(
+                    UserPoolId=self._settings.cognito_user_pool_id,
+                    GroupName="admin",
+                    Limit=60,
+                    NextToken=response["NextToken"],
+                )
+                for user in response.get("Users", []):
+                    for attr in user.get("Attributes", []):
+                        if attr.get("Name") == "email":
+                            email = attr.get("Value")
+                            if email:
+                                admin_emails.append(email)
+                                break
+
+            logger.info("Found admin users for notifications", count=len(admin_emails))
+        except Exception as e:
+            logger.warning("Failed to list admin users from Cognito", error=str(e))
+
+        return admin_emails
 
     def _send_and_log(
         self,

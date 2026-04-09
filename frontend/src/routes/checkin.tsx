@@ -217,6 +217,16 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
                       ? `Vence en ${daysUntilExpiry} días`
                       : "Todo en orden"}
             </p>
+            {isExpiringSoon && student && (
+              <Link
+                to="/students/$studentId"
+                params={{ studentId: student.student_id }}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-[--gold-bd] bg-[--gold-bg] px-4 py-2 text-sm font-semibold text-[--gold] transition-all hover:bg-[--gold] hover:text-[--gold-fg]"
+              >
+                <CreditCard className="h-4 w-4" />
+                Renovar aquí
+              </Link>
+            )}
           </div>
         </div>
       </div>

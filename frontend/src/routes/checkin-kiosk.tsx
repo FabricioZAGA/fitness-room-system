@@ -143,6 +143,7 @@ function KioskPage(): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
+  const streamRef = useRef<MediaStream | null>(null);
   const [scanState, setScanState] = useState<ScanState>("scanning");
   const [scannedId, setScannedId] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -182,11 +183,10 @@ function KioskPage(): React.JSX.Element {
   }, [stopScanning]);
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "environment" } })
       .then((s) => {
-        stream = s;
+        streamRef.current = s;
         if (videoRef.current) {
           videoRef.current.srcObject = s;
           videoRef.current.play();
@@ -197,14 +197,27 @@ function KioskPage(): React.JSX.Element {
 
     return () => {
       cancelAnimationFrame(animRef.current);
-      stream?.getTracks().forEach((t) => t.stop());
+      streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, [tick]);
 
   // Restart scanning when state resets
   useEffect(() => {
-    if (scanState === "scanning" && videoRef.current?.readyState === videoRef.current?.HAVE_ENOUGH_DATA) {
-      animRef.current = requestAnimationFrame(tick);
+    if (scanState === "scanning" && videoRef.current) {
+      if (videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+        animRef.current = requestAnimationFrame(tick);
+      } else {
+        // Wait for video to be ready then start scanning
+        const video = videoRef.current;
+        const onLoadedData = () => {
+          animRef.current = requestAnimationFrame(tick);
+          video.removeEventListener('loadeddata', onLoadedData);
+        };
+        video.addEventListener('loadeddata', onLoadedData);
+        return () => {
+          video.removeEventListener('loadeddata', onLoadedData);
+        };
+      }
     }
   }, [scanState, tick]);
 

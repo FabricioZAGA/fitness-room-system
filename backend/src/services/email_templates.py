@@ -190,3 +190,54 @@ def custom_notification_html(
       </p>
     """
     return _base_layout(title=f"Mensaje de {gym_name}", content=content, gym_name=gym_name)
+
+
+def low_stock_alert_html(
+    product_name: str,
+    current_stock: int,
+    threshold: int,
+    gym_name: str = "Fitness Room",
+) -> str:
+    """Email template for low stock alert to admin."""
+    is_critical = current_stock == 0
+    badge_bg = "#3a1a1a" if is_critical else "#3a2e00"
+    badge_color = "#ff6b6b" if is_critical else "#d4af37"
+    badge_label = "¡SIN STOCK!" if is_critical else "STOCK BAJO"
+
+    content = f"""
+      <p style="margin:0 0 8px;font-size:13px;color:#d4af37;font-weight:600;text-transform:uppercase;letter-spacing:1px;">
+        Alerta de Inventario
+      </p>
+      <h1 style="margin:0 0 24px;font-size:24px;font-weight:700;color:#ffffff;line-height:1.3;">
+        {product_name} necesita reabastecimiento 📦
+      </h1>
+
+      <div style="background-color:{badge_bg};border:1px solid {badge_color}30;border-radius:12px;padding:20px 24px;margin-bottom:28px;">
+        <span style="display:inline-block;background:{badge_color};color:#0a0a0a;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:4px 12px;border-radius:20px;margin-bottom:12px;">{badge_label}</span>
+        <p style="margin:0;font-size:16px;color:#cccccc;line-height:1.6;">
+          El producto <strong style="color:#ffffff;">{product_name}</strong> tiene
+          <strong style="color:{badge_color};">{current_stock} unidad{'es' if current_stock != 1 else ''}</strong> disponible{'s' if current_stock != 1 else ''}.
+        </p>
+        <div style="margin-top:16px;">
+          <p style="margin:0;font-size:11px;color:#888888;text-transform:uppercase;letter-spacing:0.5px;">Umbral mínimo</p>
+          <p style="margin:4px 0 0;font-size:15px;font-weight:600;color:#ffffff;">{threshold} unidad{'es' if threshold != 1 else ''}</p>
+        </div>
+      </div>
+
+      <p style="margin:0 0 24px;font-size:15px;color:#aaaaaa;line-height:1.7;">
+        Por favor reabastece este producto lo antes posible para evitar
+        interrupciones en las ventas.
+      </p>
+
+      <div style="background-color:#1a1a1a;border-radius:12px;padding:20px 24px;">
+        <p style="margin:0;font-size:14px;color:#888888;">Acción recomendada:</p>
+        <p style="margin:8px 0 0;font-size:14px;color:#cccccc;">
+          Ingresa al panel de administración y registra el reabastecimiento del producto.
+        </p>
+      </div>
+    """
+    return _base_layout(
+        title=f"Alerta: {product_name} — {gym_name}",
+        content=content,
+        gym_name=gym_name,
+    )
