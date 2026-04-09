@@ -79,6 +79,12 @@ export default function HomePage() {
               >
                 Ver en GitHub
               </a>
+              <a
+                href="mailto:fabricio@devzaga.com?subject=Interesado%20en%20Fitness%20Room%20System&body=Hola%2C%0A%0AEstoy%20interesado%20en%20implementar%20Fitness%20Room%20System%20en%20mi%20gimnasio.%0A%0APor%20favor%20comparteme%20más%20información%20sobre%3A%0A-%20Precios%0A-%20Implementación%0A-%20Soporte%0A%0AGracias."
+                className="w-full rounded-xl border-2 border-[--gold-bd] bg-[--gold-bg] px-8 py-4 text-base font-semibold text-[--gold] transition-all hover:bg-[--gold] hover:text-[--gold-fg] sm:w-auto"
+              >
+                Contactar
+              </a>
               <Link
                 href="/faq"
                 className="w-full rounded-xl border border-[--bd-default] bg-[--bg-surface] px-8 py-4 text-base font-semibold text-[--tx-primary] transition-all hover:border-[--gold-bd] sm:w-auto"

@@ -10,7 +10,6 @@ import {
   Package,
   QrCode,
   Receipt,
-  ScanLine,
   Settings,
   UserCog,
   Users,
@@ -32,7 +31,6 @@ function useNavItems(): NavItem[] {
   return [
     { label: t("nav.home"), to: "/", icon: Home, section: "main" },
     { label: t("nav.checkin"), to: "/checkin", icon: QrCode, section: "operations" },
-    { label: "Kiosco QR", to: "/checkin-kiosk", icon: ScanLine, section: "operations" },
     { label: t("nav.members"), to: "/students", icon: Users, section: "main" },
     { label: t("nav.classes"), to: "/classes", icon: Calendar, section: "main" },
     { label: t("nav.reservations"), to: "/reservations", icon: CalendarCheck, section: "main" },

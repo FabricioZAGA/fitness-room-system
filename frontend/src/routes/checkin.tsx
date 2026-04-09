@@ -19,6 +19,7 @@ import {
   Calendar,
   Clock,
   ArrowRight,
+  ScanLine,
 } from "lucide-react";
 import { formatDate, getInitials } from "@/lib/utils";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
@@ -49,11 +50,20 @@ function CheckinPage(): React.JSX.Element {
   return (
     <div className="min-h-screen bg-[--bg-base] p-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[--tx-primary]">Check-in</h1>
-        <p className="mt-1 text-lg text-[--tx-muted]">
-          Busca al miembro por nombre o escanea su código QR
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-[--tx-primary]">Check-in</h1>
+          <p className="mt-1 text-lg text-[--tx-muted]">
+            Busca al miembro por nombre o escanea su código QR
+          </p>
+        </div>
+        <Link
+          to="/checkin-kiosk"
+          className="flex items-center gap-2 rounded-xl border-2 border-[--gold-bd] bg-[--gold-bg] px-5 py-3 font-semibold text-[--gold] transition-all hover:bg-[--gold] hover:text-[--gold-fg]"
+        >
+          <ScanLine className="h-5 w-5" />
+          Kiosco QR
+        </Link>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">

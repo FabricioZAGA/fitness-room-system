@@ -33,7 +33,7 @@ export function Header() {
 
         {/* CTA */}
         <a
-          href="#contact"
+          href="mailto:fabricio@devzaga.com?subject=Interesado%20en%20Fitness%20Room%20System&body=Hola%2C%0A%0AEstoy%20interesado%20en%20implementar%20Fitness%20Room%20System%20en%20mi%20gimnasio.%0A%0APor%20favor%20comparteme%20más%20información%20sobre%3A%0A-%20Precios%0A-%20Implementación%0A-%20Soporte%0A%0AGracias."
           className="hidden rounded-xl px-4 py-2 text-sm font-semibold transition-all sm:block"
           style={{ backgroundColor: "var(--gold)", color: "var(--gold-fg)" }}
         >
