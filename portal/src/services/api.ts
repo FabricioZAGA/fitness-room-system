@@ -18,7 +18,10 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-export interface Student {
+export type UserRole = 'student' | 'staff'
+
+export interface StudentProfile {
+  role: 'student'
   student_id: string
   first_name: string
   last_name: string
@@ -28,6 +31,22 @@ export interface Student {
   created_at: string
   updated_at: string
 }
+
+export interface StaffProfile {
+  role: 'staff'
+  instructor_id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone?: string
+  status: string
+  specialties?: string[]
+  bio?: string
+  created_at: string
+  updated_at: string
+}
+
+export type Profile = StudentProfile | StaffProfile
 
 export interface Membership {
   membership_id: string
@@ -41,6 +60,11 @@ export interface Membership {
   classes_remaining?: number | null
 }
 
+export interface MembershipResponse {
+  role: 'student' | 'staff'
+  membership: Membership | null
+}
+
 export interface Reservation {
   reservation_id: string
   student_id: string
@@ -48,6 +72,19 @@ export interface Reservation {
   class_date: string
   status: string
   created_at: string
+}
+
+export interface StaffClass {
+  class_id: string
+  class_name: string
+  class_date: string
+  instructor_id: string
+  status: string
+}
+
+export interface ReservationsResponse {
+  role: 'student' | 'staff'
+  items: Reservation[] | StaffClass[]
 }
 
 export interface Checkin {
@@ -60,20 +97,20 @@ export interface Checkin {
 
 export const portalApi = {
   // Profile
-  getProfile: () => apiClient.get<Student>('/api/v1/portal/profile'),
+  getProfile: () => apiClient.get<Profile>('/api/v1/portal/profile'),
   
   // Membership
-  getMembership: () => apiClient.get<Membership>('/api/v1/portal/membership'),
+  getMembership: () => apiClient.get<MembershipResponse>('/api/v1/portal/membership'),
   
   // Reservations
-  getReservations: () => apiClient.get<Reservation[]>('/api/v1/portal/reservations'),
+  getReservations: () => apiClient.get<ReservationsResponse>('/api/v1/portal/reservations'),
   cancelReservation: (id: string) => apiClient.delete<MessageResponse>(`/api/v1/portal/reservations/${id}`),
   
   // Check-ins
   getCheckins: (limit: number = 30) => apiClient.get<Checkin[]>(`/api/v1/portal/checkins?limit=${limit}`),
   
   // QR
-  getQR: () => apiClient.get<{ student_id: string; student_name: string; qr_base64: string; mime_type: string }>('/api/v1/portal/qr'),
+  getQR: () => apiClient.get<{ role: UserRole; user_id: string; user_name: string; qr_base64: string; mime_type: string }>('/api/v1/portal/qr'),
 }
 
 interface MessageResponse {

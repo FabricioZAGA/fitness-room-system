@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { portalApi } from '../services/api'
+import { portalApi, type Profile, type MembershipResponse } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { Container, Card, Button, LoadingState } from '../components'
 
 const isDev = import.meta.env.DEV
 
 // Mock data for development
-const mockProfile = {
+const mockProfile: Profile = {
+  role: 'student',
   student_id: 'dev-student-123',
   first_name: 'Juan',
   last_name: 'Pérez',
@@ -17,16 +18,19 @@ const mockProfile = {
   updated_at: '2024-04-01T15:45:00Z',
 }
 
-const mockMembership = {
-  membership_id: 'mem-123',
-  student_id: 'dev-student-123',
-  membership_type: 'Mensual',
-  status: 'active',
-  start_date: '2024-04-01',
-  end_date: '2024-05-01',
-  price_paid: 1200,
-  days_until_expiry: 15,
-  classes_remaining: null,
+const mockMembership: MembershipResponse = {
+  role: 'student',
+  membership: {
+    membership_id: 'mem-123',
+    student_id: 'dev-student-123',
+    membership_type: 'Mensual',
+    status: 'active',
+    start_date: '2024-04-01',
+    end_date: '2024-05-01',
+    price_paid: 1200,
+    days_until_expiry: 15,
+    classes_remaining: null,
+  },
 }
 
 export default function Dashboard() {
@@ -47,6 +51,9 @@ export default function Dashboard() {
   // Use mock data in dev mode
   const displayProfile = isDev ? mockProfile : profile
   const displayMembership = isDev ? mockMembership : membership
+  const membershipData = displayMembership?.membership
+  const role = displayProfile?.role || 'student'
+  const isStudent = role === 'student'
 
   if ((profileLoading || membershipLoading) && !isDev) {
     return <LoadingState />
@@ -160,7 +167,7 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {displayMembership && (
+        {isStudent && membershipData && (
           <Card variant="gradient" style={{ marginTop: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div
@@ -191,7 +198,7 @@ export default function Dashboard() {
               >
                 <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 4px 0' }}>Tipo</p>
                 <p style={{ fontSize: '16px', fontWeight: 600, color: '#ffffff', margin: 0 }}>
-                  {displayMembership.membership_type}
+                  {membershipData.membership_type}
                 </p>
               </div>
               <div
@@ -203,7 +210,7 @@ export default function Dashboard() {
               >
                 <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 4px 0' }}>Estado</p>
                 <p style={{ fontSize: '16px', fontWeight: 600, color: '#10b981', margin: 0 }}>
-                  {displayMembership.status}
+                  {membershipData.status}
                 </p>
               </div>
               <div
@@ -216,10 +223,10 @@ export default function Dashboard() {
               >
                 <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 4px 0' }}>Vence</p>
                 <p style={{ fontSize: '16px', fontWeight: 600, color: '#ffffff', margin: 0 }}>
-                  {displayMembership.end_date}
+                  {membershipData.end_date}
                 </p>
               </div>
-              {displayMembership.days_until_expiry !== undefined && (
+              {membershipData.days_until_expiry !== undefined && (
                 <div
                   style={{
                     padding: '12px',
@@ -231,7 +238,7 @@ export default function Dashboard() {
                 >
                   <p style={{ fontSize: '12px', color: '#d4af37', margin: '0 0 4px 0' }}>Días restantes</p>
                   <p style={{ fontSize: '24px', fontWeight: 700, color: '#d4af37', margin: 0 }}>
-                    {displayMembership.days_until_expiry}
+                    {membershipData.days_until_expiry}
                   </p>
                 </div>
               )}

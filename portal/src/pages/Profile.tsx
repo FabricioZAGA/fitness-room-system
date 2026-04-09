@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { portalApi } from '../services/api'
+import { portalApi, type Profile } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { Container, Card, PageHeader, LoadingState } from '../components'
 
 const isDev = import.meta.env.DEV
 
-const mockProfile = {
+const mockProfile: Profile = {
+  role: 'student',
   student_id: 'dev-student-123',
   first_name: 'Juan',
   last_name: 'Pérez',
@@ -26,10 +27,16 @@ export default function Profile() {
   })
 
   const displayProfile = isDev ? mockProfile : profile
+  const role = displayProfile?.role || 'student'
 
   if (isLoading && !isDev) {
     return <LoadingState />
   }
+
+  const isStudent = role === 'student'
+  const userId = isStudent ? (displayProfile as any)?.student_id : (displayProfile as any)?.instructor_id
+  const specialties = !isStudent ? (displayProfile as any)?.specialties : null
+  const bio = !isStudent ? (displayProfile as any)?.bio : null
 
   return (
     <Container>
@@ -37,6 +44,22 @@ export default function Profile() {
         <PageHeader title="Mi Perfil" onBack={() => navigate('/dashboard')} />
 
         <Card>
+          <div>
+            <label style={{ fontSize: '14px', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>
+              Rol
+            </label>
+            <p style={{ color: '#d4af37', fontWeight: 600, margin: 0, textTransform: 'capitalize' }}>
+              {isStudent ? 'Estudiante' : 'Instructor'}
+            </p>
+          </div>
+          <div>
+            <label style={{ fontSize: '14px', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>
+              ID
+            </label>
+            <p style={{ color: '#ffffff', fontWeight: 500, margin: 0 }}>
+              {userId}
+            </p>
+          </div>
           <div>
             <label style={{ fontSize: '14px', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>
               Nombre
@@ -69,6 +92,26 @@ export default function Profile() {
             </label>
             <p style={{ color: '#ffffff', fontWeight: 500, margin: 0 }}>{displayProfile?.status}</p>
           </div>
+          {specialties && (
+            <div>
+              <label style={{ fontSize: '14px', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>
+                Especialidades
+              </label>
+              <p style={{ color: '#ffffff', fontWeight: 500, margin: 0 }}>
+                {specialties?.join(', ') || 'No registradas'}
+              </p>
+            </div>
+          )}
+          {bio && (
+            <div>
+              <label style={{ fontSize: '14px', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>
+                Biografía
+              </label>
+              <p style={{ color: '#ffffff', fontWeight: 500, margin: 0 }}>
+                {bio}
+              </p>
+            </div>
+          )}
           {isDev && (
             <p style={{ fontSize: '12px', color: '#facc15', marginTop: '16px' }}>
               ⚠️ Modo desarrollo - Datos de prueba
