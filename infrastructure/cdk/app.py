@@ -5,10 +5,11 @@ This file defines all CloudFormation stacks and their dependency order.
 Stacks are organized by domain to allow independent deployments.
 
 Deployment order:
-  1. DatabaseStack  (DynamoDB)
-  2. AuthStack      (Cognito)
-  3. ApiStack       (Lambda + API Gateway)
-  4. HostingStack   (S3 + CloudFront)
+  1. DatabaseStack        (DynamoDB)
+  2. AuthStack            (Cognito)
+  3. ApiStack             (Lambda + API Gateway)
+  4. HostingStack         (S3 + CloudFront for admin frontend)
+  5. PortalHostingStack   (S3 + CloudFront for student portal)
 """
 
 import aws_cdk as cdk
@@ -17,6 +18,7 @@ from stacks.auth_stack import AuthStack
 from stacks.database_stack import DatabaseStack
 from stacks.api_stack import ApiStack
 from stacks.hosting_stack import HostingStack
+from stacks.portal_hosting_stack import PortalHostingStack
 
 app = cdk.App()
 
@@ -71,6 +73,14 @@ api_stack.add_dependency(auth_stack)
 hosting_stack = HostingStack(
     app,
     f"FitnessRoomHostingStack-{env_name}",
+    env_name=env_name,
+    env=aws_env,
+    tags=common_tags,
+)
+
+portal_hosting_stack = PortalHostingStack(
+    app,
+    f"FitnessRoomPortalHostingStack-{env_name}",
     env_name=env_name,
     env=aws_env,
     tags=common_tags,

@@ -1,4 +1,4 @@
-.PHONY: help install dev dev-backend dev-frontend test lint format deploy deploy-infra deploy-backend deploy-frontend clean
+.PHONY: help install dev dev-backend dev-frontend dev-portal test lint format deploy deploy-infra deploy-backend deploy-frontend deploy-portal clean
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 AWS_PROFILE     ?= salle-cajas
@@ -7,6 +7,7 @@ AWS_REGION      ?= us-east-1
 ENV             ?= dev
 BACKEND_DIR     := backend
 FRONTEND_DIR    := frontend
+PORTAL_DIR      := portal
 INFRA_DIR       := infrastructure/cdk
 
 # ── Help ───────────────────────────────────────────────────────────────────────
@@ -14,10 +15,11 @@ help:
 	@echo ""
 	@echo "  FITNESS ROOM SYSTEM — Available Commands"
 	@echo "  ──────────────────────────────────────────────────────"
-	@echo "  install           Install all dependencies (backend + frontend + infra)"
+	@echo "  install           Install all dependencies (backend + frontend + portal + infra)"
 	@echo "  dev               Start backend + frontend in development mode"
 	@echo "  dev-backend       Start backend locally (uvicorn)"
 	@echo "  dev-frontend      Start frontend locally (vite)"
+	@echo "  dev-portal        Start portal locally (vite)"
 	@echo "  test              Run all tests"
 	@echo "  test-backend      Run backend tests (pytest)"
 	@echo "  test-frontend     Run frontend tests (vitest)"
@@ -27,11 +29,12 @@ help:
 	@echo "  deploy-infra      Deploy CDK infrastructure stacks"
 	@echo "  deploy-backend    Deploy Lambda functions"
 	@echo "  deploy-frontend   Deploy frontend to S3 + CloudFront invalidation"
+	@echo "  deploy-portal     Deploy student portal to S3 + CloudFront invalidation"
 	@echo "  clean             Remove all build artifacts"
 	@echo ""
 
 # ── Install ────────────────────────────────────────────────────────────────────
-install: install-backend install-frontend install-infra
+install: install-backend install-frontend install-portal install-infra
 	@echo "✅ All dependencies installed"
 
 install-backend:
@@ -48,6 +51,10 @@ install-frontend:
 	@echo "📦 Installing frontend dependencies..."
 	COREPACK_ENABLE_STRICT=0 cd $(FRONTEND_DIR) && pnpm install
 
+install-portal:
+	@echo "📦 Installing portal dependencies..."
+	cd $(PORTAL_DIR) && npm install
+
 install-infra:
 	@echo "📦 Installing CDK dependencies..."
 	@if [ ! -d "$(INFRA_DIR)/.venv" ]; then python3 -m venv $(INFRA_DIR)/.venv; fi
@@ -57,7 +64,7 @@ install-infra:
 # ── Development ────────────────────────────────────────────────────────────────
 dev:
 	@echo "🚀 Starting dev servers..."
-	@make -j2 dev-backend dev-frontend
+	@make -j2 dev-backend dev-frontend dev-portal
 
 dev-backend:
 	@echo "🐍 Starting backend..."
@@ -66,6 +73,10 @@ dev-backend:
 dev-frontend:
 	@echo "⚛️  Starting frontend..."
 	COREPACK_ENABLE_STRICT=0 cd $(FRONTEND_DIR) && pnpm dev
+
+dev-portal:
+	@echo "🎯 Starting portal..."
+	cd $(PORTAL_DIR) && npm run dev
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
 test: test-backend test-frontend
@@ -106,6 +117,10 @@ build-frontend:
 	@echo "🏗️  Building frontend..."
 	cd $(FRONTEND_DIR) && pnpm build
 
+build-portal:
+	@echo "🏗️  Building portal..."
+	cd $(PORTAL_DIR) && npm run build
+
 build-backend:
 	@echo "🏗️  Packaging backend Lambda..."
 	cd $(BACKEND_DIR) && uv run python -m build
@@ -145,6 +160,23 @@ deploy-frontend:
 	aws cloudfront create-invalidation --distribution-id $$DIST_ID --paths "/*" --profile $(AWS_PROFILE)
 	@echo "✅ Frontend deployed!"
 
+deploy-portal:
+	@echo "🚀 Deploying portal (ENV=$(ENV))..."
+	cd $(PORTAL_DIR) && npm run build
+	@BUCKET=$$(aws cloudformation describe-stacks \
+		--stack-name FitnessRoomPortalHostingStack-$(ENV) \
+		--profile $(AWS_PROFILE) \
+		--query "Stacks[0].Outputs[?OutputKey=='PortalBucketName'].OutputValue" \
+		--output text); \
+	aws s3 sync dist/ s3://$$BUCKET/ --delete --profile $(AWS_PROFILE)
+	@DIST_ID=$$(aws cloudformation describe-stacks \
+		--stack-name FitnessRoomPortalHostingStack-$(ENV) \
+		--profile $(AWS_PROFILE) \
+		--query "Stacks[0].Outputs[?OutputKey=='PortalCloudFrontDistributionId'].OutputValue" \
+		--output text); \
+	aws cloudfront create-invalidation --distribution-id $$DIST_ID --paths "/*" --profile $(AWS_PROFILE)
+	@echo "✅ Portal deployed!"
+
 # ── CDK Bootstrap ─────────────────────────────────────────────────────────────
 bootstrap:
 	@echo "🔧 Bootstrapping CDK for AWS account $(AWS_ACCOUNT_ID) in $(AWS_REGION)..."
@@ -155,6 +187,8 @@ clean:
 	@echo "🧹 Cleaning build artifacts..."
 	rm -rf $(FRONTEND_DIR)/dist
 	rm -rf $(FRONTEND_DIR)/node_modules/.vite
+	rm -rf $(PORTAL_DIR)/dist
+	rm -rf $(PORTAL_DIR)/node_modules/.vite
 	rm -rf $(INFRA_DIR)/cdk.out
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
