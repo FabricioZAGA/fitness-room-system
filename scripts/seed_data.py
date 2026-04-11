@@ -201,8 +201,7 @@ def seed_students() -> list[str]:
     print("\n👥 Creando miembros...")
     ids = []
     for student in STUDENTS:
-        payload = {k: v for k, v in student.items() if k != "status"}
-        result = post("/students", payload)
+        result = post("/students", student)
         if result:
             ids.append(result["student_id"])
             print(f"  ✓ {student['first_name']} {student['last_name']} ({student['status']})")

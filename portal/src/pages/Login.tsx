@@ -5,7 +5,6 @@ function Login() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,9 +44,6 @@ function Login() {
                 placeholder="••••••••"
               />
             </div>
-            {error && (
-              <p className="text-sm text-[--color-danger]">{error}</p>
-            )}
             <button
               type="submit"
               className="w-full py-3 px-4 rounded-xl border border-[--gold-bd] bg-[--gold-bg] text-[--gold] font-semibold hover:bg-[--gold] hover:text-[--gold-fg] transition-colors"

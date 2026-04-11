@@ -20,7 +20,7 @@ import {
   QrCode,
   CalendarCheck,
 } from "lucide-react";
-import { getInitials, formatDate } from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import { CLASS_TYPE_LABELS } from "@/types/class";
 

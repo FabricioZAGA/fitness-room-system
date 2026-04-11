@@ -1,28 +1,38 @@
 import { useQuery } from '@tanstack/react-query'
-import { portalApi, type ReservationsResponse } from '../services/api'
+import { portalApi, type ReservationsResponse, type Reservation, type StaffClass } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { Container, Card, PageHeader, LoadingState } from '../components'
 
 const isDev = import.meta.env.DEV
 
 const mockReservations: ReservationsResponse = {
-  role: 'staff',
+  role: 'student',
   items: [
     {
+      reservation_id: 'res-001',
+      student_id: 'dev-student-123',
       class_id: 'class-1',
-      class_name: 'Yoga Avanzado',
-      class_date: '2024-04-10 18:00',
-      instructor_id: 'dev-instructor-123',
-      status: 'scheduled',
+      class_date: '2026-04-14 07:00',
+      status: 'confirmed',
+      created_at: '2026-04-11T10:00:00Z',
     },
     {
+      reservation_id: 'res-002',
+      student_id: 'dev-student-123',
       class_id: 'class-2',
-      class_name: 'Pilates Core',
-      class_date: '2024-04-12 10:00',
-      instructor_id: 'dev-instructor-123',
-      status: 'scheduled',
+      class_date: '2026-04-16 18:30',
+      status: 'confirmed',
+      created_at: '2026-04-11T10:05:00Z',
     },
-  ],
+    {
+      reservation_id: 'res-003',
+      student_id: 'dev-student-123',
+      class_id: 'class-3',
+      class_date: '2026-04-08 09:00',
+      status: 'attended',
+      created_at: '2026-04-07T09:00:00Z',
+    },
+  ] as Reservation[],
 }
 
 export default function Schedule() {
@@ -50,60 +60,75 @@ export default function Schedule() {
 
         {items && items.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {items.map((item: any) => (
-              <Card key={item.reservation_id || item.class_id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                  <div>
-                    <p style={{ color: '#ffffff', fontWeight: 600, margin: '0 0 4px 0' }}>
-                      {isStudent ? item.class_date : item.class_date}
-                    </p>
-                    <p style={{ fontSize: '14px', color: '#9ca3af', margin: 0 }}>
-                      {isStudent ? `ID: ${item.reservation_id}` : item.class_name}
-                    </p>
+            {items.map((item: Reservation | StaffClass) => {
+              const key = isStudent
+                ? (item as Reservation).reservation_id
+                : (item as StaffClass).class_id
+              const title = isStudent
+                ? (item as Reservation).class_date
+                : (item as StaffClass).class_name
+              const subtitle = isStudent
+                ? `Reservación #${(item as Reservation).reservation_id?.slice(-6)}`
+                : (item as StaffClass).class_date
+              const statusBg =
+                item.status === 'confirmed' || item.status === 'attended'
+                  ? 'var(--color-success-bg)'
+                  : item.status === 'cancelled'
+                    ? 'var(--color-danger-bg)'
+                    : 'var(--color-warning-bg)'
+              const statusColor =
+                item.status === 'confirmed' || item.status === 'attended'
+                  ? 'var(--color-success)'
+                  : item.status === 'cancelled'
+                    ? 'var(--color-danger)'
+                    : 'var(--color-warning)'
+              const statusLabel =
+                item.status === 'confirmed' ? 'Confirmada'
+                : item.status === 'attended' ? 'Asistida'
+                : item.status === 'cancelled' ? 'Cancelada'
+                : item.status === 'scheduled' ? 'Programada'
+                : item.status
+
+              return (
+                <Card key={key}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <div>
+                      <p style={{ color: 'var(--tx-primary)', fontWeight: 600, margin: '0 0 4px 0' }}>
+                        {title}
+                      </p>
+                      <p style={{ fontSize: '14px', color: 'var(--tx-muted)', margin: 0 }}>
+                        {subtitle}
+                      </p>
+                    </div>
+                    <span
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: '9999px',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        backgroundColor: statusBg,
+                        color: statusColor,
+                      }}
+                    >
+                      {statusLabel}
+                    </span>
                   </div>
-                  <span
-                    style={{
-                      padding: '4px 12px',
-                      borderRadius: '9999px',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      backgroundColor:
-                        item.status === 'confirmed'
-                          ? '#14532d'
-                          : item.status === 'cancelled'
-                            ? '#7f1d1d'
-                            : '#713f12',
-                      color:
-                        item.status === 'confirmed'
-                          ? '#4ade80'
-                          : item.status === 'cancelled'
-                            ? '#f87171'
-                            : '#facc15',
-                    }}
-                  >
-                    {item.status}
-                  </span>
-                </div>
-                {isStudent && item.status === 'confirmed' && !isDev && (
-                  <button
-                    onClick={() => portalApi.cancelReservation(item.class_id)}
-                    style={{ marginTop: '16px', fontSize: '14px', color: '#f87171', border: 'none', background: 'none', cursor: 'pointer' }}
-                  >
-                    Cancelar reservación
-                  </button>
-                )}
-                {isDev && (
-                  <p style={{ fontSize: '12px', color: '#facc15', marginTop: '8px' }}>
-                    ⚠️ Modo desarrollo - No se puede cancelar
-                  </p>
-                )}
-              </Card>
-            ))}
+                  {isStudent && item.status === 'confirmed' && !isDev && (
+                    <button
+                      onClick={() => portalApi.cancelReservation((item as Reservation).class_id)}
+                      style={{ marginTop: '16px', fontSize: '14px', color: 'var(--color-danger)', border: 'none', background: 'none', cursor: 'pointer' }}
+                    >
+                      Cancelar reservación
+                    </button>
+                  )}
+                </Card>
+              )
+            })}
           </div>
         ) : (
           <Card>
             <div style={{ textAlign: 'center', padding: '8px' }}>
-              <p style={{ color: '#9ca3af', margin: 0 }}>
+              <p style={{ color: 'var(--tx-muted)', margin: 0 }}>
                 {isStudent ? 'No tienes reservaciones programadas' : 'No tienes clases asignadas'}
               </p>
             </div>

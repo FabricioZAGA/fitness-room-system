@@ -84,7 +84,7 @@ class NotificationService:
         `warning_days` (but beyond critical_days) get a standard reminder.
         """
         result = BulkNotificationResult()
-        memberships, _ = self._membership_repo.list_expiring(days=warning_days, limit=200)
+        memberships, _ = self._membership_repo.list_expiring_soon(days=warning_days, limit=200)
 
         for membership in memberships:
             student_id = membership.student_id
