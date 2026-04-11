@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Banknote,
@@ -11,6 +11,7 @@ import {
   ShoppingBag,
   Users,
   Package,
+  AlertTriangle,
 } from "lucide-react";
 import {
   useCreateCashCut,
@@ -19,9 +20,11 @@ import {
   useTodaySummary,
   useRecordTransaction,
 } from "@/hooks/useTransactions";
+import { useProducts, useSellProduct } from "@/hooks/useInventory";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { CreateTransactionRequest, PaymentMethod, TransactionType } from "@/types/transaction";
 import { PAYMENT_METHOD_LABELS, TRANSACTION_TYPE_LABELS } from "@/types/transaction";
+import type { Product } from "@/types/inventory";
 
 export const Route = createFileRoute("/caja/")({
   component: CajaPage,
@@ -33,14 +36,34 @@ const inputCls =
 const selectCls =
   "w-full rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ProductSaleForm {
+  product_id: string;
+  quantity: number;
+  payment_method: PaymentMethod;
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 function CajaPage(): React.JSX.Element {
   const today = new Date().toISOString().split("T")[0];
   const [showRegister, setShowRegister] = useState(false);
   const [showCutConfirm, setShowCutConfirm] = useState(false);
   const [cutNotes, setCutNotes] = useState("");
+
+  // Which "tab" is active in the register modal
+  const [registerType, setRegisterType] = useState<TransactionType>("membership");
+  // Standard transaction form
   const [form, setForm] = useState<Partial<CreateTransactionRequest>>({
     payment_method: "cash",
     transaction_type: "membership",
+  });
+  // Product sale form
+  const [productForm, setProductForm] = useState<ProductSaleForm>({
+    product_id: "",
+    quantity: 1,
+    payment_method: "cash",
   });
 
   const { data: summary } = useTodaySummary();
@@ -48,6 +71,20 @@ function CajaPage(): React.JSX.Element {
   const { data: cashCuts = [] } = useCashCuts();
   const recordMutation = useRecordTransaction();
   const cutMutation = useCreateCashCut();
+
+  // Product data for sell form
+  const { data: products = [] } = useProducts();
+  const activeProducts = products.filter((p) => p.is_active);
+  const sellMutation = useSellProduct();
+
+  // Derived product info
+  const selectedProduct = activeProducts.find((p) => p.product_id === productForm.product_id) ?? null;
+  const productTotal = selectedProduct ? selectedProduct.price * productForm.quantity : 0;
+
+  // Reset product form quantity when product changes
+  useEffect(() => {
+    setProductForm((f) => ({ ...f, quantity: 1 }));
+  }, [productForm.product_id]);
 
   const handleRegister = async () => {
     if (!form.amount || !form.transaction_type || !form.payment_method) return;
@@ -59,6 +96,19 @@ function CajaPage(): React.JSX.Element {
       notes: form.notes,
     });
     setForm({ payment_method: "cash", transaction_type: "membership" });
+    setRegisterType("membership");
+    setShowRegister(false);
+  };
+
+  const handleSellProduct = async () => {
+    if (!productForm.product_id) return;
+    await sellMutation.mutateAsync({
+      product_id: productForm.product_id,
+      quantity: productForm.quantity,
+      payment_method: productForm.payment_method,
+    });
+    setProductForm({ product_id: "", quantity: 1, payment_method: "cash" });
+    setRegisterType("membership");
     setShowRegister(false);
   };
 
@@ -100,27 +150,10 @@ function CajaPage(): React.JSX.Element {
 
       {/* Today's summary cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard
-          icon={DollarSign}
-          label="Total del Día"
-          value={formatCurrency(summary?.grand_total ?? 0)}
-          accent
-        />
-        <SummaryCard
-          icon={Banknote}
-          label="Efectivo"
-          value={formatCurrency(summary?.total_cash ?? 0)}
-        />
-        <SummaryCard
-          icon={CreditCard}
-          label="Tarjeta"
-          value={formatCurrency(summary?.total_card ?? 0)}
-        />
-        <SummaryCard
-          icon={ArrowRightLeft}
-          label="Transferencia"
-          value={formatCurrency(summary?.total_transfer ?? 0)}
-        />
+        <SummaryCard icon={DollarSign} label="Total del Día" value={formatCurrency(summary?.grand_total ?? 0)} accent />
+        <SummaryCard icon={Banknote} label="Efectivo" value={formatCurrency(summary?.total_cash ?? 0)} />
+        <SummaryCard icon={CreditCard} label="Tarjeta" value={formatCurrency(summary?.total_card ?? 0)} />
+        <SummaryCard icon={ArrowRightLeft} label="Transferencia" value={formatCurrency(summary?.total_transfer ?? 0)} />
       </div>
 
       {/* By type breakdown */}
@@ -129,10 +162,7 @@ function CajaPage(): React.JSX.Element {
           <h2 className="mb-4 text-lg font-semibold text-[--tx-primary]">Por Categoría</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {Object.entries(summary.by_type).map(([type, amount]) => (
-              <div
-                key={type}
-                className="flex items-center justify-between rounded-xl bg-[--bg-muted] px-4 py-3"
-              >
+              <div key={type} className="flex items-center justify-between rounded-xl bg-[--bg-muted] px-4 py-3">
                 <span className="text-sm text-[--tx-muted]">
                   {TRANSACTION_TYPE_LABELS[type as TransactionType] ?? type}
                 </span>
@@ -153,9 +183,7 @@ function CajaPage(): React.JSX.Element {
           </h2>
         </div>
         {todayTransactions.length === 0 ? (
-          <p className="px-6 py-10 text-center text-[--tx-muted]">
-            No hay pagos registrados hoy
-          </p>
+          <p className="px-6 py-10 text-center text-[--tx-muted]">No hay pagos registrados hoy</p>
         ) : (
           <div className="divide-y divide-[--bd-default]">
             {todayTransactions.map((tx) => (
@@ -172,9 +200,7 @@ function CajaPage(): React.JSX.Element {
                     {tx.notes ? ` · ${tx.notes}` : ""}
                   </p>
                 </div>
-                <span className="font-semibold text-[--tx-primary]">
-                  {formatCurrency(tx.amount)}
-                </span>
+                <span className="font-semibold text-[--tx-primary]">{formatCurrency(tx.amount)}</span>
               </div>
             ))}
           </div>
@@ -194,109 +220,140 @@ function CajaPage(): React.JSX.Element {
                   <Receipt className="h-5 w-5 text-[--gold]" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-[--tx-primary]">
-                    Corte del {formatDate(cut.cut_date)}
-                  </p>
+                  <p className="text-sm font-medium text-[--tx-primary]">Corte del {formatDate(cut.cut_date)}</p>
                   <p className="text-xs text-[--tx-muted]">
                     {cut.transaction_count} movimiento{cut.transaction_count !== 1 ? "s" : ""}
                   </p>
                 </div>
-                <span className="font-semibold text-[--tx-primary]">
-                  {formatCurrency(cut.grand_total)}
-                </span>
+                <span className="font-semibold text-[--tx-primary]">{formatCurrency(cut.grand_total)}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Register payment modal */}
+      {/* ── Register payment modal ── */}
       {showRegister && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
-            <h2 className="mb-6 text-xl font-bold text-[--tx-primary]">Registrar Pago</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                  Tipo de pago *
-                </label>
-                <select
-                  className={selectCls}
-                  value={form.transaction_type}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, transaction_type: e.target.value as TransactionType }))
+          <div
+            className="w-full max-w-md rounded-2xl border border-[--gold-bd] p-6 shadow-2xl"
+            style={{ backgroundColor: "var(--bg-elevated)" }}
+          >
+            <h2 className="mb-4 text-xl font-bold text-[--tx-primary]">Registrar Pago</h2>
+
+            {/* Type selector tabs */}
+            <div className="mb-5 flex rounded-xl border border-[--bd-default] bg-[--bg-muted] p-1">
+              {(["membership", "class_pack", "product", "other"] as TransactionType[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setRegisterType(t);
+                    setForm((f) => ({ ...f, transaction_type: t }));
+                  }}
+                  className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
+                    registerType === t
+                      ? "text-[--gold-fg]"
+                      : "text-[--tx-muted] hover:text-[--tx-primary]"
+                  }`}
+                  style={
+                    registerType === t
+                      ? { background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)" }
+                      : {}
                   }
                 >
-                  {Object.entries(TRANSACTION_TYPE_LABELS).map(([val, label]) => (
-                    <option key={val} value={val}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                  Monto (MXN) *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  step="0.01"
-                  className={inputCls}
-                  placeholder="0.00"
-                  value={form.amount ?? ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, amount: parseFloat(e.target.value) }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                  Método de pago *
-                </label>
-                <select
-                  className={selectCls}
-                  value={form.payment_method}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, payment_method: e.target.value as PaymentMethod }))
-                  }
-                >
-                  {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
-                    <option key={val} value={val}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                  Notas (opcional)
-                </label>
-                <input
-                  className={inputCls}
-                  placeholder="Descripción del pago..."
-                  value={form.notes ?? ""}
-                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                />
-              </div>
+                  {TRANSACTION_TYPE_LABELS[t]}
+                </button>
+              ))}
             </div>
+
+            {/* Product sale form */}
+            {registerType === "product" ? (
+              <ProductSaleFields
+                form={productForm}
+                products={activeProducts}
+                selectedProduct={selectedProduct}
+                total={productTotal}
+                onChange={(patch) => setProductForm((f) => ({ ...f, ...patch }))}
+              />
+            ) : (
+              /* Standard payment form */
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+                    Monto (MXN) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    className={inputCls}
+                    placeholder="0.00"
+                    value={form.amount ?? ""}
+                    onChange={(e) => setForm((f) => ({ ...f, amount: parseFloat(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+                    Método de pago *
+                  </label>
+                  <select
+                    className={selectCls}
+                    value={form.payment_method}
+                    onChange={(e) => setForm((f) => ({ ...f, payment_method: e.target.value as PaymentMethod }))}
+                  >
+                    {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+                    Notas (opcional)
+                  </label>
+                  <input
+                    className={inputCls}
+                    placeholder="Descripción del pago..."
+                    value={form.notes ?? ""}
+                    onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="mt-6 flex gap-3">
               <button
-                onClick={() => setShowRegister(false)}
+                onClick={() => {
+                  setShowRegister(false);
+                  setRegisterType("membership");
+                  setForm({ payment_method: "cash", transaction_type: "membership" });
+                  setProductForm({ product_id: "", quantity: 1, payment_method: "cash" });
+                }}
                 className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] transition-all hover:bg-[--bg-muted]"
               >
                 Cancelar
               </button>
               <button
-                onClick={() => void handleRegister()}
-                disabled={!form.amount || recordMutation.isPending}
+                onClick={() =>
+                  void (registerType === "product" ? handleSellProduct() : handleRegister())
+                }
+                disabled={
+                  registerType === "product"
+                    ? !productForm.product_id ||
+                      productForm.quantity < 1 ||
+                      sellMutation.isPending
+                    : !form.amount || recordMutation.isPending
+                }
                 className="flex-1 rounded-xl py-3 text-sm font-semibold transition-all disabled:opacity-50"
                 style={{
                   background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
                   color: "var(--gold-fg)",
                 }}
               >
-                {recordMutation.isPending ? "Guardando..." : "Registrar"}
+                {(registerType === "product" ? sellMutation.isPending : recordMutation.isPending)
+                  ? "Guardando..."
+                  : registerType === "product"
+                    ? `Vender ${formatCurrency(productTotal)}`
+                    : "Registrar"}
               </button>
             </div>
           </div>
@@ -306,14 +363,17 @@ function CajaPage(): React.JSX.Element {
       {/* Cash cut confirm modal */}
       {showCutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
+          <div
+            className="w-full max-w-sm rounded-2xl border border-[--gold-bd] p-6 shadow-2xl"
+            style={{ backgroundColor: "var(--bg-elevated)" }}
+          >
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[--gold-bg]">
               <Receipt className="h-7 w-7 text-[--gold]" />
             </div>
             <h2 className="mb-2 text-xl font-bold text-[--tx-primary]">Corte de Caja</h2>
             <p className="mb-4 text-sm text-[--tx-muted]">
-              Se generará un resumen de todos los movimientos del día de hoy (
-              {formatDate(today)}). Total acumulado:{" "}
+              Se generará un resumen de todos los movimientos del día de hoy ({formatDate(today)}).
+              Total acumulado:{" "}
               <span className="font-semibold text-[--tx-primary]">
                 {formatCurrency(summary?.grand_total ?? 0)}
               </span>
@@ -356,6 +416,107 @@ function CajaPage(): React.JSX.Element {
   );
 }
 
+// ─── Product sale fields ───────────────────────────────────────────────────────
+
+function ProductSaleFields({
+  form,
+  products,
+  selectedProduct,
+  total,
+  onChange,
+}: {
+  form: ProductSaleForm;
+  products: Product[];
+  selectedProduct: Product | null;
+  total: number;
+  onChange: (patch: Partial<ProductSaleForm>) => void;
+}): React.JSX.Element {
+  return (
+    <div className="space-y-4">
+      {/* Product selector */}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+          Producto *
+        </label>
+        <select
+          className={selectCls}
+          value={form.product_id}
+          onChange={(e) => onChange({ product_id: e.target.value })}
+        >
+          <option value="">— Selecciona un producto —</option>
+          {products.map((p) => (
+            <option key={p.product_id} value={p.product_id} disabled={p.stock === 0}>
+              {p.name} — {formatCurrency(p.price)} ({p.stock} en stock)
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Selected product info */}
+      {selectedProduct && (
+        <div className="rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[--tx-primary]">{selectedProduct.name}</p>
+              <p className="text-xs text-[--tx-muted]">Stock disponible: {selectedProduct.stock}</p>
+            </div>
+            <p className="text-base font-bold text-[--gold]">{formatCurrency(selectedProduct.price)} / ud</p>
+          </div>
+          {selectedProduct.stock <= selectedProduct.low_stock_threshold && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-[--color-warning]">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Stock bajo — quedan {selectedProduct.stock} unidades
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Quantity */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+            Cantidad *
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={selectedProduct?.stock ?? 999}
+            value={form.quantity}
+            onChange={(e) => onChange({ quantity: Math.max(1, Number(e.target.value)) })}
+            className={selectCls}
+          />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+            Total
+          </label>
+          <div className="flex items-center rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3">
+            <span className="text-sm font-bold text-[--gold]">{formatCurrency(total)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment method */}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+          Método de pago *
+        </label>
+        <select
+          className={selectCls}
+          value={form.payment_method}
+          onChange={(e) => onChange({ payment_method: e.target.value as PaymentMethod })}
+        >
+          {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
+            <option key={val} value={val}>{label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function SummaryCard({
   icon: Icon,
   label,
@@ -368,27 +529,14 @@ function SummaryCard({
   accent?: boolean;
 }): React.JSX.Element {
   return (
-    <div
-      className={`rounded-2xl border p-5 ${
-        accent
-          ? "border-[--gold-bd] bg-[--gold-bg]"
-          : "border-[--bd-default] bg-[--bg-surface]"
-      }`}
-    >
-      <div className="flex items-center gap-3 mb-2">
-        <div
-          className="flex h-9 w-9 items-center justify-center rounded-xl"
-          style={{ background: "var(--gold-bg)" }}
-        >
+    <div className={`rounded-2xl border p-5 ${accent ? "border-[--gold-bd] bg-[--gold-bg]" : "border-[--bd-default] bg-[--bg-surface]"}`}>
+      <div className="mb-2 flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: "var(--gold-bg)" }}>
           <Icon className="h-4 w-4 text-[--gold]" />
         </div>
         <span className="text-sm text-[--tx-muted]">{label}</span>
       </div>
-      <p
-        className={`text-2xl font-bold ${accent ? "text-[--gold]" : "text-[--tx-primary]"}`}
-      >
-        {value}
-      </p>
+      <p className={`text-2xl font-bold ${accent ? "text-[--gold]" : "text-[--tx-primary]"}`}>{value}</p>
     </div>
   );
 }
@@ -396,13 +544,9 @@ function SummaryCard({
 function TxIcon({ type }: { type: string }): React.JSX.Element {
   const cls = "h-5 w-5 text-[--gold]";
   switch (type) {
-    case "membership":
-      return <Users className={cls} />;
-    case "class_pack":
-      return <CheckCircle className={cls} />;
-    case "product":
-      return <Package className={cls} />;
-    default:
-      return <ShoppingBag className={cls} />;
+    case "membership": return <Users className={cls} />;
+    case "class_pack": return <CheckCircle className={cls} />;
+    case "product": return <Package className={cls} />;
+    default: return <ShoppingBag className={cls} />;
   }
 }

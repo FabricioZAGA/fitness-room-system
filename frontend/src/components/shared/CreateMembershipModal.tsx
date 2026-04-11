@@ -6,6 +6,7 @@ import { useAssignMembership } from "@/hooks/useMemberships";
 import { useStudents } from "@/hooks/useStudents";
 import type { CreateMembershipRequest, MembershipType } from "@/types/membership";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
+import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
 
 interface CreateMembershipModalProps {
   open: boolean;
@@ -55,6 +56,7 @@ const INITIAL_FORM = {
   start_date: todayStr(),
   end_date: END_DATE_DEFAULTS["monthly"] ?? "",
   price_paid: 0,
+  payment_method: "cash",
   classes_total: undefined as number | undefined,
   notes: "",
 };
@@ -100,6 +102,7 @@ export function CreateMembershipModal({
       start_date: form.start_date,
       end_date: form.end_date,
       price_paid: Number(form.price_paid),
+      payment_method: form.payment_method,
       classes_total: form.classes_total,
       notes: form.notes || undefined,
     };
@@ -192,24 +195,39 @@ export function CreateMembershipModal({
               className={inputCls}
             />
           </Field>
-          {isClassPack && (
-            <Field label="Total de clases">
-              <input
-                name="classes_total"
-                type="number"
-                min={1}
-                value={form.classes_total ?? ""}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    classes_total: e.target.value ? Number(e.target.value) : undefined,
-                  }))
-                }
-                className={inputCls}
-              />
-            </Field>
-          )}
+          <Field label="Método de pago *">
+            <select
+              name="payment_method"
+              value={form.payment_method}
+              onChange={handleChange}
+              className={inputCls}
+            >
+              {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
+                <option key={val} value={val}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Field>
         </div>
+
+        {isClassPack && (
+          <Field label="Total de clases">
+            <input
+              name="classes_total"
+              type="number"
+              min={1}
+              value={form.classes_total ?? ""}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  classes_total: e.target.value ? Number(e.target.value) : undefined,
+                }))
+              }
+              className={inputCls}
+            />
+          </Field>
+        )}
 
         <Field label="Notas">
           <textarea

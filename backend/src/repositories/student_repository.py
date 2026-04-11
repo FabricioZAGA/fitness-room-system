@@ -142,3 +142,21 @@ class StudentRepository(DynamoRepository):
         No condition expression — always overwrites (timestamp guarantees uniqueness).
         """
         self.put_item(item.model_dump(mode="json"))
+
+    def list_checkins_for_student(
+        self,
+        student_id: str,
+        limit: int = 30,
+    ) -> list["CheckinDynamoItem"]:
+        """List recent check-ins for a student, newest first.
+
+        Access pattern: QUERY PK=STUDENT#id, SK begins_with CHECKIN#.
+        """
+        from src.models.checkin import CheckinDynamoItem as CheckinItem
+
+        items, _ = self.query_by_pk(
+            pk=f"STUDENT#{student_id}",
+            sk_begins_with="CHECKIN#",
+            limit=limit,
+        )
+        return list(reversed([CheckinItem.model_validate(i) for i in items]))

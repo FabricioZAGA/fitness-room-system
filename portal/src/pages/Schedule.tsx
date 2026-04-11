@@ -86,7 +86,7 @@ export default function Schedule() {
                 </div>
                 {isStudent && item.status === 'confirmed' && !isDev && (
                   <button
-                    onClick={() => portalApi.cancelReservation(item.reservation_id)}
+                    onClick={() => portalApi.cancelReservation(item.class_id)}
                     style={{ marginTop: '16px', fontSize: '14px', color: '#f87171', border: 'none', background: 'none', cursor: 'pointer' }}
                   >
                     Cancelar reservación

@@ -42,6 +42,7 @@ export interface CreateMembershipRequest {
   start_date: string;
   end_date: string;
   price_paid: number;
+  payment_method?: string;
   classes_total?: number;
   notes?: string;
 }

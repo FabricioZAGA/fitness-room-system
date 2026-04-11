@@ -165,6 +165,27 @@ class ClassRepository(DynamoRepository):
             delta=-1,
         )
 
+    def list_for_instructor(
+        self,
+        instructor_name_slug: str,
+        limit: int = 50,
+        last_evaluated_key: dict[str, Any] | None = None,
+    ) -> tuple[list[ClassDynamoItem], dict[str, Any] | None]:
+        """List all classes assigned to an instructor.
+
+        Access pattern: GSI2 PK=INSTRUCTOR#{name_slug}, ordered by date descending.
+        The slug is built as: full_name.lower().replace(' ', '_').
+        """
+        items, next_key = self.query_gsi(
+            index_name="GSI2",
+            pk_name="GSI2PK",
+            pk_value=f"INSTRUCTOR#{instructor_name_slug}",
+            limit=limit,
+            last_evaluated_key=last_evaluated_key,
+            scan_index_forward=False,
+        )
+        return [ClassDynamoItem.model_validate(i) for i in items], next_key
+
     def delete(self, class_id: str) -> None:
         """Delete (cancel) a class session.
 

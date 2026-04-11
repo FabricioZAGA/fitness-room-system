@@ -40,6 +40,8 @@ export function useAssignMembership() {
     mutationFn: (data: CreateMembershipRequest) => membershipService.assign(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [MEMBERSHIPS_KEY] });
+      // Backend auto-creates a transaction — sync Caja view
+      qc.invalidateQueries({ queryKey: ["transactions"] });
       toast.success("Membresía asignada exitosamente.");
     },
     onError: () => {

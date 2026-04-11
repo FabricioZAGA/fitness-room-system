@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import JSONResponse
-from typing import Optional
-import qrcode
+"""Portal router — self-service endpoints for students and instructors."""
+
+from datetime import date
 from io import BytesIO
 import base64
 
+import qrcode
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
+
 from ..utils.auth import require_student_or_staff_group
+from ..utils.exceptions import ResourceNotFoundException
 from ..repositories.student_repository import StudentRepository
 from ..repositories.membership_repository import MembershipRepository
 from ..repositories.reservation_repository import ReservationRepository
@@ -14,49 +18,60 @@ from ..repositories.class_repository import ClassRepository
 
 router = APIRouter(prefix="/portal", tags=["portal"])
 
-# Dependency injection
-def get_student_repository():
+
+# ---------------------------------------------------------------------------
+# Dependency factories
+# ---------------------------------------------------------------------------
+
+def get_student_repository() -> StudentRepository:
     return StudentRepository()
 
-def get_membership_repository():
+
+def get_membership_repository() -> MembershipRepository:
     return MembershipRepository()
 
-def get_reservation_repository():
+
+def get_reservation_repository() -> ReservationRepository:
     return ReservationRepository()
 
-def get_instructor_repository():
+
+def get_instructor_repository() -> InstructorRepository:
     return InstructorRepository()
 
-def get_class_repository():
+
+def get_class_repository() -> ClassRepository:
     return ClassRepository()
 
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
 def get_user_role(current_user: dict) -> str:
-    """Determine if user is student or staff."""
+    """Return 'staff' if user belongs to the staff Cognito group, else 'student'."""
     groups = current_user.get("cognito:groups", [])
     if "staff" in groups:
         return "staff"
     return "student"
 
 
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
 @router.get("/profile")
-async def get_profile(
+def get_profile(
     current_user: dict = Depends(require_student_or_staff_group()),
     student_repo: StudentRepository = Depends(get_student_repository),
     instructor_repo: InstructorRepository = Depends(get_instructor_repository),
 ):
-    """Get current user's profile information (student or staff)"""
-    try:
-        user_id = current_user.get("sub")
-        role = get_user_role(current_user)
+    """Return the current user's profile (student or instructor)."""
+    user_id = current_user.get("sub")
+    role = get_user_role(current_user)
 
+    try:
         if role == "student":
-            profile = await student_repo.get_by_id(user_id)
-            if not profile:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Student not found"
-                )
+            profile = student_repo.get_by_id(user_id)
             return JSONResponse(content={
                 "role": "student",
                 "student_id": profile.student_id,
@@ -68,13 +83,8 @@ async def get_profile(
                 "created_at": profile.created_at.isoformat() if profile.created_at else None,
                 "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
             })
-        else:  # staff
-            profile = await instructor_repo.get_by_id(user_id)
-            if not profile:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Instructor not found"
-                )
+        else:
+            profile = instructor_repo.get_by_id(user_id)
             return JSONResponse(content={
                 "role": "staff",
                 "instructor_id": profile.instructor_id,
@@ -88,39 +98,39 @@ async def get_profile(
                 "created_at": profile.created_at.isoformat() if profile.created_at else None,
                 "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
             })
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching profile: {str(e)}"
+            detail=f"Error fetching profile: {str(e)}",
         )
 
 
 @router.get("/membership")
-async def get_membership(
+def get_membership(
     current_user: dict = Depends(require_student_or_staff_group()),
     membership_repo: MembershipRepository = Depends(get_membership_repository),
 ):
-    """Get current student's active membership (staff returns null)"""
+    """Return the current student's active membership (staff always returns null)."""
+    role = get_user_role(current_user)
+
+    if role == "staff":
+        return JSONResponse(content={"role": "staff", "membership": None})
+
+    student_id = current_user.get("sub")
+
     try:
-        role = get_user_role(current_user)
-        
-        # Staff don't have memberships
-        if role == "staff":
-            return JSONResponse(content={"role": "staff", "membership": None})
-        
-        student_id = current_user.get("sub")
-        membership = await membership_repo.get_active_by_student(student_id)
+        membership = membership_repo.get_active_for_student(student_id)
 
         if not membership:
             return JSONResponse(content={"role": "student", "membership": None})
 
-        # Calculate days until expiry
-        from datetime import datetime
         days_until_expiry = None
         if membership.end_date:
-            days_until_expiry = (membership.end_date - datetime.now()).days
+            days_until_expiry = (date.fromisoformat(membership.end_date) - date.today()).days
 
         return JSONResponse(content={
             "role": "student",
@@ -129,9 +139,9 @@ async def get_membership(
                 "student_id": membership.student_id,
                 "membership_type": membership.membership_type,
                 "status": membership.status,
-                "start_date": membership.start_date.isoformat() if membership.start_date else None,
-                "end_date": membership.end_date.isoformat() if membership.end_date else None,
-                "price_paid": membership.price_paid,
+                "start_date": membership.start_date,
+                "end_date": membership.end_date,
+                "price_paid": float(membership.price_paid) if membership.price_paid else None,
                 "days_until_expiry": days_until_expiry,
                 "classes_remaining": membership.classes_remaining,
             },
@@ -139,89 +149,77 @@ async def get_membership(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching membership: {str(e)}"
+            detail=f"Error fetching membership: {str(e)}",
         )
 
 
 @router.get("/qr")
-async def get_qr(
+def get_qr(
     current_user: dict = Depends(require_student_or_staff_group()),
     student_repo: StudentRepository = Depends(get_student_repository),
     instructor_repo: InstructorRepository = Depends(get_instructor_repository),
 ):
-    """Get current user's QR code (student or staff)"""
+    """Generate and return the current user's QR code as base64 PNG."""
+    user_id = current_user.get("sub")
+    role = get_user_role(current_user)
+
     try:
-        user_id = current_user.get("sub")
-        role = get_user_role(current_user)
-
         if role == "student":
-            user = await student_repo.get_by_id(user_id)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Student not found"
-                )
+            user = student_repo.get_by_id(user_id)
             user_name = f"{user.first_name} {user.last_name}"
-        else:  # staff
-            user = await instructor_repo.get_by_id(user_id)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Instructor not found"
-                )
+        else:
+            user = instructor_repo.get_by_id(user_id)
             user_name = f"{user.first_name} {user.last_name}"
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        # Generate QR code
+    try:
         qr = qrcode.QRCode(
             version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
             box_size=10,
             border=4,
         )
         qr.add_data(user_id)
         qr.make(fit=True)
-
-        # Create image
         img = qr.make_image(fill_color="black", back_color="white")
 
-        # Convert to base64
         buffer = BytesIO()
         img.save(buffer, format="PNG")
-        img_str = base64.b64encode(buffer.getvalue()).decode()
+        img_b64 = base64.b64encode(buffer.getvalue()).decode()
 
         return JSONResponse(content={
             "role": role,
             "user_id": user_id,
             "user_name": user_name,
-            "qr_base64": img_str,
+            "qr_base64": img_b64,
             "mime_type": "image/png",
         })
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error generating QR code: {str(e)}"
+            detail=f"Error generating QR code: {str(e)}",
         )
 
 
 @router.get("/reservations")
-async def get_reservations(
+def get_reservations(
     current_user: dict = Depends(require_student_or_staff_group()),
     reservation_repo: ReservationRepository = Depends(get_reservation_repository),
+    instructor_repo: InstructorRepository = Depends(get_instructor_repository),
     class_repo: ClassRepository = Depends(get_class_repository),
-    status_filter: Optional[str] = Query(None, description="Filter by status (confirmed, cancelled, pending)"),
+    status_filter: str | None = Query(None, description="Filter by status"),
 ):
-    """Get current user's reservations (student) or assigned classes (staff)"""
-    try:
-        role = get_user_role(current_user)
-        user_id = current_user.get("sub")
+    """Return reservations for students or assigned classes for staff."""
+    role = get_user_role(current_user)
+    user_id = current_user.get("sub")
 
+    try:
         if role == "student":
+            reservations, _ = reservation_repo.list_for_student(user_id, limit=50)
+
             if status_filter:
-                reservations = await reservation_repo.get_by_student_and_status(user_id, status_filter)
-            else:
-                reservations = await reservation_repo.get_by_student(user_id)
+                reservations = [r for r in reservations if r.status == status_filter]
 
             return JSONResponse(content={
                 "role": "student",
@@ -230,79 +228,106 @@ async def get_reservations(
                         "reservation_id": r.reservation_id,
                         "student_id": r.student_id,
                         "class_id": r.class_id,
-                        "class_date": r.class_date.isoformat() if r.class_date else None,
+                        "class_date": r.class_date,
                         "status": r.status,
                         "created_at": r.created_at.isoformat() if r.created_at else None,
                     }
                     for r in reservations
-                ]
+                ],
             })
-        else:  # staff - get classes they're teaching
-            # Get classes where this instructor is assigned
-            classes = await class_repo.list_by_instructor(user_id)
+        else:
+            # Staff: list classes where this instructor is assigned.
+            # GSI2PK uses the instructor name slug — look up the name first.
+            instructor = instructor_repo.get_by_id(user_id)
+            name_slug = f"{instructor.first_name} {instructor.last_name}".lower().replace(" ", "_")
+            classes, _ = class_repo.list_for_instructor(name_slug, limit=50)
+
             return JSONResponse(content={
                 "role": "staff",
                 "items": [
                     {
                         "class_id": c.class_id,
-                        "class_name": c.class_name,
-                        "class_date": c.class_date.isoformat() if c.class_date else None,
-                        "instructor_id": c.instructor_id,
-                        "status": c.status,
+                        "class_name": c.class_type,
+                        "class_date": c.class_date,
+                        "instructor_id": user_id,
+                        "status": "cancelled" if c.is_cancelled else "scheduled",
                     }
                     for c in classes
-                ]
+                ],
             })
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching reservations: {str(e)}"
+            detail=f"Error fetching reservations: {str(e)}",
         )
 
 
-@router.delete("/reservations/{reservation_id}")
-async def cancel_reservation(
-    reservation_id: str,
+@router.delete("/reservations/{class_id}")
+def cancel_reservation(
+    class_id: str,
     current_user: dict = Depends(require_student_or_staff_group()),
     reservation_repo: ReservationRepository = Depends(get_reservation_repository),
 ):
-    """Cancel a reservation (students only)"""
+    """Cancel the calling student's reservation for a given class."""
+    role = get_user_role(current_user)
+
+    if role == "staff":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Staff cannot cancel reservations",
+        )
+
+    student_id = current_user.get("sub")
+
     try:
-        role = get_user_role(current_user)
-        
-        # Staff cannot cancel reservations
-        if role == "staff":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Staff cannot cancel reservations"
-            )
-        
-        user_id = current_user.get("sub")
-        
-        # Get reservation
-        reservation = await reservation_repo.get_by_id(reservation_id)
-        
+        reservation = reservation_repo.get_reservation(class_id, student_id)
         if not reservation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Reservation not found"
+                detail="Reservation not found",
             )
-        
-        # Verify ownership
-        if reservation.student_id != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only cancel your own reservations"
-            )
-        
-        # Cancel reservation
-        await reservation_repo.update(reservation_id, {"status": "cancelled"})
-        
+
+        reservation_repo.cancel_reservation(class_id, student_id)
         return JSONResponse(content={"message": "Reservation cancelled successfully"})
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error cancelling reservation: {str(e)}"
+            detail=f"Error cancelling reservation: {str(e)}",
+        )
+
+
+@router.get("/checkins")
+def get_checkins(
+    current_user: dict = Depends(require_student_or_staff_group()),
+    student_repo: StudentRepository = Depends(get_student_repository),
+    limit: int = Query(default=30, ge=1, le=100),
+):
+    """Return the calling student's recent check-in history (staff returns empty list)."""
+    role = get_user_role(current_user)
+
+    if role == "staff":
+        return JSONResponse(content=[])
+
+    student_id = current_user.get("sub")
+
+    try:
+        checkins = student_repo.list_checkins_for_student(student_id, limit=limit)
+        return JSONResponse(content=[
+            {
+                "checkin_id": c.checkin_id,
+                "student_id": c.student_id,
+                "checked_in_at": c.checked_in_at,
+                "can_enter": c.can_enter,
+                "reason": c.reason,
+            }
+            for c in checkins
+        ])
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching check-ins: {str(e)}",
         )

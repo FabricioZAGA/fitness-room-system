@@ -9,10 +9,13 @@ from src.models.membership import (
     MembershipCreate,
     MembershipResponse,
     MembershipStatus,
+    MembershipType,
     MembershipUpdate,
 )
+from src.models.transaction import PaymentMethod, TransactionCreate, TransactionType
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.student_repository import StudentRepository
+from src.repositories.transaction_repository import TransactionRepository
 from src.utils.exceptions import raise_bad_request
 
 logger = Logger()
@@ -25,9 +28,11 @@ class MembershipService:
         self,
         membership_repo: MembershipRepository | None = None,
         student_repo: StudentRepository | None = None,
+        transaction_repo: TransactionRepository | None = None,
     ) -> None:
         self._membership_repo = membership_repo or MembershipRepository()
         self._student_repo = student_repo or StudentRepository()
+        self._transaction_repo = transaction_repo or TransactionRepository()
 
     def assign_membership(self, data: MembershipCreate) -> MembershipResponse:
         """Assign a new membership to a student.
@@ -55,6 +60,38 @@ class MembershipService:
 
         item = self._membership_repo.create(data)
         logger.info("Membership assigned", extra={"membership_id": item.membership_id})
+
+        # Auto-record transaction so income appears in Caja/Reports immediately.
+        if data.price_paid > 0:
+            is_class_pack = data.membership_type in (
+                MembershipType.CLASS_PACK_5,
+                MembershipType.CLASS_PACK_10,
+                MembershipType.CLASS_PACK_20,
+            )
+            tx_type = TransactionType.CLASS_PACK if is_class_pack else TransactionType.MEMBERSHIP
+
+            try:
+                payment_method = PaymentMethod(data.payment_method)
+            except ValueError:
+                payment_method = PaymentMethod.CASH
+
+            try:
+                self._transaction_repo.create_transaction(
+                    TransactionCreate(
+                        student_id=data.student_id,
+                        transaction_type=tx_type,
+                        amount=data.price_paid,
+                        payment_method=payment_method,
+                        reference_id=item.membership_id,
+                        notes=f"Membresía: {data.membership_type}",
+                    )
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to create transaction for membership",
+                    extra={"membership_id": item.membership_id},
+                )
+
         return item.to_response()
 
     def get_membership(self, student_id: str, membership_id: str) -> MembershipResponse:

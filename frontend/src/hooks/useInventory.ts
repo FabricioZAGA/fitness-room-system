@@ -7,6 +7,7 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type {
   CreateProductRequest,
   CreateSaleRequest,
@@ -100,9 +101,15 @@ export function useSellProduct(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data) => inventoryService.sellProduct(data),
-    onSuccess: () => {
+    onSuccess: (sale) => {
       void qc.invalidateQueries({ queryKey: [PRODUCT_KEY] });
       void qc.invalidateQueries({ queryKey: [SALE_KEY] });
+      // Backend auto-creates a transaction — sync Caja view
+      void qc.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success(`Venta registrada — ${sale.product_name ?? "Producto"} x${sale.quantity}`);
+    },
+    onError: () => {
+      toast.error("Error al registrar la venta.");
     },
   });
 }

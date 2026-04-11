@@ -15,6 +15,7 @@ import type {
   UpdateStudentRequest,
 } from "@/types/student";
 import { studentService } from "@/services/studentService";
+import { reservationService } from "@/services/reservationService";
 
 export const STUDENTS_KEY = "students";
 
@@ -112,6 +113,33 @@ export function useCheckin() {
     },
     onError: () => {
       toast.error("Error al registrar el check-in. Verifica la conexión.");
+    },
+  });
+}
+
+/** Check-in + mark class attendance in one action. */
+export function useCheckinWithAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      studentId,
+      classId,
+    }: {
+      studentId: string;
+      classId: string;
+    }) => {
+      const [checkinResult] = await Promise.all([
+        studentService.checkin(studentId),
+        reservationService.markAttendance(classId, studentId, true),
+      ]);
+      return checkinResult;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reservations"] });
+      toast.success("✓ Check-in y asistencia registrados.");
+    },
+    onError: () => {
+      toast.error("Error al registrar el check-in.");
     },
   });
 }

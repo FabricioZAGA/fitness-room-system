@@ -56,6 +56,10 @@ class MembershipCreate(BaseModel):
     start_date: date = Field(..., description="Membership start date")
     end_date: date = Field(..., description="Membership expiry date")
     price_paid: float = Field(..., ge=0, description="Amount paid in local currency")
+    payment_method: str = Field(
+        default="cash",
+        description="Payment method used: cash | card | transfer",
+    )
     classes_total: int | None = Field(
         default=None,
         ge=1,
