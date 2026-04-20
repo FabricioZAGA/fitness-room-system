@@ -3,7 +3,7 @@
 # ── Configuration ──────────────────────────────────────────────────────────────
 AWS_PROFILE     ?= salle-cajas
 AWS_ACCOUNT_ID  ?= 948999370306
-AWS_REGION      ?= us-east-1
+AWS_REGION      ?= us-west-2
 ENV             ?= prod
 BACKEND_DIR     := backend
 FRONTEND_DIR    := frontend

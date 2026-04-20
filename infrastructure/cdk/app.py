@@ -47,7 +47,7 @@ else:
 
 aws_env = cdk.Environment(
     account="948999370306",
-    region="us-east-1",
+    region="us-west-2",
 )
 
 common_tags = {

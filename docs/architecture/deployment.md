@@ -37,7 +37,7 @@
 ### 1. Bootstrap CDK
 
 ```bash
-AWS_PROFILE=salle-cajas npx aws-cdk bootstrap aws://948999370306/us-east-1
+AWS_PROFILE=salle-cajas npx aws-cdk bootstrap aws://948999370306/us-west-2
 ```
 
 ### 2. Deploy all stacks
@@ -97,7 +97,7 @@ This:
 ### Monitor pipeline
 
 ```
-https://us-east-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/fitness-room-prod/view
+https://us-west-2.console.aws.amazon.com/codesuite/codepipeline/pipelines/fitness-room-prod/view
 ```
 
 ## Version Management

@@ -19,7 +19,7 @@ Expected: `Account: 948999370306`
 ### 2. First-time bootstrap (run only once)
 
 ```bash
-AWS_PROFILE=salle-cajas npx aws-cdk bootstrap aws://948999370306/us-east-1
+AWS_PROFILE=salle-cajas npx aws-cdk bootstrap aws://948999370306/us-west-2
 ```
 
 ### 3. Deploy all infrastructure (first time or manual)

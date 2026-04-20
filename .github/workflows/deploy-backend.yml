@@ -16,7 +16,7 @@ on:
         options: ["dev", "staging", "prod"]
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: us-west-2
   AWS_ACCOUNT_ID: "948999370306"
 
 jobs:

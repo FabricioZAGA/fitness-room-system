@@ -37,7 +37,7 @@ phases:
           --output text)
       - export VITE_APP_VERSION=$APP_VERSION
       - export VITE_APP_ENV=$ENV_NAME
-      - export VITE_AWS_REGION=us-east-1
+      - export VITE_AWS_REGION=us-west-2
       - export VITE_APP_NAME="Fitness Room"
       - echo "API URL  = $VITE_API_BASE_URL"
       - echo "Pool ID  = $VITE_COGNITO_USER_POOL_ID"
