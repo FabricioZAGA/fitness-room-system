@@ -49,7 +49,14 @@ const FEATURES = [
     tag: "Kiosco de entrada",
   },
   {
-    icon: "❄️",
+    icon: "\ud83d\udcf1",
+    title: "Portal del Alumno",
+    description:
+      "Cada alumno tiene su propio portal móvil. Ve sus próximas clases, inscríbete en un toque, únete a la lista de espera si la clase está llena, y cancela hasta 2 horas antes.",
+    tag: "Self-service",
+  },
+  {
+    icon: "\u2744\ufe0f",
     title: "Congelar Membresía",
     description:
       "¿Lesión o viaje? Congela la membresía de 7 a 180 días. La fecha de vencimiento se extiende automáticamente. El historial queda registrado con total transparencia.",

@@ -54,7 +54,7 @@ export function Hero() {
       <div className="mx-auto mt-16 grid max-w-2xl grid-cols-3 gap-6">
         {[
           { value: "100%", label: "Serverless" },
-          { value: "6", label: "Módulos completos" },
+          { value: "7", label: "Módulos completos" },
           { value: "2", label: "Idiomas" },
         ].map((stat) => (
           <div key={stat.label} className="text-center">
