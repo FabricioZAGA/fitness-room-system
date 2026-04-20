@@ -1,6 +1,6 @@
 # Flujos Operativos — Fitness Room System
 
-> **Estado:** Fase 1 completada. Todos los flujos descritos en este documento están implementados y operativos.
+> **Estado:** Fases 1–2.5 completadas. Todos los flujos descritos en este documento están implementados y operativos.
 
 ---
 
@@ -229,15 +229,67 @@ Body Combat, Danza, Stretching, Clase General.
 
 ---
 
-## 9. Flujos Fase 2 (No implementados)
+## 9. Flujos Fase 2 — Implementados
 
-Estos flujos están planeados pero **no están en el código actual**:
+### Caja / Corte de caja
 
-- **WhatsApp:** Recordatorio automático 7 días antes del vencimiento via WhatsApp Business API
-- **Reportes financieros:** Corte de caja, ingresos por tipo de membresía
-- **QR Code:** Escaneo de QR en entrada para check-in sin búsqueda manual
-- **Notificaciones:** Email o SMS de confirmación de reservación
+```
+Día de operación
+         │
+         ▼
+Cada pago de membresía/producto crea Transaction automáticamente
+         │
+         ▼
+Staff abre /caja → ve resumen del día (Efectivo / Tarjeta / Transferencia)
+         │
+         ▼
+Al cierre → clic "Corte de Caja" → confirma → CashCut guardado en DynamoDB
+```
+
+### Inventario / Ventas
+
+```
+Staff abre /inventario
+         │
+         ▼
+Busca producto → clic "Vender" → indica cantidad y método de pago
+         │
+         ▼
+POST /api/v1/inventory/products/{id}/sell
+  → decrementa stock
+  → crea Transaction en Caja automáticamente
+  → si stock <= umbral → activa alerta de stock bajo
+```
+
+### Notificaciones Email (SES)
+
+```
+EventBridge (diario) → Lambda handler
+         │
+         ▼
+Consulta membresías con days_until_expiry in [1..7]
+         │
+         ▼
+SES envía email al alumno: "Tu membresía vence en X días"
+```
+
+### QR Check-in (Fase 2.5)
+
+```
+Alumno abre portal (/portal/qr) → muestra código QR personal
+         │
+         ▼
+Staff escanea QR con cámara → extrae student_id
+         │
+         ▼
+Sistema busca alumno automáticamente en /checkin → mismo flujo de validación
+```
+
+## 10. Flujos Fase 3 (Planeados — no implementados)
+
+- **WhatsApp:** Recordatorio 7 días antes del vencimiento via WhatsApp Business API (Meta)
+- **Corte de caja avanzado:** Cuadre por cajero, diferencias de caja, reportes por turno
 
 ---
 
-*Última actualización: 2026-04-08 — Fase 1 completa*
+*Última actualización: 2026-04-20 — Fases 1–2.5 completas*

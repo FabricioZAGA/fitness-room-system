@@ -11,7 +11,8 @@ Sistema de gestión integral para **Fitness Room**, un estudio de fitness en Mé
 Permite gestionar alumnos, membresías, clases, instructores y check-in de acceso.
 
 **Stack:**
-- **Frontend** — React 19 + TypeScript + Vite 6 + Tailwind CSS 4 (`/frontend/`)
+- **Frontend** — React 19 + TypeScript + Vite 6 + Tailwind CSS 4 (`/frontend/`) — panel de administración
+- **Portal** — React 19 + TypeScript + Vite 6 + Tailwind CSS 3 (`/portal/`) — app para alumnos e instructores
 - **Backend** — Python 3.12 + FastAPI + DynamoDB + AWS Lambda (`/backend/`)
 - **Infra** — AWS CDK v2 Python (`/infrastructure/`)
 - **Landing** — Next.js 15 + Tailwind CSS 4 (`/landing/`)
@@ -42,13 +43,22 @@ uv run uvicorn src.main:app --reload --port 8000
 # Swagger: http://localhost:8000/docs
 ```
 
-### Frontend
+### Frontend (admin)
 ```bash
 cd frontend
 pnpm install
 cp .env.example .env
 pnpm dev
 # App: http://localhost:5173
+```
+
+### Portal (alumnos/instructores)
+```bash
+cd portal
+npm install
+cp .env.example .env
+npm run dev
+# Portal: http://localhost:5174
 ```
 
 ### Landing
@@ -61,20 +71,24 @@ npm run dev
 
 ---
 
-## Estructura del frontend
+## Estructura del frontend (admin)
 
 ```
 frontend/src/
   routes/          # Pages — TanStack Router (file-based routing)
-    index.tsx      # Dashboard (/)
-    checkin.tsx    # Check-in (/checkin)
-    login.tsx      # Login (/login)
-    students/      # /students
-    classes/       # /classes
-    memberships/   # /memberships
-    reservations/  # /reservations
-    instructors/   # /instructors
-    settings.tsx   # Settings (/settings)
+    index.tsx           # Dashboard (/)
+    checkin.tsx         # Check-in (/checkin)
+    checkin-kiosk.tsx   # Modo kiosco pantalla grande (/checkin-kiosk)
+    login.tsx           # Login (/login)
+    students/           # /students y /students/$studentId
+    classes/            # /classes
+    memberships/        # /memberships
+    reservations/       # /reservations
+    instructors/        # /instructors
+    reportes/           # /reportes (ingresos, asistencia, rankings, inactivos)
+    caja/               # /caja (corte de caja, historial)
+    inventario/         # /inventario (productos, ventas)
+    settings.tsx        # Settings (/settings)
   components/
     layout/        # Sidebar, AppLayout
     shared/        # Modals, StatusBadge, Dialog, ErrorBoundary
@@ -87,6 +101,44 @@ frontend/src/
   lib/             # utils.ts (cn, formatDate, formatCurrency, getInitials)
   index.css        # CSS design tokens (CSS variables)
 ```
+
+## Estructura del portal (alumnos/instructores)
+
+App React independiente en `/portal/`. Usa React Router DOM 7 (no TanStack Router).
+
+```
+portal/src/
+  pages/
+    Dashboard.tsx   # Bienvenida, acceso rápido, membresía actual
+    Profile.tsx     # Datos personales del usuario
+    QR.tsx          # Código QR personal para check-in
+    Schedule.tsx    # Clases disponibles, reservaciones propias
+    Login.tsx       # Autenticación con Cognito (AWS Amplify)
+  components/
+    BottomNav.tsx   # Navegación inferior móvil
+    Button.tsx      # Botón estilizado
+    Card.tsx        # Contenedor tarjeta
+    Container.tsx   # Wrapper de contenido
+    LoadingSpinner.tsx
+    LoadingState.tsx
+    PageHeader.tsx
+  contexts/
+    AuthContext.tsx  # Amplify auth — login, logout, estado de sesión
+  services/
+    api.ts          # Axios client para /api/v1/portal/*
+  lib/
+    amplify.ts      # Configuración de AWS Amplify
+```
+
+**Endpoints del portal (todos bajo `/api/v1/portal/`):**
+- `GET /profile` — perfil del usuario (alumno o instructor)
+- `GET /membership` — membresía activa del alumno
+- `GET /qr` — código QR del alumno
+- `GET /classes` — clases disponibles próximas
+- `GET /reservations` — reservaciones del alumno
+- `POST /reservations` — reservar una clase
+- `DELETE /reservations/{class_id}` — cancelar reservación
+- `GET /checkins` — historial de check-ins
 
 ---
 
@@ -282,6 +334,7 @@ GET  /health                              Ping (público)
 
 GET  /api/v1/stats                        Dashboard stats (una llamada = todo)
 
+# Alumnos
 GET  /api/v1/students                     Lista alumnos
 POST /api/v1/students                     Crear alumno
 GET  /api/v1/students/{id}               Detalle
@@ -292,33 +345,75 @@ POST /api/v1/students/{id}/deactivate    Desactivar
 POST /api/v1/students/{id}/checkin       Registrar check-in
 GET  /api/v1/students/{id}/qr            Generar código QR (base64 PNG)
 
+# Membresías
 GET  /api/v1/memberships                 Lista membresías
 POST /api/v1/memberships                 Asignar membresía
 GET  /api/v1/memberships/expiring        Membresías por vencer
 GET  /api/v1/memberships/{id}           Detalle
+PATCH /api/v1/memberships/{id}          Actualizar
+POST /api/v1/memberships/{id}/cancel    Cancelar membresía
 GET  /api/v1/memberships/student/{id}   Membresías de alumno
 GET  /api/v1/memberships/student/{id}/active  Membresía activa
 POST /api/v1/memberships/{id}/renew      Renovar
 POST /api/v1/memberships/student/{id}/{membership_id}/freeze    Congelar membresía
 POST /api/v1/memberships/student/{id}/{membership_id}/unfreeze  Descongelar membresía
 
+# Clases
 GET  /api/v1/classes                     Lista clases
 POST /api/v1/classes                     Crear clase
 GET  /api/v1/classes/{id}               Detalle
 PATCH /api/v1/classes/{id}              Actualizar
 POST /api/v1/classes/{id}/cancel        Cancelar clase
 
+# Reservaciones
 GET  /api/v1/reservations               Lista reservaciones
 POST /api/v1/reservations               Crear reservación
 GET  /api/v1/reservations/{id}         Detalle
 DELETE /api/v1/reservations/{id}       Cancelar
 POST /api/v1/reservations/{id}/attend   Marcar asistencia
 
+# Instructores
 GET  /api/v1/instructors                Lista instructores
 POST /api/v1/instructors               Crear instructor
 PATCH /api/v1/instructors/{id}         Actualizar
 POST /api/v1/instructors/{id}/activate  Activar
 POST /api/v1/instructors/{id}/deactivate Desactivar
+
+# Caja (Fase 2)
+POST /api/v1/transactions               Registrar transacción
+GET  /api/v1/transactions               Lista transacciones
+GET  /api/v1/transactions/{id}         Detalle transacción
+GET  /api/v1/transactions/student/{id} Transacciones del alumno
+GET  /api/v1/transactions/daily-summary Resumen del día
+POST /api/v1/transactions/cash-cut      Crear corte de caja
+GET  /api/v1/transactions/cash-cuts     Lista de cortes
+GET  /api/v1/transactions/cash-cuts/{id} Detalle de corte
+
+# Inventario (Fase 2)
+POST /api/v1/inventory/products         Crear producto
+GET  /api/v1/inventory/products         Lista productos
+GET  /api/v1/inventory/products/low-stock  Alerta stock bajo
+GET  /api/v1/inventory/products/{id}   Detalle producto
+PATCH /api/v1/inventory/products/{id}  Actualizar producto
+POST /api/v1/inventory/products/{id}/restock  Reabastecer
+POST /api/v1/inventory/products/{id}/sell     Registrar venta
+GET  /api/v1/inventory/sales            Lista ventas
+
+# Reportes (Fase 2)
+GET  /api/v1/reports/income             Reporte de ingresos (rango de fechas)
+GET  /api/v1/reports/attendance         Reporte de asistencia
+GET  /api/v1/reports/rankings           Ranking de alumnos
+GET  /api/v1/reports/inactive           Alumnos inactivos
+
+# Portal — alumnos/instructores (Fase 2.5)
+GET  /api/v1/portal/profile             Perfil del usuario autenticado
+GET  /api/v1/portal/membership          Membresía activa
+GET  /api/v1/portal/qr                  Código QR personal
+GET  /api/v1/portal/classes             Clases disponibles próximas
+GET  /api/v1/portal/reservations        Mis reservaciones
+POST /api/v1/portal/reservations        Reservar clase
+DELETE /api/v1/portal/reservations/{class_id}  Cancelar reservación
+GET  /api/v1/portal/checkins            Historial de check-ins
 ```
 
 ---
@@ -327,11 +422,11 @@ POST /api/v1/instructors/{id}/deactivate Desactivar
 
 | Fase | Módulos | Estado |
 |---|---|---|
-| **Fase 1** | Alumnos, Membresías, Clases, Reservas, Instructores, Check-in | ✅ Completado |
+| **Fase 1** | Alumnos, Membresías, Clases, Reservas, Instructores, Check-in, Dashboard | ✅ Completado |
 | **Fase 2** | Notificaciones Email (SES), Reportes financieros, Caja, Inventario | ✅ Completado |
-| **Fase 2.5** | QR Check-in, Freeze de membresía, Exportar reportes PDF/Excel | ✅ Completado |
+| **Fase 2.5** | QR Check-in, Freeze de membresía, Exportar reportes PDF/Excel, Portal alumnos | ✅ Completado |
 | **Fase 3** | WhatsApp Business API, Corte de caja avanzado | 🔜 Planeado |
-| **Fase 4** | Rankings de fidelización, Métricas de motivación, App móvil | 🔜 Planeado |
+| **Fase 4** | Rankings de fidelización, Métricas de motivación, App móvil nativa | 🔜 Planeado |
 
 **Fase 3 — WhatsApp** es crítica para México. API de WhatsApp Business para recordatorios de renovación directos al celular.
 
@@ -348,9 +443,10 @@ DYNAMODB_ENDPOINT_URL=http://localhost:8000   # solo local
 COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX
 COGNITO_CLIENT_ID=XXXXXXXXXXXXXXXXXXXXXXXXXX
 FRONTEND_URL=http://localhost:5173
+SES_SENDER_EMAIL=noreply@fitnessroom.mx       # notificaciones email
 ```
 
-### Frontend (`frontend/.env`)
+### Frontend admin (`frontend/.env`)
 
 ```bash
 VITE_API_BASE_URL=http://localhost:8000/api/v1
@@ -360,16 +456,26 @@ VITE_COGNITO_REGION=us-east-1
 VITE_ENV=development
 ```
 
+### Portal (`portal/.env`)
+
+```bash
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX
+VITE_COGNITO_CLIENT_ID=XXXXXXXXXXXXXXXXXXXXXXXXXX
+VITE_COGNITO_REGION=us-east-1
+```
+
 ---
 
 ## Infraestructura AWS
 
-Cuatro stacks CDK en orden de despliegue:
+Cinco stacks CDK en orden de despliegue:
 
 1. **DatabaseStack** — DynamoDB tabla única con GSIs
 2. **AuthStack** — Cognito User Pool + App Client (depende de DatabaseStack)
 3. **ApiStack** — Lambda + API Gateway v2 HTTP API (depende de AuthStack)
-4. **HostingStack** — S3 + CloudFront (independiente)
+4. **HostingStack** — S3 + CloudFront (frontend admin)
+5. **PortalHostingStack** — S3 + CloudFront (portal alumnos/instructores)
 
 ```bash
 cd infrastructure/cdk
@@ -377,6 +483,7 @@ cdk deploy DatabaseStack --profile salle-cajas
 cdk deploy AuthStack --profile salle-cajas
 cdk deploy ApiStack --profile salle-cajas
 cdk deploy HostingStack --profile salle-cajas
+cdk deploy PortalHostingStack --profile salle-cajas
 ```
 
 ---
@@ -405,15 +512,19 @@ cdk deploy HostingStack --profile salle-cajas
 
 ## Advertencias conocidas
 
-1. **`useStats.ts`** — El endpoint `/api/v1/stats` hace N queries a DynamoDB internamente. En Phase 1 es aceptable. En Phase 2 considerar ElastiCache.
+1. **`useStats.ts`** — El endpoint `/api/v1/stats` hace N queries a DynamoDB internamente. Con bajo volumen es aceptable. Si el dashboard se pone lento, considerar ElastiCache o calcular stats con un job nocturno.
 
 2. **Paginación** — La mayoría de listas cargan `limit=200` en el cliente para filtrado local. Cuando el número de alumnos supere 500, implementar paginación server-side real.
 
-3. **Check-in** — No hay deduplicación de check-ins en el mismo día. En Phase 2, verificar si ya hizo check-in hoy antes de registrar.
+3. **Check-in** — No hay deduplicación de check-ins en el mismo día. Si se necesita, verificar `CHECKIN#{date}` existente antes de crear.
 
 4. **Cognito en local** — El `AuthContext` tiene un bypass para `VITE_ENV=development` que evita login real. **JAMÁS** en producción.
 
 5. **DynamoDB costos** — La tabla usa `PAY_PER_REQUEST`. Con bajo volumen es más barato. Revisar si supera 1M requests/mes para considerar `PROVISIONED`.
+
+6. **Portal vs Frontend** — Son dos apps React independientes con sus propios `package.json` y builds separados. El portal usa Tailwind 3.4 (no 4). No mezclar dependencias ni componentes entre ambos.
+
+7. **EventBridge notificaciones** — El backend tiene handlers para eventos programados de SES (alertas de vencimiento). Se configuran en `ApiStack` como reglas EventBridge → Lambda.
 
 ---
 
@@ -426,7 +537,7 @@ cdk deploy HostingStack --profile salle-cajas
    - `backend/src/routers/mi_modulo.py` — FastAPI router
    - Registrar en `backend/src/main.py`: `app.include_router(mi_modulo.router, prefix="/api/v1")`
 
-2. **Frontend:**
+2. **Frontend admin:**
    - `frontend/src/types/mi_modulo.ts` — TypeScript types
    - `frontend/src/services/miModuloService.ts` — API calls
    - `frontend/src/hooks/useMiModulo.ts` — TanStack Query hooks
@@ -434,6 +545,11 @@ cdk deploy HostingStack --profile salle-cajas
    - Agregar al Sidebar en `frontend/src/components/layout/Sidebar.tsx`
    - Agregar traducciones a `es.json` y `en.json`
 
+3. **Portal (si aplica para alumnos/instructores):**
+   - Agregar método en `portal/src/services/api.ts`
+   - Agregar página en `portal/src/pages/MiPagina.tsx`
+   - Agregar ruta en `portal/src/App.tsx` y link en `BottomNav.tsx`
+
 ---
 
-*Actualizado: 2026-04-08 | Fase 2.5 completada — QR check-in, freeze membresía, exportar reportes*
+*Actualizado: 2026-04-20 | Fase 2.5 completada — QR check-in, freeze membresía, exportar reportes, portal alumnos*

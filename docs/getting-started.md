@@ -161,6 +161,19 @@ AWS_PROFILE=salle-cajas cdk deploy FitnessRoomHostingStack-dev
 | `VITE_COGNITO_CLIENT_ID`    | Cognito client ID            | `abcdef123456`          |
 | `VITE_APP_NAME`             | Studio name shown in sidebar | `Fitness Room`          |
 
+## Portal Setup
+
+The portal is the mobile-first app for students and instructors. It lives in `/portal/` as a separate React project.
+
+```bash
+cd portal
+npm install
+cp .env.example .env
+# Fill in same Cognito values as frontend but with portal-specific client ID
+npm run dev
+# Portal: http://localhost:5174
+```
+
 ## Project Structure
 
 ```
@@ -171,31 +184,41 @@ fitness-room-system/
 │   │   ├── main.py            # Lambda + FastAPI entry point
 │   │   ├── models/            # Pydantic v2 domain models
 │   │   ├── repositories/      # DynamoDB access layer
-│   │   ├── routers/           # FastAPI route handlers
+│   │   ├── routers/           # FastAPI route handlers (12 modules)
 │   │   ├── services/          # Business logic
 │   │   └── utils/             # Auth, exceptions
 │   └── tests/
-├── frontend/                  # React 19 TypeScript SPA
+├── frontend/                  # React 19 TypeScript SPA — Admin panel
 │   └── src/
 │       ├── components/        # UI + shared components
 │       ├── config/            # Theme configuration
 │       ├── hooks/             # TanStack Query hooks
 │       ├── lib/               # Utilities, Amplify config
-│       ├── routes/            # TanStack Router pages
+│       ├── routes/            # TanStack Router pages (15 routes)
 │       ├── services/          # API client + services
 │       ├── store/             # Zustand stores
 │       └── types/             # TypeScript type definitions
+├── portal/                    # React 19 TypeScript SPA — Student/Instructor app
+│   └── src/
+│       ├── pages/             # Dashboard, Profile, QR, Schedule, Login
+│       ├── components/        # BottomNav, Card, Button, etc.
+│       ├── contexts/          # AuthContext (Amplify)
+│       └── services/          # api.ts (portal endpoints)
 ├── infrastructure/
 │   └── cdk/                   # AWS CDK v2 stacks
 │       └── stacks/
 │           ├── auth_stack.py
 │           ├── api_stack.py
 │           ├── database_stack.py
-│           └── hosting_stack.py
+│           ├── hosting_stack.py
+│           └── portal_hosting_stack.py
 ├── docs/
-│   └── architecture/
-│       ├── overview.md
-│       └── database-design.md
+│   ├── architecture/
+│   │   ├── overview.md
+│   │   └── database-design.md
+│   ├── flows/
+│   │   └── gym-operations.md
+│   └── getting-started.md     # This file
 └── .github/
     └── workflows/             # CI/CD pipelines
 ```

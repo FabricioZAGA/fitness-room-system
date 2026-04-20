@@ -39,8 +39,10 @@ Browser → API Gateway → Cognito Authorizer → Lambda → DynamoDB
 | **API Gateway v2 HTTP** | REST API endpoint with JWT authorization |
 | **Lambda** | Serverless compute running FastAPI via Mangum |
 | **DynamoDB** | NoSQL single-table storage |
-| **S3** | Frontend static asset storage |
-| **CloudFront** | CDN for frontend, SSL termination |
+| **S3** | Frontend static asset storage (admin + portal) |
+| **CloudFront** | CDN for frontend, SSL termination (2 distributions) |
+| **SES** | Transactional emails (membership expiry alerts) |
+| **EventBridge** | Scheduled triggers for notification Lambda |
 | **CloudWatch** | Logs, metrics, alarms |
 | **X-Ray** | Distributed tracing (via Lambda Powertools) |
 | **Secrets Manager** | Sensitive config storage |
@@ -49,10 +51,13 @@ Browser → API Gateway → Cognito Authorizer → Lambda → DynamoDB
 
 | Stack | Exports |
 |---|---|
-| `FitnessRoomAuthStack-{env}` | `UserPoolId`, `UserPoolClientId` |
 | `FitnessRoomDatabaseStack-{env}` | `TableName`, `TableArn` |
+| `FitnessRoomAuthStack-{env}` | `UserPoolId`, `UserPoolClientId` |
 | `FitnessRoomApiStack-{env}` | `ApiUrl`, `LambdaArn` |
-| `FitnessRoomHostingStack-{env}` | `CloudFrontUrl`, `BucketName` |
+| `FitnessRoomHostingStack-{env}` | `CloudFrontUrl`, `BucketName` (admin frontend) |
+| `FitnessRoomPortalHostingStack-{env}` | `PortalCloudFrontUrl`, `PortalBucketName` |
+
+Deploy order: Database → Auth → Api → Hosting → PortalHosting
 
 ## Backend Layer Pattern
 
@@ -73,6 +78,8 @@ HTTP Request
 
 ## Frontend Architecture
 
+### Admin Panel (`/frontend`)
+
 ```
 Routes (TanStack Router file-based)
     └── Page Components
@@ -81,11 +88,22 @@ Routes (TanStack Router file-based)
                 └── API Gateway
 ```
 
-### State Management
-
+**State Management:**
 - **Server state** — TanStack Query v5 (cache, refetch, mutations)
 - **Client/UI state** — Zustand v5 (theme, user preferences)
 - **Form state** — React Hook Form + Zod validation
+
+### Portal (`/portal`)
+
+```
+Routes (React Router DOM v7)
+    └── Page Components
+        └── TanStack Query hooks
+            └── services/api.ts (Axios)
+                └── API Gateway /portal/*
+```
+
+The portal is a mobile-first app for students and instructors. It uses separate Cognito app client credentials and calls only the `/api/v1/portal/` prefix.
 
 ## Authentication Flow
 
@@ -106,3 +124,13 @@ Routes (TanStack Router file-based)
 | `dev` | Shared development environment on AWS |
 | `staging` | Pre-production validation |
 | `prod` | Production |
+
+## Implemented Phases
+
+| Phase | Modules | Status |
+|---|---|---|
+| 1 | Students, Memberships, Classes, Reservations, Instructors, Check-in, Dashboard | Done |
+| 2 | Email notifications (SES), Reports, Cash register, Inventory | Done |
+| 2.5 | QR Check-in, Membership freeze, PDF/Excel export, Student portal | Done |
+| 3 | WhatsApp Business API, Advanced cash management | Planned |
+| 4 | Loyalty rankings, Motivation metrics, Native mobile app | Planned |
