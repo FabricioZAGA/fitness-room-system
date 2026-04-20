@@ -14,10 +14,35 @@ class NotificationChannel(StrEnum):
 
 
 class NotificationType(StrEnum):
+    # ── Student notifications ─────────────────────────────────────────────
     EXPIRY_REMINDER = "expiry_reminder"
     INACTIVITY_ALERT = "inactivity_alert"
+    RESERVATION_CONFIRMED = "reservation_confirmed"
+    RESERVATION_CANCELLED = "reservation_cancelled"
+    WAITLIST_JOINED = "waitlist_joined"
+    WAITLIST_PROMOTED = "waitlist_promoted"
+    CLASS_CANCELLED = "class_cancelled"
+    CLASS_REMINDER = "class_reminder"
+    MEMBERSHIP_CREATED = "membership_created"
+    MEMBERSHIP_RENEWED = "membership_renewed"
+    MEMBERSHIP_FROZEN = "membership_frozen"
+    MEMBERSHIP_UNFROZEN = "membership_unfrozen"
+    CHECKIN_WELCOME = "checkin_welcome"
     CUSTOM = "custom"
+
+    # ── Instructor notifications ──────────────────────────────────────────
+    INSTRUCTOR_CLASS_ASSIGNED = "instructor_class_assigned"
+    INSTRUCTOR_CLASS_CANCELLED = "instructor_class_cancelled"
+    INSTRUCTOR_STUDENT_CANCELLED = "instructor_student_cancelled"
+    INSTRUCTOR_STUDENT_ENROLLED = "instructor_student_enrolled"
+    INSTRUCTOR_CLASS_FULL = "instructor_class_full"
+    INSTRUCTOR_CLASS_REMINDER = "instructor_class_reminder"
+
+    # ── Admin notifications ───────────────────────────────────────────────
     LOW_STOCK = "low_stock"
+    ADMIN_NEW_STUDENT = "admin_new_student"
+    ADMIN_MEMBERSHIP_EXPIRED = "admin_membership_expired"
+    ADMIN_DAILY_SUMMARY = "admin_daily_summary"
 
 
 class NotificationStatus(StrEnum):
@@ -60,6 +85,8 @@ class NotificationResponse(BaseModel):
     status: NotificationStatus
     subject: str
     recipient_email: str | None
+    recipient_phone: str | None = None
+    recipient_role: str | None = None
     sent_at: str
     error_message: str | None = None
 
@@ -99,6 +126,8 @@ class NotificationDynamoItem(BaseModel):
     status: str
     subject: str
     recipient_email: str | None = None
+    recipient_phone: str | None = None
+    recipient_role: str | None = None
     sent_at: str
     error_message: str | None = None
 
@@ -112,6 +141,8 @@ class NotificationDynamoItem(BaseModel):
         student_id: str | None = None,
         student_name: str | None = None,
         recipient_email: str | None = None,
+        recipient_phone: str | None = None,
+        recipient_role: str | None = None,
         error_message: str | None = None,
     ) -> "NotificationDynamoItem":
         """Factory — builds a new notification log item."""
@@ -132,6 +163,8 @@ class NotificationDynamoItem(BaseModel):
             status=status,
             subject=subject,
             recipient_email=recipient_email,
+            recipient_phone=recipient_phone,
+            recipient_role=recipient_role,
             sent_at=sent_at,
             error_message=error_message,
         )
@@ -147,6 +180,8 @@ class NotificationDynamoItem(BaseModel):
             status=NotificationStatus(self.status),
             subject=self.subject,
             recipient_email=self.recipient_email,
+            recipient_phone=self.recipient_phone,
+            recipient_role=self.recipient_role,
             sent_at=self.sent_at,
             error_message=self.error_message,
         )

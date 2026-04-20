@@ -7,6 +7,9 @@ from fastapi import APIRouter, Depends, Query, status
 from src.models.class_model import ClassCreate, ClassResponse, ClassUpdate
 from src.models.common import MessageResponse, PaginatedResponse
 from src.services.class_service import ClassService
+from src.services.event_notifier import EventNotifier
+from src.repositories.reservation_repository import ReservationRepository
+from src.repositories.student_repository import StudentRepository
 from src.utils.auth import get_current_user
 
 router = APIRouter(prefix="/classes", tags=["Classes"])
@@ -30,7 +33,25 @@ def create_class(
     service: ClassService = Depends(get_service),
 ) -> ClassResponse:
     """Create a new class session."""
-    return service.create_class(data)
+    result = service.create_class(data)
+    # Notify instructor about new class assignment
+    try:
+        notifier = EventNotifier()
+        inst = notifier.resolve_instructor_for_class(result.instructor_name)
+        if inst:
+            notifier.notify_instructor_class_assigned(
+                instructor_name=inst["name"],
+                instructor_email=inst["email"],
+                instructor_phone=inst.get("phone"),
+                class_type=result.class_type,
+                class_date=result.class_date,
+                start_time=result.start_time,
+                duration_minutes=result.duration_minutes,
+                location=result.location or "",
+            )
+    except Exception:
+        pass
+    return result
 
 
 @router.get(
@@ -115,7 +136,49 @@ def cancel_class(
     service: ClassService = Depends(get_service),
 ) -> ClassResponse:
     """Cancel a class session."""
-    return service.cancel_class(class_id)
+    result = service.cancel_class(class_id)
+    try:
+        notifier = EventNotifier()
+        # Notify instructor
+        inst = notifier.resolve_instructor_for_class(result.instructor_name)
+        if inst:
+            notifier.notify_instructor_class_cancelled(
+                instructor_name=inst["name"],
+                instructor_email=inst["email"],
+                instructor_phone=inst.get("phone"),
+                class_type=result.class_type,
+                class_date=result.class_date,
+                start_time=result.start_time,
+            )
+        # Notify all enrolled students
+        res_repo = ReservationRepository()
+        stu_repo = StudentRepository()
+        reservations, _ = res_repo.list_for_class(class_id, limit=200)
+        enrolled = [
+            r for r in reservations
+            if r.status in ("confirmed", "waitlisted")
+        ]
+        students_to_notify: list[dict[str, str | None]] = []
+        for r in enrolled:
+            sid = r.student_id
+            s_item = stu_repo.get_item(f"STUDENT#{sid}", "PROFILE")
+            if s_item and s_item.get("email"):
+                students_to_notify.append({
+                    "name": f"{s_item.get('first_name', '')} {s_item.get('last_name', '')}".strip(),
+                    "email": s_item.get("email"),
+                    "phone": s_item.get("phone"),
+                })
+        if students_to_notify:
+            notifier.notify_class_cancelled_to_students(
+                students=students_to_notify,
+                class_type=result.class_type,
+                class_date=result.class_date,
+                start_time=result.start_time,
+                instructor_name=result.instructor_name,
+            )
+    except Exception:
+        pass
+    return result
 
 
 @router.delete(

@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, Query, status
 from src.models.common import PaginatedResponse
 from src.models.membership import FreezeMembershipRequest, MembershipCreate, MembershipResponse, MembershipUpdate
 from src.services.membership_service import MembershipService
+from src.services.event_notifier import EventNotifier
+from src.repositories.student_repository import StudentRepository
 from src.utils.auth import get_current_user
 
 router = APIRouter(prefix="/memberships", tags=["Memberships"])
@@ -30,7 +32,23 @@ def assign_membership(
     service: MembershipService = Depends(get_service),
 ) -> MembershipResponse:
     """Assign a membership to a student."""
-    return service.assign_membership(data)
+    result = service.assign_membership(data)
+    try:
+        repo = StudentRepository()
+        item = repo.get_item(f"STUDENT#{data.student_id}", "PROFILE")
+        if item and item.get("email"):
+            name = f"{item.get('first_name', '')} {item.get('last_name', '')}".strip()
+            EventNotifier().notify_membership_created(
+                student_name=name,
+                student_email=item["email"],
+                student_phone=item.get("phone"),
+                membership_type=data.membership_type,
+                start_date=str(data.start_date),
+                end_date=str(result.end_date),
+            )
+    except Exception:
+        pass
+    return result
 
 
 @router.get(
@@ -155,7 +173,21 @@ def freeze_membership(
     service: MembershipService = Depends(get_service),
 ) -> MembershipResponse:
     """Freeze a membership."""
-    return service.freeze_membership(student_id, membership_id, data)
+    result = service.freeze_membership(student_id, membership_id, data)
+    try:
+        repo = StudentRepository()
+        item = repo.get_item(f"STUDENT#{student_id}", "PROFILE")
+        if item and item.get("email"):
+            name = f"{item.get('first_name', '')} {item.get('last_name', '')}".strip()
+            EventNotifier().notify_membership_frozen(
+                student_name=name,
+                student_email=item["email"],
+                student_phone=item.get("phone"),
+                freeze_days=data.days,
+            )
+    except Exception:
+        pass
+    return result
 
 
 @router.post(
@@ -171,4 +203,18 @@ def unfreeze_membership(
     service: MembershipService = Depends(get_service),
 ) -> MembershipResponse:
     """Unfreeze a membership."""
-    return service.unfreeze_membership(student_id, membership_id)
+    result = service.unfreeze_membership(student_id, membership_id)
+    try:
+        repo = StudentRepository()
+        item = repo.get_item(f"STUDENT#{student_id}", "PROFILE")
+        if item and item.get("email"):
+            name = f"{item.get('first_name', '')} {item.get('last_name', '')}".strip()
+            EventNotifier().notify_membership_unfrozen(
+                student_name=name,
+                student_email=item["email"],
+                student_phone=item.get("phone"),
+                new_end_date=str(result.end_date),
+            )
+    except Exception:
+        pass
+    return result

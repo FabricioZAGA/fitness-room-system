@@ -11,6 +11,24 @@ interface EditStudentModalProps {
   student: Student;
 }
 
+const PHONE_REGEX = /^\+52\d{10}$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/[\s\-().]/g, "");
+  if (/^\d{10}$/.test(digits)) return `+52${digits}`;
+  if (/^52\d{10}$/.test(digits)) return `+${digits}`;
+  return digits.startsWith("+") ? digits : raw;
+}
+
+function formatPhoneDisplay(raw: string): string {
+  const d = raw.replace(/\D/g, "");
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)} ${d.slice(2)}`;
+  if (d.length <= 8) return `${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4)}`;
+  return `${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4, 8)} ${d.slice(8, 12)}`;
+}
+
 const STATUS_OPTIONS: { value: StudentStatus; label: string }[] = [
   { value: "new", label: "Nuevo" },
   { value: "active", label: "Activo" },
@@ -51,12 +69,27 @@ export function EditStudentModal({
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
+  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>): void {
+    const raw = e.target.value.replace(/[^\d+\s\-().]/g, "");
+    setForm((prev) => ({ ...prev, phone: raw }));
+  }
+
+  const phoneNormalized = form.phone ? normalizePhone(form.phone) : "";
+  const phoneError = form.phone && !PHONE_REGEX.test(phoneNormalized)
+    ? "Formato: 10 d\u00edgitos (ej. 55 1234 5678)"
+    : "";
+  const emailError = form.email && !EMAIL_REGEX.test(form.email)
+    ? "Email inv\u00e1lido"
+    : "";
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
+    if (phoneError || emailError) return;
+    const normalizedPhone = form.phone ? normalizePhone(form.phone) : undefined;
     mutate(
       {
         ...form,
-        phone: form.phone || undefined,
+        phone: normalizedPhone || undefined,
         notes: form.notes || undefined,
       },
       { onSuccess: onClose }
@@ -99,8 +132,9 @@ export function EditStudentModal({
             value={form.email ?? ""}
             onChange={handleChange}
             required
-            className={inputCls}
+            className={`${inputCls} ${emailError ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" : ""}`}
           />
+          {emailError && <p className="mt-1 text-xs text-red-400">{emailError}</p>}
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
@@ -108,10 +142,18 @@ export function EditStudentModal({
             <input
               name="phone"
               value={form.phone ?? ""}
-              onChange={handleChange}
-              placeholder="+52 555 0000"
-              className={inputCls}
+              onChange={handlePhoneChange}
+              placeholder="55 1234 5678"
+              inputMode="tel"
+              maxLength={18}
+              className={`${inputCls} ${phoneError ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" : ""}`}
             />
+            {phoneError
+              ? <p className="mt-1 text-xs text-red-400">{phoneError}</p>
+              : form.phone
+                ? <p className="mt-1 text-xs text-emerald-400">+52 {formatPhoneDisplay(form.phone.replace(/\D/g, "").replace(/^52/, ""))}</p>
+                : <p className="mt-1 text-xs text-[--tx-disabled]">Se agregar\u00e1 +52 autom\u00e1ticamente</p>
+            }
           </Field>
           <Field label="Estado">
             <select

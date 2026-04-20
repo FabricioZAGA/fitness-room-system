@@ -6,9 +6,13 @@ Each instructor can teach multiple class types and has their own schedule.
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, EmailStr, Field
+import re
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from src.models.common import TimestampedModel, new_id, utc_now
+
+_PHONE_RE = re.compile(r"^\+52\d{10}$")
 
 
 class InstructorStatus(StrEnum):
@@ -34,6 +38,23 @@ class InstructorCreate(BaseModel):
     photo_url: str | None = Field(default=None, max_length=500)
     hourly_rate: float | None = Field(default=None, ge=0)
 
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str | None) -> str | None:
+        """Normalize and validate Mexican phone number (+52XXXXXXXXXX)."""
+        if v is None or v.strip() == "":
+            return None
+        cleaned = re.sub(r"[\s\-\(\).]", "", v.strip())
+        if re.match(r"^\d{10}$", cleaned):
+            cleaned = f"+52{cleaned}"
+        if re.match(r"^52\d{10}$", cleaned):
+            cleaned = f"+{cleaned}"
+        if not _PHONE_RE.match(cleaned):
+            raise ValueError(
+                "Teléfono inválido. Formato: +52 seguido de 10 dígitos (ej. +525512345678)"
+            )
+        return cleaned
+
 
 class InstructorUpdate(BaseModel):
     """Schema for updating an instructor."""
@@ -47,6 +68,23 @@ class InstructorUpdate(BaseModel):
     bio: str | None = Field(default=None, max_length=1000)
     photo_url: str | None = Field(default=None, max_length=500)
     hourly_rate: float | None = Field(default=None, ge=0)
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str | None) -> str | None:
+        """Normalize and validate Mexican phone number (+52XXXXXXXXXX)."""
+        if v is None or v.strip() == "":
+            return None
+        cleaned = re.sub(r"[\s\-\(\).]", "", v.strip())
+        if re.match(r"^\d{10}$", cleaned):
+            cleaned = f"+52{cleaned}"
+        if re.match(r"^52\d{10}$", cleaned):
+            cleaned = f"+{cleaned}"
+        if not _PHONE_RE.match(cleaned):
+            raise ValueError(
+                "Teléfono inválido. Formato: +52 seguido de 10 dígitos (ej. +525512345678)"
+            )
+        return cleaned
 
 
 class InstructorResponse(TimestampedModel):

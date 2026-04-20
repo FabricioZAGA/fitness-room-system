@@ -16,9 +16,14 @@ GSI2 (filter by status):
 from datetime import datetime
 from enum import StrEnum
 
+import re
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from src.models.common import TimestampedModel, new_id, utc_now
+
+# Mexican phone: +52 followed by 10 digits (optional spaces/dashes allowed in input)
+_PHONE_RE = re.compile(r"^\+52\d{10}$")
 
 
 class StudentStatus(StrEnum):
@@ -45,10 +50,22 @@ class StudentCreate(BaseModel):
     @field_validator("phone")
     @classmethod
     def validate_phone(cls, v: str | None) -> str | None:
-        """Strip whitespace from phone number."""
-        if v is not None:
-            return v.strip()
-        return v
+        """Normalize and validate Mexican phone number (+52XXXXXXXXXX)."""
+        if v is None or v.strip() == "":
+            return None
+        # Strip spaces, dashes, parentheses
+        cleaned = re.sub(r"[\s\-\(\).]", "", v.strip())
+        # Auto-prefix +52 if they only gave 10 digits
+        if re.match(r"^\d{10}$", cleaned):
+            cleaned = f"+52{cleaned}"
+        # Accept 52XXXXXXXXXX without + prefix
+        if re.match(r"^52\d{10}$", cleaned):
+            cleaned = f"+{cleaned}"
+        if not _PHONE_RE.match(cleaned):
+            raise ValueError(
+                "Teléfono inválido. Formato requerido: +52 seguido de 10 dígitos (ej. +525512345678)"
+            )
+        return cleaned
 
 
 class StudentUpdate(BaseModel):
@@ -60,6 +77,23 @@ class StudentUpdate(BaseModel):
     phone: str | None = Field(default=None, max_length=20)
     status: StudentStatus | None = None
     notes: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str | None) -> str | None:
+        """Normalize and validate Mexican phone number (+52XXXXXXXXXX)."""
+        if v is None or v.strip() == "":
+            return None
+        cleaned = re.sub(r"[\s\-\(\).]", "", v.strip())
+        if re.match(r"^\d{10}$", cleaned):
+            cleaned = f"+52{cleaned}"
+        if re.match(r"^52\d{10}$", cleaned):
+            cleaned = f"+{cleaned}"
+        if not _PHONE_RE.match(cleaned):
+            raise ValueError(
+                "Teléfono inválido. Formato requerido: +52 seguido de 10 dígitos (ej. +525512345678)"
+            )
+        return cleaned
 
 
 class StudentResponse(TimestampedModel):

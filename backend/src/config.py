@@ -70,6 +70,16 @@ class Settings(BaseSettings):
         description="Days without check-in before inactivity alert",
     )
 
+    # ── SNS / SMS ───────────────────────────────────────────────────────────────
+    sms_enabled: bool = Field(
+        default=False,
+        description="Enable SMS notifications via AWS SNS",
+    )
+    sms_sender_id: str = Field(
+        default="FitnessRoom",
+        description="SMS sender ID (alphanumeric, max 11 chars)",
+    )
+
     @property
     def cognito_jwks_url(self) -> str:
         """Return JWKS URL for Cognito token validation."""

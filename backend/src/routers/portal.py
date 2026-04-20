@@ -16,6 +16,7 @@ from ..repositories.reservation_repository import ReservationRepository
 from ..repositories.instructor_repository import InstructorRepository
 from ..repositories.class_repository import ClassRepository
 from ..models.reservation import ReservationCreate
+from ..services.event_notifier import EventNotifier
 
 router = APIRouter(prefix="/portal", tags=["portal"])
 
@@ -414,6 +415,38 @@ def cancel_reservation(
 
         reservation_repo.cancel_reservation(class_id, student_id)
 
+        student_name = f"{student.first_name} {student.last_name}".strip()
+        notifier = EventNotifier()
+
+        # Notify student about cancellation
+        try:
+            ci = class_repo.get_by_id(class_id)
+            notifier.notify_reservation_cancelled(
+                student_name=student_name,
+                student_email=student.email or "",
+                student_phone=student.phone,
+                class_type=ci.class_type,
+                class_date=ci.class_date,
+                start_time=ci.start_time,
+            )
+            # Notify instructor about cancellation
+            inst = notifier.resolve_instructor_for_class(ci.instructor_name)
+            if inst:
+                updated = class_repo.get_by_id(class_id)
+                notifier.notify_instructor_student_cancelled(
+                    instructor_name=inst["name"],
+                    instructor_email=inst["email"],
+                    instructor_phone=inst.get("phone"),
+                    student_name=student_name,
+                    class_type=ci.class_type,
+                    class_date=ci.class_date,
+                    start_time=ci.start_time,
+                    reservations_count=max(0, updated.reservations_count - 1),
+                    capacity=updated.capacity,
+                )
+        except ResourceNotFoundException:
+            pass
+
         # Promote from waitlist
         try:
             class_item = class_repo.get_by_id(class_id)
@@ -422,6 +455,24 @@ def cancel_reservation(
             if promoted:
                 class_repo.increment_reservations_count(class_id)
                 class_repo.decrement_waitlist_count(class_id)
+                # Notify promoted student
+                try:
+                    promoted_sid = promoted.student_id
+                    promoted_item = student_repo.get_item(
+                        f"STUDENT#{promoted_sid}", "PROFILE"
+                    )
+                    if promoted_item and promoted_item.get("email"):
+                        pname = f"{promoted_item.get('first_name', '')} {promoted_item.get('last_name', '')}".strip()
+                        notifier.notify_waitlist_promoted(
+                            student_name=pname,
+                            student_email=promoted_item["email"],
+                            student_phone=promoted_item.get("phone"),
+                            class_type=class_item.class_type,
+                            class_date=class_item.class_date,
+                            start_time=class_item.start_time,
+                        )
+                except Exception:
+                    pass
         except ResourceNotFoundException:
             pass
 
@@ -562,9 +613,52 @@ def create_reservation(
     available_spots = class_item.capacity - class_item.reservations_count
     data = ReservationCreate(student_id=student_id, class_id=class_id)
 
+    student_name = f"{student.first_name} {student.last_name}".strip()
+    notifier = EventNotifier()
+
     if available_spots > 0:
         reservation = reservation_repo.create_reservation(data, class_date)
         class_repo.increment_reservations_count(class_id)
+
+        # Notify student
+        notifier.notify_reservation_confirmed(
+            student_name=student_name,
+            student_email=student.email or "",
+            student_phone=student.phone,
+            class_type=class_item.class_type,
+            class_date=class_item.class_date,
+            start_time=class_item.start_time,
+            instructor_name=class_item.instructor_name,
+            location=class_item.location or "",
+        )
+        # Notify instructor
+        updated = class_repo.get_by_id(class_id)
+        inst = notifier.resolve_instructor_for_class(class_item.instructor_name)
+        if inst:
+            notifier.notify_instructor_student_enrolled(
+                instructor_name=inst["name"],
+                instructor_email=inst["email"],
+                instructor_phone=inst.get("phone"),
+                student_name=student_name,
+                class_type=class_item.class_type,
+                class_date=class_item.class_date,
+                start_time=class_item.start_time,
+                reservations_count=updated.reservations_count,
+                capacity=updated.capacity,
+            )
+            # Notify instructor if class just became full
+            if updated.reservations_count >= updated.capacity:
+                notifier.notify_instructor_class_full(
+                    instructor_name=inst["name"],
+                    instructor_email=inst["email"],
+                    instructor_phone=inst.get("phone"),
+                    class_type=class_item.class_type,
+                    class_date=class_item.class_date,
+                    start_time=class_item.start_time,
+                    capacity=updated.capacity,
+                    waitlist_count=updated.waitlist_count,
+                )
+
         return JSONResponse(
             status_code=201,
             content={
@@ -577,6 +671,18 @@ def create_reservation(
         position = reservation_repo.get_next_waitlist_position(class_id)
         waitlist_item = reservation_repo.add_to_waitlist(data, class_date, position)
         class_repo.increment_waitlist_count(class_id)
+
+        # Notify student about waitlist
+        notifier.notify_waitlist_joined(
+            student_name=student_name,
+            student_email=student.email or "",
+            student_phone=student.phone,
+            class_type=class_item.class_type,
+            class_date=class_item.class_date,
+            start_time=class_item.start_time,
+            position=position,
+        )
+
         return JSONResponse(
             status_code=201,
             content={

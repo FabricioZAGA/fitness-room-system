@@ -11,6 +11,24 @@ interface EditInstructorModalProps {
   instructor: Instructor;
 }
 
+const PHONE_REGEX = /^\+52\d{10}$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/[\s\-().]/g, "");
+  if (/^\d{10}$/.test(digits)) return `+52${digits}`;
+  if (/^52\d{10}$/.test(digits)) return `+${digits}`;
+  return digits.startsWith("+") ? digits : raw;
+}
+
+function formatPhoneDisplay(raw: string): string {
+  const d = raw.replace(/\D/g, "");
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)} ${d.slice(2)}`;
+  if (d.length <= 8) return `${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4)}`;
+  return `${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4, 8)} ${d.slice(8, 12)}`;
+}
+
 const SPECIALTIES = [
   "Zumba", "Yoga", "Spinning", "CrossFit", "Funcional",
   "Boxing", "Pilates", "HIIT", "Aerobics", "Danza",
@@ -58,12 +76,27 @@ export function EditInstructorModal({
     }));
   }
 
+  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>): void {
+    const raw = e.target.value.replace(/[^\d+\s\-().]/g, "");
+    setForm((prev) => ({ ...prev, phone: raw }));
+  }
+
+  const phoneNormalized = form.phone ? normalizePhone(form.phone) : "";
+  const phoneError = form.phone && !PHONE_REGEX.test(phoneNormalized)
+    ? "Formato: 10 d\u00edgitos (ej. 55 1234 5678)"
+    : "";
+  const emailError = form.email && !EMAIL_REGEX.test(form.email)
+    ? "Email inv\u00e1lido"
+    : "";
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
+    if (phoneError || emailError) return;
+    const normalizedPhone = form.phone ? normalizePhone(form.phone) : undefined;
     mutate(
       {
         ...form,
-        phone: form.phone || undefined,
+        phone: normalizedPhone || undefined,
         bio: form.bio || undefined,
       },
       { onSuccess: onClose }
@@ -110,8 +143,9 @@ export function EditInstructorModal({
             value={form.email ?? ""}
             onChange={handleChange}
             required
-            className="w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none"
+            className={`w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none ${emailError ? "border-red-500 focus:border-red-500" : ""}`}
           />
+          {emailError && <p className="mt-1 text-xs text-red-400">{emailError}</p>}
         </div>
 
         <div>
@@ -120,11 +154,19 @@ export function EditInstructorModal({
           </label>
           <input
             name="phone"
-            type="tel"
+            inputMode="tel"
+            maxLength={18}
             value={form.phone ?? ""}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none"
+            onChange={handlePhoneChange}
+            placeholder="55 1234 5678"
+            className={`w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none ${phoneError ? "border-red-500 focus:border-red-500" : ""}`}
           />
+          {phoneError
+            ? <p className="mt-1 text-xs text-red-400">{phoneError}</p>
+            : form.phone
+              ? <p className="mt-1 text-xs text-emerald-400">+52 {formatPhoneDisplay(form.phone.replace(/\D/g, "").replace(/^52/, ""))}</p>
+              : <p className="mt-1 text-xs text-[--tx-disabled]">Se agregará +52 automáticamente</p>
+          }
         </div>
 
         <div>

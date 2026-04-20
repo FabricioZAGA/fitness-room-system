@@ -14,6 +14,8 @@ from src.models.common import MessageResponse, PaginatedResponse
 from src.models.student import StudentCreate, StudentResponse, StudentStatus, StudentUpdate
 from src.services.checkin_service import CheckinService
 from src.services.student_service import StudentService
+from src.services.event_notifier import EventNotifier
+from src.services.notification_service import NotificationService
 from src.utils.auth import get_current_user
 
 router = APIRouter(prefix="/students", tags=["Students"])
@@ -42,7 +44,31 @@ def create_student(
     service: StudentService = Depends(get_service),
 ) -> StudentResponse:
     """Create a new student."""
-    return service.create_student(data)
+    result = service.create_student(data)
+    name = f"{result.first_name} {result.last_name}".strip()
+    notifier = EventNotifier()
+    # Send welcome email with carta responsiva PDF
+    try:
+        notifier.notify_welcome_carta_responsiva(
+            student_name=name,
+            student_email=result.email,
+            student_phone=result.phone,
+        )
+    except Exception:
+        pass
+    # Notify admins about the new student
+    try:
+        notif_svc = NotificationService()
+        admin_emails = notif_svc._get_admin_emails()  # noqa: SLF001
+        if admin_emails:
+            notifier.notify_admin_new_student(
+                student_name=name,
+                student_email=result.email,
+                admin_emails=admin_emails,
+            )
+    except Exception:
+        pass
+    return result
 
 
 @router.get(
