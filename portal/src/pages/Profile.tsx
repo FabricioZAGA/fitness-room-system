@@ -6,20 +6,18 @@ import { Container, Card, PageHeader, LoadingState } from '../components'
 const isDev = import.meta.env.DEV
 
 const mockProfile: Profile = {
-  role: 'staff',
-  instructor_id: 'dev-instructor-123',
-  first_name: 'Carlos',
-  last_name: 'Rodríguez',
-  email: 'carlos.rodriguez@example.com',
-  phone: '+52 55 9876 5432',
+  role: 'student',
+  student_id: 'dev-student-001',
+  first_name: 'Alumno',
+  last_name: 'Demo',
+  email: 'alumno@fitness-room.local',
+  phone: '+52 55 1234 5678',
   status: 'active',
-  specialties: ['Yoga', 'Pilates', 'Spinning'],
-  bio: 'Instructor certificado con 10 años de experiencia en fitness y bienestar.',
-  created_at: '2023-06-15T10:30:00Z',
+  created_at: '2024-01-15T10:30:00Z',
   updated_at: '2024-04-01T15:45:00Z',
 }
 
-export default function Profile() {
+export default function Profile(): React.JSX.Element {
   const navigate = useNavigate()
   
   const { data: profile, isLoading } = useQuery({

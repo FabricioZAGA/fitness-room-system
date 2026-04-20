@@ -1,32 +1,42 @@
 import { useQuery } from '@tanstack/react-query'
 import { portalApi, type Profile, type MembershipResponse } from '../services/api'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { Container, Card, Button, LoadingState } from '../components'
 
 const isDev = import.meta.env.DEV
 
 // Mock data for development
 const mockProfile: Profile = {
-  role: 'staff',
-  instructor_id: 'dev-instructor-123',
-  first_name: 'Carlos',
-  last_name: 'Rodríguez',
-  email: 'carlos.rodriguez@example.com',
-  phone: '+52 55 9876 5432',
+  role: 'student',
+  student_id: 'dev-student-001',
+  first_name: 'Alumno',
+  last_name: 'Demo',
+  email: 'alumno@fitness-room.local',
+  phone: '+52 55 1234 5678',
   status: 'active',
-  specialties: ['Yoga', 'Pilates', 'Spinning'],
-  bio: 'Instructor certificado con 10 años de experiencia en fitness y bienestar.',
-  created_at: '2023-06-15T10:30:00Z',
+  created_at: '2024-01-15T10:30:00Z',
   updated_at: '2024-04-01T15:45:00Z',
 }
 
 const mockMembership: MembershipResponse = {
-  role: 'staff',
-  membership: null,
+  role: 'student',
+  membership: {
+    membership_id: 'mem-dev-001',
+    student_id: 'dev-student-001',
+    membership_type: 'monthly',
+    status: 'active',
+    start_date: '2024-04-01',
+    end_date: '2024-04-30',
+    price_paid: 799,
+    days_until_expiry: 18,
+    classes_remaining: null,
+  },
 }
 
-export default function Dashboard() {
+export default function Dashboard(): React.JSX.Element {
   const navigate = useNavigate()
+  const { logout } = useAuth()
   
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile'],
@@ -123,7 +133,7 @@ export default function Dashboard() {
                   Mis Clases
                 </h3>
                 <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>
-                  Ver tus reservaciones
+                  Inscríbete y administra tus clases
                 </p>
               </div>
               <span style={{ fontSize: '20px', color: '#6366f1' }}>→</span>
@@ -151,12 +161,32 @@ export default function Dashboard() {
                   Mi Perfil
                 </h3>
                 <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>
-                  Editar tu información
+                  Ver tu información
                 </p>
               </div>
               <span style={{ fontSize: '20px', color: '#10b981' }}>→</span>
             </div>
           </Card>
+        </div>
+
+        {/* Logout button */}
+        <div style={{ marginTop: '24px' }}>
+          <button
+            onClick={async () => { await logout(); navigate('/login') }}
+            style={{
+              width: '100%',
+              padding: '14px',
+              borderRadius: '16px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(17, 24, 39, 0.6)',
+              color: 'rgba(255,255,255,0.5)',
+              fontSize: '14px',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Cerrar sesión
+          </button>
         </div>
 
         {isStudent && membershipData && (

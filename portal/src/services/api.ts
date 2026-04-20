@@ -72,19 +72,59 @@ export interface Reservation {
   class_date: string
   status: string
   created_at: string
+  class_type?: string
+  start_time?: string
+  instructor_name?: string
+  location?: string
+  can_cancel?: boolean
+  cancel_reason?: string
 }
 
 export interface StaffClass {
   class_id: string
   class_name: string
   class_date: string
+  start_time?: string
   instructor_id: string
+  instructor_name?: string
+  location?: string
+  capacity?: number
+  reservations_count?: number
   status: string
 }
 
 export interface ReservationsResponse {
   role: 'student' | 'staff'
   items: Reservation[] | StaffClass[]
+}
+
+export interface UpcomingClass {
+  class_id: string
+  class_type: string
+  class_date: string
+  start_time: string
+  duration_minutes: number
+  instructor_name: string
+  location: string
+  capacity: number
+  reservations_count: number
+  waitlist_count: number
+  available_spots: number
+  is_full: boolean
+  description?: string
+  my_status: 'confirmed' | 'waitlisted' | null
+  my_reservation_id: string | null
+}
+
+export interface UpcomingClassesResponse {
+  items: UpcomingClass[]
+}
+
+export interface EnrollmentResponse {
+  message: string
+  status: 'confirmed' | 'waitlisted'
+  reservation_id: string
+  waitlist_position?: number
 }
 
 export interface Checkin {
@@ -102,9 +142,18 @@ export const portalApi = {
   // Membership
   getMembership: () => apiClient.get<MembershipResponse>('/api/v1/portal/membership'),
   
+  // Upcoming Classes
+  getUpcomingClasses: (days: number = 7) => apiClient.get<UpcomingClassesResponse>(`/api/v1/portal/classes?days=${days}`),
+  
   // Reservations
-  getReservations: () => apiClient.get<ReservationsResponse>('/api/v1/portal/reservations'),
-  cancelReservation: (id: string) => apiClient.delete<MessageResponse>(`/api/v1/portal/reservations/${id}`),
+  getReservations: (statusFilter?: string) => {
+    const params = statusFilter ? `?status=${statusFilter}` : ''
+    return apiClient.get<ReservationsResponse>(`/api/v1/portal/reservations${params}`)
+  },
+  cancelReservation: (classId: string) => apiClient.delete<MessageResponse>(`/api/v1/portal/reservations/${classId}`),
+  
+  // Enrollment (self-service)
+  enrollInClass: (classId: string) => apiClient.post<EnrollmentResponse>(`/api/v1/portal/reservations?class_id=${classId}`),
   
   // Check-ins
   getCheckins: (limit: number = 30) => apiClient.get<Checkin[]>(`/api/v1/portal/checkins?limit=${limit}`),
