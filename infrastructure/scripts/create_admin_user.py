@@ -23,7 +23,7 @@ from botocore.exceptions import ClientError
 AWS_REGION = "us-west-2"
 USER_POOL_ID = "us-west-2_nErXzvgfc"
 ADMIN_GROUP = "admin"
-SENDER_EMAIL = "noreply@fitness-room.mx"
+SENDER_EMAIL = "devzaga@gmail.com"
 SENDER_NAME = "Fitness Room"
 ADMIN_FRONTEND_URL = "https://d3awxegxyh5p20.cloudfront.net"
 
