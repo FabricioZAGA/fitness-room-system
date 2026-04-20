@@ -106,16 +106,19 @@ class ApiStack(cdk.Stack):
                 "../../backend",
                 bundling=cdk.BundlingOptions(
                     image=lambda_.Runtime.PYTHON_3_12.bundling_image,
+                    platform="linux/amd64",
                     command=[
                         "bash",
                         "-c",
-                        "pip install -r requirements.txt -t /asset-output/python && "
+                        "pip install -r requirements.txt "
+                        "-t /asset-output/python && "
                         "find /asset-output -name '*.pyc' -delete && "
                         "find /asset-output -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true",
                     ],
                 ),
             ),
             compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
+            compatible_architectures=[lambda_.Architecture.X86_64],
             description="Fitness Room Python dependencies",
         )
 
@@ -125,17 +128,19 @@ class ApiStack(cdk.Stack):
             function_name=f"fitness-room-api-{env_name}",
             runtime=lambda_.Runtime.PYTHON_3_12,
             code=lambda_.Code.from_asset(
-                "../../backend/src",
+                "../../backend",
                 bundling=cdk.BundlingOptions(
                     image=lambda_.Runtime.PYTHON_3_12.bundling_image,
                     command=[
                         "bash",
                         "-c",
-                        "cp -r . /asset-output/",
+                        "cp -r src /asset-output/src && "
+                        "cp src/main.py /asset-output/main.py",
                     ],
                 ),
             ),
             handler="main.handler",
+            architecture=lambda_.Architecture.X86_64,
             role=lambda_role,
             layers=[dependencies_layer],
             timeout=cdk.Duration.seconds(30),
