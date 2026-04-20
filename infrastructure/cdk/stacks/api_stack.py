@@ -34,6 +34,7 @@ class ApiStack(cdk.Stack):
         env_name: str,
         table: dynamodb.Table,
         user_pool: cognito.UserPool,
+        user_pool_client_id: str = "",
         frontend_url: str = "http://localhost:5173",
         portal_url: str = "http://localhost:3001",
         sender_email: str = "noreply@fitness-room.mx",
@@ -162,10 +163,11 @@ class ApiStack(cdk.Stack):
             log_retention=logs.RetentionDays.ONE_MONTH if env_name == "prod" else logs.RetentionDays.ONE_WEEK,
         )
 
+        _audience = user_pool_client_id if user_pool_client_id else user_pool.user_pool_id
         jwt_authorizer = apigwv2_authorizers.HttpJwtAuthorizer(
             "CognitoAuthorizer",
             jwt_issuer=f"https://cognito-idp.{self.region}.amazonaws.com/{user_pool.user_pool_id}",
-            jwt_audience=[user_pool.user_pool_id],
+            jwt_audience=[_audience],
             identity_source=["$request.header.Authorization"],
         )
 
@@ -200,12 +202,19 @@ class ApiStack(cdk.Stack):
             integration=lambda_integration,
         )
 
-        self.http_api.add_routes(
-            path="/{proxy+}",
-            methods=[apigwv2.HttpMethod.ANY],
-            integration=lambda_integration,
-            authorizer=jwt_authorizer,
-        )
+        for method in [
+            apigwv2.HttpMethod.GET,
+            apigwv2.HttpMethod.POST,
+            apigwv2.HttpMethod.PUT,
+            apigwv2.HttpMethod.PATCH,
+            apigwv2.HttpMethod.DELETE,
+        ]:
+            self.http_api.add_routes(
+                path="/{proxy+}",
+                methods=[method],
+                integration=lambda_integration,
+                authorizer=jwt_authorizer,
+            )
 
         # ── SES email identity ─────────────────────────────────────────────────
         # Verifies the sender email address with SES.

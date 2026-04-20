@@ -108,6 +108,7 @@ api_stack = ApiStack(
     env_name=ENV_NAME,
     table=database_stack.table,
     user_pool=auth_stack.user_pool,
+    user_pool_client_id=auth_stack.user_pool_client.user_pool_client_id,
     frontend_url=_frontend_url,
     portal_url=_portal_url,
     sender_email=sender_email,

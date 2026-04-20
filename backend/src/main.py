@@ -85,7 +85,9 @@ _cors_origins = (
     if settings.is_local
     else [
         settings.frontend_url,
+        settings.portal_url,
         "http://localhost:5173",
+        "http://localhost:3001",
     ]
 )
 app.add_middleware(

@@ -39,6 +39,10 @@ class Settings(BaseSettings):
         default="http://localhost:5173",
         description="Frontend URL for CORS allowed origins",
     )
+    portal_url: str = Field(
+        default="http://localhost:3001",
+        description="Portal URL for CORS allowed origins",
+    )
 
     powertools_service_name: str = Field(
         default="fitness-room-api", description="Lambda Powertools service name"
