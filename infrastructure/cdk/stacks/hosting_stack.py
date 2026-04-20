@@ -23,11 +23,15 @@ class HostingStack(cdk.Stack):
         scope: Construct,
         construct_id: str,
         env_name: str,
+        domain: str = "",
+        subdomain: str = "app",
         **kwargs: object,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         self.env_name = env_name
+        self.domain = domain
+        self.subdomain = subdomain
         is_prod = env_name == "prod"
 
         self.frontend_bucket = s3.Bucket(

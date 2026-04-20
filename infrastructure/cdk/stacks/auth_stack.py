@@ -23,11 +23,17 @@ class AuthStack(cdk.Stack):
         scope: Construct,
         construct_id: str,
         env_name: str,
+        domain: str = "",
+        admin_subdomain: str = "app",
+        portal_subdomain: str = "portal",
         **kwargs: object,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         self.env_name = env_name
+        self.domain = domain
+        self.admin_subdomain = admin_subdomain
+        self.portal_subdomain = portal_subdomain
         is_prod = env_name == "prod"
 
         self.user_pool = cognito.UserPool(
@@ -147,12 +153,9 @@ class AuthStack(cdk.Stack):
             "http://localhost:5173/auth/callback",
             "http://localhost:3001/auth/callback",
         ]
-        if env_name == "prod":
-            urls.append("https://app.fitnessroom.com/auth/callback")
-            urls.append("https://portal.fitnessroom.com/auth/callback")
-        elif env_name == "staging":
-            urls.append("https://staging.fitnessroom.com/auth/callback")
-            urls.append("https://staging-portal.fitnessroom.com/auth/callback")
+        if self.domain:
+            urls.append(f"https://{self.admin_subdomain}.{self.domain}/auth/callback")
+            urls.append(f"https://{self.portal_subdomain}.{self.domain}/auth/callback")
         return urls
 
     def _get_logout_urls(self, env_name: str) -> list[str]:
@@ -161,10 +164,7 @@ class AuthStack(cdk.Stack):
             "http://localhost:5173/auth/logout",
             "http://localhost:3001/auth/logout",
         ]
-        if env_name == "prod":
-            urls.append("https://app.fitnessroom.com/auth/logout")
-            urls.append("https://portal.fitnessroom.com/auth/logout")
-        elif env_name == "staging":
-            urls.append("https://staging.fitnessroom.com/auth/logout")
-            urls.append("https://staging-portal.fitnessroom.com/auth/logout")
+        if self.domain:
+            urls.append(f"https://{self.admin_subdomain}.{self.domain}/auth/logout")
+            urls.append(f"https://{self.portal_subdomain}.{self.domain}/auth/logout")
         return urls

@@ -1,14 +1,17 @@
-.PHONY: help install dev dev-backend dev-frontend dev-portal test lint format deploy deploy-infra deploy-backend deploy-frontend deploy-portal clean
+.PHONY: help install dev dev-backend dev-frontend dev-portal test lint format deploy deploy-infra deploy-backend deploy-frontend deploy-portal clean release tag version
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 AWS_PROFILE     ?= salle-cajas
 AWS_ACCOUNT_ID  ?= 948999370306
 AWS_REGION      ?= us-east-1
-ENV             ?= dev
+ENV             ?= prod
 BACKEND_DIR     := backend
 FRONTEND_DIR    := frontend
 PORTAL_DIR      := portal
 INFRA_DIR       := infrastructure/cdk
+SOURCE_BUCKET   := fitness-room-pipeline-source-$(AWS_ACCOUNT_ID)
+SOURCE_KEY      := fitness-room-source.zip
+VERSION         := $(shell cat VERSION 2>/dev/null || echo "0.0.0")
 
 # ── Help ───────────────────────────────────────────────────────────────────────
 help:
@@ -25,12 +28,17 @@ help:
 	@echo "  test-frontend     Run frontend tests (vitest)"
 	@echo "  lint              Lint backend + frontend"
 	@echo "  format            Format backend + frontend code"
-	@echo "  deploy ENV=dev    Deploy everything to AWS (infra + backend + frontend)"
+	@echo "  deploy            Deploy everything to AWS (infra + backend + frontend)"
 	@echo "  deploy-infra      Deploy CDK infrastructure stacks"
 	@echo "  deploy-backend    Deploy Lambda functions"
 	@echo "  deploy-frontend   Deploy frontend to S3 + CloudFront invalidation"
 	@echo "  deploy-portal     Deploy student portal to S3 + CloudFront invalidation"
 	@echo "  clean             Remove all build artifacts"
+	@echo ""
+	@echo "  ── Release / CI/CD ──────────────────────────────────────"
+	@echo "  tag VERSION=x.y.z Create git tag and update VERSION file"
+	@echo "  release           Package repo + upload to S3 → triggers CodePipeline"
+	@echo "  version           Show current version"
 	@echo ""
 
 # ── Install ────────────────────────────────────────────────────────────────────
@@ -203,3 +211,25 @@ status:
 
 log:
 	git log --oneline -20
+
+# ── Release / CI/CD ──────────────────────────────────────────────────────────
+
+version:
+	@echo "Current version: $(VERSION)"
+
+tag:
+	@if [ -z "$(V)" ]; then echo "Usage: make tag V=1.2.3"; exit 1; fi
+	@echo "$(V)" > VERSION
+	git add VERSION
+	git commit -m "chore: bump version to $(V)"
+	git tag -a "v$(V)" -m "Release v$(V)"
+	@echo "✅ Tagged v$(V) — run 'make release' to deploy"
+
+release:
+	@echo "📦 Packaging version $(VERSION)..."
+	@echo "$(VERSION)" > VERSION
+	git archive --format=zip --prefix=fitness-room/ -o /tmp/$(SOURCE_KEY) HEAD
+	@echo "📤 Uploading to s3://$(SOURCE_BUCKET)/$(SOURCE_KEY)..."
+	AWS_PROFILE=$(AWS_PROFILE) aws s3 cp /tmp/$(SOURCE_KEY) s3://$(SOURCE_BUCKET)/$(SOURCE_KEY)
+	@echo "✅ Release $(VERSION) uploaded — CodePipeline will start automatically"
+	@echo "   View pipeline: https://$(AWS_REGION).console.aws.amazon.com/codesuite/codepipeline/pipelines/fitness-room-$(ENV)/view"

@@ -12,6 +12,13 @@
     ]
   },
   "context": {
+    "domain": "",
+    "adminSubdomain": "app",
+    "portalSubdomain": "portal",
+    "apiSubdomain": "api",
+    "senderEmail": "noreply@fitness-room.mx",
+    "senderName": "Fitness Room",
+    "projectName": "fitness-room",
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
     "@aws-cdk/core:checkSecretUsage": true,
     "@aws-cdk/core:target-partitions": ["aws"],

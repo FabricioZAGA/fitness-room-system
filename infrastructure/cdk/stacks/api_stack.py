@@ -35,6 +35,7 @@ class ApiStack(cdk.Stack):
         table: dynamodb.Table,
         user_pool: cognito.UserPool,
         frontend_url: str = "http://localhost:5173",
+        portal_url: str = "http://localhost:3001",
         sender_email: str = "noreply@fitness-room.mx",
         sender_name: str = "Fitness Room",
         **kwargs: object,
@@ -42,6 +43,8 @@ class ApiStack(cdk.Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         self.env_name = env_name
+        self.frontend_url = frontend_url
+        self.portal_url = portal_url
 
         lambda_role = iam.Role(
             self,
@@ -66,6 +69,32 @@ class ApiStack(cdk.Stack):
                 effect=iam.Effect.ALLOW,
                 actions=["ses:SendEmail", "ses:SendRawEmail"],
                 resources=["*"],
+            )
+        )
+
+        # SNS — allow the Lambda to send SMS
+        lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="AllowSNSSendSMS",
+                effect=iam.Effect.ALLOW,
+                actions=["sns:Publish"],
+                resources=["*"],
+            )
+        )
+
+        # Cognito — allow listing users (for admin email retrieval)
+        lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="AllowCognitoListUsers",
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "cognito-idp:ListUsers",
+                    "cognito-idp:ListUsersInGroup",
+                    "cognito-idp:AdminCreateUser",
+                    "cognito-idp:AdminAddUserToGroup",
+                    "cognito-idp:AdminSetUserPassword",
+                ],
+                resources=[user_pool.user_pool_arn],
             )
         )
 
@@ -120,6 +149,7 @@ class ApiStack(cdk.Stack):
                 "POWERTOOLS_METRICS_NAMESPACE": "FitnessRoom",
                 "POWERTOOLS_LOG_LEVEL": "INFO" if env_name == "prod" else "DEBUG",
                 "FRONTEND_URL": frontend_url,
+                "PORTAL_URL": portal_url,
                 "SES_SENDER_EMAIL": sender_email,
                 "SES_SENDER_NAME": sender_name,
             },
@@ -239,10 +269,8 @@ class ApiStack(cdk.Stack):
             "http://localhost:3000",   # landing (Next.js)
             "http://localhost:3001",   # portal (Vite)
         ]
-        if env_name == "prod":
-            origins.append("https://app.fitnessroom.com")
-            origins.append("https://portal.fitnessroom.com")
-        elif env_name == "staging":
-            origins.append("https://staging.fitnessroom.com")
-            origins.append("https://portal-staging.fitnessroom.com")
+        if self.frontend_url and self.frontend_url.startswith("https"):
+            origins.append(self.frontend_url)
+        if self.portal_url and self.portal_url.startswith("https"):
+            origins.append(self.portal_url)
         return origins

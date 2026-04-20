@@ -1,0 +1,74 @@
+version: 0.2
+
+# Frontend build: build admin + portal SPAs, sync to S3, invalidate CloudFront.
+# Environment variables (injected by CodeBuild):
+#   ENV_NAME, FRONTEND_BUCKET, PORTAL_BUCKET,
+#   FRONTEND_DISTRIBUTION_ID, PORTAL_DISTRIBUTION_ID
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+      - echo "=== Installing frontend dependencies ==="
+      - cd frontend && npm ci && cd ..
+      - echo "=== Installing portal dependencies ==="
+      - cd portal && npm ci && cd ..
+
+  pre_build:
+    commands:
+      - export APP_VERSION=$(cat VERSION 2>/dev/null || echo "0.0.0")
+      - echo "Building frontend version $APP_VERSION"
+      # Fetch Cognito outputs from CloudFormation for frontend env vars
+      - |
+        export VITE_COGNITO_USER_POOL_ID=$(aws cloudformation describe-stacks \
+          --stack-name FitnessRoomAuthStack-${ENV_NAME} \
+          --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" \
+          --output text)
+      - |
+        export VITE_COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks \
+          --stack-name FitnessRoomAuthStack-${ENV_NAME} \
+          --query "Stacks[0].Outputs[?OutputKey=='UserPoolClientId'].OutputValue" \
+          --output text)
+      - |
+        export VITE_API_BASE_URL=$(aws cloudformation describe-stacks \
+          --stack-name FitnessRoomApiStack-${ENV_NAME} \
+          --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
+          --output text)
+      - export VITE_APP_VERSION=$APP_VERSION
+      - export VITE_APP_ENV=$ENV_NAME
+      - export VITE_AWS_REGION=us-east-1
+      - export VITE_APP_NAME="Fitness Room"
+      - echo "API URL  = $VITE_API_BASE_URL"
+      - echo "Pool ID  = $VITE_COGNITO_USER_POOL_ID"
+      - echo "Client   = $VITE_COGNITO_CLIENT_ID"
+      - echo "Version  = $VITE_APP_VERSION"
+
+  build:
+    commands:
+      # Build admin frontend
+      - echo "=== Building admin frontend ==="
+      - cd frontend
+      - npm run build
+      - cd ..
+      # Build student portal
+      - echo "=== Building student portal ==="
+      - cd portal
+      - npm run build
+      - cd ..
+
+  post_build:
+    commands:
+      # Sync admin frontend to S3
+      - echo "=== Deploying admin frontend to S3 ==="
+      - aws s3 sync frontend/dist/ s3://${FRONTEND_BUCKET}/ --delete --cache-control "public, max-age=31536000, immutable" --exclude "index.html" --exclude "*.json"
+      - aws s3 cp frontend/dist/index.html s3://${FRONTEND_BUCKET}/index.html --cache-control "no-cache, no-store, must-revalidate"
+      # Sync portal to S3
+      - echo "=== Deploying portal to S3 ==="
+      - aws s3 sync portal/dist/ s3://${PORTAL_BUCKET}/ --delete --cache-control "public, max-age=31536000, immutable" --exclude "index.html" --exclude "*.json"
+      - aws s3 cp portal/dist/index.html s3://${PORTAL_BUCKET}/index.html --cache-control "no-cache, no-store, must-revalidate"
+      # Invalidate CloudFront caches
+      - echo "=== Invalidating CloudFront ==="
+      - aws cloudfront create-invalidation --distribution-id ${FRONTEND_DISTRIBUTION_ID} --paths "/*"
+      - aws cloudfront create-invalidation --distribution-id ${PORTAL_DISTRIBUTION_ID} --paths "/*"
+      - echo "Frontend deploy complete — version $APP_VERSION"

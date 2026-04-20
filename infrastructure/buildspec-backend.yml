@@ -1,0 +1,37 @@
+version: 0.2
+
+# Backend build: package Lambda code + dependencies layer, deploy via CDK.
+# Environment variables (injected by CodeBuild):
+#   ENV_NAME, AWS_ACCOUNT_ID, LAMBDA_FUNCTION_NAME
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+      nodejs: 22
+    commands:
+      - echo "=== Installing CDK CLI ==="
+      - npm install -g aws-cdk
+      - echo "=== Installing CDK Python deps ==="
+      - pip install -r infrastructure/cdk/requirements.txt
+      - echo "=== Installing backend deps ==="
+      - pip install -r backend/requirements.txt
+
+  pre_build:
+    commands:
+      - echo "=== Reading version from VERSION file ==="
+      - export APP_VERSION=$(cat VERSION 2>/dev/null || echo "0.0.0")
+      - echo "Building version $APP_VERSION"
+
+  build:
+    commands:
+      - echo "=== CDK Deploy — all infrastructure stacks ==="
+      - cd infrastructure/cdk
+      - cdk deploy --all --require-approval never --ci
+      - cd ../..
+      - echo "=== Backend deploy complete ==="
+
+  post_build:
+    commands:
+      - echo "Backend build completed at $(date)"
+      - echo "Version $APP_VERSION deployed"

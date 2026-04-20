@@ -5,8 +5,10 @@ description: Deploy the Fitness Room System to AWS (infrastructure, backend, or 
 ## Deploy Fitness Room System to AWS
 
 Always use AWS profile `salle-cajas` and account `948999370306`.
+Production-only deployment — no dev/staging environments.
 
 ### 1. Verify AWS credentials
+
 // turbo
 Run this to confirm the correct profile is active:
 ```bash
@@ -14,52 +16,51 @@ aws sts get-caller-identity --profile salle-cajas
 ```
 Expected: `Account: 948999370306`
 
-### 2. Choose what to deploy
+### 2. First-time bootstrap (run only once)
 
-For full deployment (all stacks):
 ```bash
-make deploy ENV=dev
+AWS_PROFILE=salle-cajas npx aws-cdk bootstrap aws://948999370306/us-east-1
 ```
 
-For infrastructure only (CDK stacks):
+### 3. Deploy all infrastructure (first time or manual)
+
 ```bash
-make deploy-infra ENV=dev
+cd infrastructure/cdk
+AWS_PROFILE=salle-cajas npx aws-cdk deploy --all --require-approval broadening
 ```
 
-For backend only (Lambda):
+### 4. Release via pipeline (normal workflow)
+
+Tag a version and release:
 ```bash
-make deploy-backend ENV=dev
+make tag V=1.2.3
+make release
 ```
 
-For frontend only (S3 + CloudFront):
-```bash
-make deploy-frontend ENV=dev
-```
+Then approve the deployment in the AWS CodePipeline console.
 
-### 3. First-time bootstrap (run only once per account/region)
-```bash
-make bootstrap
-```
-
-### 4. Verify deployment
+### 5. Verify deployment
 
 // turbo
 Check stacks are deployed:
 ```bash
-aws cloudformation list-stacks --profile salle-cajas --query "StackSummaries[?contains(StackName, 'FitnessRoom') && StackStatus=='CREATE_COMPLETE' || StackStatus=='UPDATE_COMPLETE'].{Name:StackName,Status:StackStatus}" --output table
+aws cloudformation list-stacks --profile salle-cajas --query "StackSummaries[?contains(StackName, 'FitnessRoom') && StackStatus!='DELETE_COMPLETE'].{Name:StackName,Status:StackStatus}" --output table
 ```
 
-### 5. Get API URL after deploy
+### 6. Get API URL after deploy
+
 ```bash
 aws cloudformation describe-stacks \
-  --stack-name FitnessRoomApiStack-dev \
+  --stack-name FitnessRoomApiStack-prod \
   --profile salle-cajas \
   --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
   --output text
 ```
 
 ### Notes
-- ENV can be `dev`, `staging`, or `prod`
-- Production deployments require explicit confirmation
-- DynamoDB tables use RETAIN in prod — data is NOT deleted on stack destroy
-- Always run `make lint` and `make test` before deploying to prod
+
+- Only production environment exists — saves ~66% on AWS costs
+- DynamoDB tables use RETAIN — data is NOT deleted on stack destroy
+- Always run `make lint` and `make test` before releasing
+- Pipeline has a manual approval step before build/deploy
+- All config is in `infrastructure/cdk/cdk.json` context
