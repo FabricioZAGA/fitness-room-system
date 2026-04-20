@@ -116,10 +116,36 @@ class ClassService:
     def cancel_class(self, class_id: str) -> ClassResponse:
         """Mark a class session as cancelled.
 
-        Note: This does NOT automatically notify students.
-        Notification is handled by the Communication module (Phase 2).
+        Also cancels all confirmed reservations and removes all waitlist entries
+        so DynamoDB stays consistent.
         """
         logger.info("Cancelling class", extra={"class_id": class_id})
+
+        # Cancel all confirmed reservations
+        from src.repositories.reservation_repository import ReservationRepository
+        res_repo = ReservationRepository()
+        reservations, _ = res_repo.list_for_class(class_id, limit=500)
+        for r in reservations:
+            if r.status in ("confirmed", "waitlisted"):
+                try:
+                    res_repo.cancel_reservation(class_id, r.student_id)
+                except Exception:
+                    logger.warning(
+                        "Failed to cancel reservation during class cancel",
+                        extra={"class_id": class_id, "student_id": r.student_id},
+                    )
+
+        # Remove waitlist entries
+        waitlist, _ = res_repo.get_waitlist_for_class(class_id, limit=500)
+        for w in waitlist:
+            try:
+                res_repo.remove_from_waitlist(class_id, w.student_id, w.position)
+            except Exception:
+                logger.warning(
+                    "Failed to remove waitlist entry during class cancel",
+                    extra={"class_id": class_id, "student_id": w.student_id},
+                )
+
         item = self._repo.update(class_id, ClassUpdate(is_cancelled=True))
         return item.to_response()
 

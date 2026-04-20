@@ -192,7 +192,7 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
   const today = new Date().toISOString().slice(0, 10);
 
   const todayReservations = (reservationsData?.items ?? []).filter(
-    (r) => r.class_date === today && (r.status === "confirmed" || r.status === "waitlisted")
+    (r) => r.class_date === today && r.status === "confirmed"
   );
 
   const classMap = Object.fromEntries(

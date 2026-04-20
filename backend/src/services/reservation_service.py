@@ -61,10 +61,15 @@ class ReservationService:
             raise_bad_request(f"Class '{data.class_id}' has been cancelled.")
 
         existing = self._reservation_repo.get_reservation(data.class_id, data.student_id)
-        if existing:
+        if existing and existing.status in ("confirmed", "waitlisted"):
             raise_conflict(
                 f"Student '{data.student_id}' already has a reservation "
                 f"for class '{data.class_id}'."
+            )
+        # If a cancelled/attended/no_show record exists, delete it first so we can create fresh
+        if existing and existing.status not in ("confirmed", "waitlisted"):
+            self._reservation_repo.delete_item(
+                f"CLASS#{data.class_id}", f"RESERVATION#{data.student_id}"
             )
 
         class_date = class_item.class_date
@@ -84,7 +89,9 @@ class ReservationService:
         logger.info("Added to waitlist", extra={"position": position})
         return waitlist_item.to_response()
 
-    def cancel_reservation(self, class_id: str, student_id: str) -> ReservationResponse:
+    def cancel_reservation(
+        self, class_id: str, student_id: str
+    ) -> tuple[ReservationResponse, str | None]:
         """Cancel a confirmed reservation and promote first waitlisted student.
 
         Args:
@@ -92,7 +99,7 @@ class ReservationService:
             student_id: The student's ID.
 
         Returns:
-            The cancelled reservation.
+            Tuple of (cancelled reservation, promoted_student_id or None).
         """
         logger.info(
             "Cancelling reservation",
@@ -108,17 +115,19 @@ class ReservationService:
         cancelled = self._reservation_repo.cancel_reservation(class_id, student_id)
         self._class_repo.decrement_reservations_count(class_id)
 
+        promoted_student_id: str | None = None
         class_item = self._class_repo.get_by_id(class_id)
         promoted = self._reservation_repo.promote_from_waitlist(class_id, class_item.class_date)
         if promoted:
             self._class_repo.increment_reservations_count(class_id)
             self._class_repo.decrement_waitlist_count(class_id)
+            promoted_student_id = promoted.student_id
             logger.info(
                 "Promoted from waitlist",
                 extra={"promoted_student_id": promoted.student_id},
             )
 
-        return cancelled.to_response()
+        return cancelled.to_response(), promoted_student_id
 
     def list_reservations_for_class(
         self,
@@ -154,6 +163,9 @@ class ReservationService:
     ) -> ReservationResponse:
         """Mark a student as attended or no-show for a class session.
 
+        Only confirmed reservations can be marked. Waitlisted, cancelled, or
+        already-marked reservations are rejected.
+
         If attended=True and the student has a class-pack membership,
         decrements classes_remaining atomically.
 
@@ -169,6 +181,18 @@ class ReservationService:
             "Marking attendance",
             extra={"student_id": student_id, "class_id": class_id, "attended": attended},
         )
+
+        existing = self._reservation_repo.get_reservation(class_id, student_id)
+        if existing is None:
+            raise_bad_request(
+                f"No reservation found for student '{student_id}' in class '{class_id}'."
+            )
+        if existing.status != "confirmed":
+            raise_bad_request(
+                f"Cannot mark attendance for reservation with status '{existing.status}'. "
+                f"Only confirmed reservations can be marked."
+            )
+
         item = self._reservation_repo.mark_attendance(class_id, student_id, attended)
 
         # Decrement class pack counter if student attended

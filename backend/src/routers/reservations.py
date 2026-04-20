@@ -176,14 +176,14 @@ def cancel_reservation(
     service: ReservationService = Depends(get_service),
 ) -> ReservationResponse:
     """Cancel a reservation."""
-    result = service.cancel_reservation(class_id, student_id)
+    result, promoted_student_id = service.cancel_reservation(class_id, student_id)
     # Send notifications
     try:
         notifier = EventNotifier()
         stu_repo = StudentRepository()
         cls_repo = ClassRepository()
-        s_item = stu_repo.get_item(f"STUDENT#{student_id}", "PROFILE")
         cls = cls_repo.get_by_id(class_id)
+        s_item = stu_repo.get_item(f"STUDENT#{student_id}", "PROFILE")
         if s_item and s_item.get("email"):
             sname = f"{s_item.get('first_name', '')} {s_item.get('last_name', '')}".strip()
             notifier.notify_reservation_cancelled(
@@ -194,20 +194,36 @@ def cancel_reservation(
                 class_date=cls.class_date,
                 start_time=cls.start_time,
             )
-            # Notify instructor
-            inst = notifier.resolve_instructor_for_class(cls.instructor_name)
-            if inst:
-                updated = cls_repo.get_by_id(class_id)
-                notifier.notify_instructor_student_cancelled(
-                    instructor_name=inst["name"],
-                    instructor_email=inst["email"],
-                    instructor_phone=inst.get("phone"),
-                    student_name=sname,
+        # Notify instructor with current counts
+        inst = notifier.resolve_instructor_for_class(cls.instructor_name)
+        updated = cls_repo.get_by_id(class_id)
+        if inst:
+            sname = ""
+            if s_item:
+                sname = f"{s_item.get('first_name', '')} {s_item.get('last_name', '')}".strip()
+            notifier.notify_instructor_student_cancelled(
+                instructor_name=inst["name"],
+                instructor_email=inst["email"],
+                instructor_phone=inst.get("phone"),
+                student_name=sname or "Alumno",
+                class_type=cls.class_type,
+                class_date=cls.class_date,
+                start_time=cls.start_time,
+                reservations_count=updated.reservations_count,
+                capacity=updated.capacity,
+            )
+        # Notify promoted student from waitlist
+        if promoted_student_id:
+            p_item = stu_repo.get_item(f"STUDENT#{promoted_student_id}", "PROFILE")
+            if p_item and p_item.get("email"):
+                pname = f"{p_item.get('first_name', '')} {p_item.get('last_name', '')}".strip()
+                notifier.notify_waitlist_promoted(
+                    student_name=pname,
+                    student_email=p_item["email"],
+                    student_phone=p_item.get("phone"),
                     class_type=cls.class_type,
                     class_date=cls.class_date,
                     start_time=cls.start_time,
-                    reservations_count=updated.reservations_count,
-                    capacity=updated.capacity,
                 )
     except Exception:
         pass

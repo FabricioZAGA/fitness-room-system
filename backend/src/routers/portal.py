@@ -413,7 +413,14 @@ def cancel_reservation(
         except ResourceNotFoundException:
             pass  # Allow cancellation if class not found (edge case)
 
-        reservation_repo.cancel_reservation(class_id, student_id)
+        # Use ReservationService for consistent cancel + waitlist promotion
+        from src.services.reservation_service import ReservationService
+        svc = ReservationService(
+            reservation_repo=reservation_repo,
+            class_repo=class_repo,
+            student_repo=student_repo,
+        )
+        _, promoted_student_id = svc.cancel_reservation(class_id, student_id)
 
         student_name = f"{student.first_name} {student.last_name}".strip()
         notifier = EventNotifier()
@@ -429,7 +436,7 @@ def cancel_reservation(
                 class_date=ci.class_date,
                 start_time=ci.start_time,
             )
-            # Notify instructor about cancellation
+            # Notify instructor about cancellation (counts already updated by service)
             inst = notifier.resolve_instructor_for_class(ci.instructor_name)
             if inst:
                 updated = class_repo.get_by_id(class_id)
@@ -441,38 +448,24 @@ def cancel_reservation(
                     class_type=ci.class_type,
                     class_date=ci.class_date,
                     start_time=ci.start_time,
-                    reservations_count=max(0, updated.reservations_count - 1),
+                    reservations_count=updated.reservations_count,
                     capacity=updated.capacity,
                 )
-        except ResourceNotFoundException:
-            pass
-
-        # Promote from waitlist
-        try:
-            class_item = class_repo.get_by_id(class_id)
-            class_repo.decrement_reservations_count(class_id)
-            promoted = reservation_repo.promote_from_waitlist(class_id, class_item.class_date)
-            if promoted:
-                class_repo.increment_reservations_count(class_id)
-                class_repo.decrement_waitlist_count(class_id)
-                # Notify promoted student
-                try:
-                    promoted_sid = promoted.student_id
-                    promoted_item = student_repo.get_item(
-                        f"STUDENT#{promoted_sid}", "PROFILE"
+            # Notify promoted student from waitlist
+            if promoted_student_id:
+                promoted_item = student_repo.get_item(
+                    f"STUDENT#{promoted_student_id}", "PROFILE"
+                )
+                if promoted_item and promoted_item.get("email"):
+                    pname = f"{promoted_item.get('first_name', '')} {promoted_item.get('last_name', '')}".strip()
+                    notifier.notify_waitlist_promoted(
+                        student_name=pname,
+                        student_email=promoted_item["email"],
+                        student_phone=promoted_item.get("phone"),
+                        class_type=ci.class_type,
+                        class_date=ci.class_date,
+                        start_time=ci.start_time,
                     )
-                    if promoted_item and promoted_item.get("email"):
-                        pname = f"{promoted_item.get('first_name', '')} {promoted_item.get('last_name', '')}".strip()
-                        notifier.notify_waitlist_promoted(
-                            student_name=pname,
-                            student_email=promoted_item["email"],
-                            student_phone=promoted_item.get("phone"),
-                            class_type=class_item.class_type,
-                            class_date=class_item.class_date,
-                            start_time=class_item.start_time,
-                        )
-                except Exception:
-                    pass
         except ResourceNotFoundException:
             pass
 
