@@ -234,9 +234,15 @@ class ApiStack(cdk.Stack):
 
     def _get_allowed_origins(self, env_name: str) -> list[str]:
         """Return CORS allowed origins per environment."""
-        origins = ["http://localhost:5173", "http://localhost:3000"]
+        origins = [
+            "http://localhost:5173",   # frontend admin (Vite)
+            "http://localhost:3000",   # landing (Next.js)
+            "http://localhost:3001",   # portal (Vite)
+        ]
         if env_name == "prod":
             origins.append("https://app.fitnessroom.com")
+            origins.append("https://portal.fitnessroom.com")
         elif env_name == "staging":
             origins.append("https://staging.fitnessroom.com")
+            origins.append("https://portal-staging.fitnessroom.com")
         return origins

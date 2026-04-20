@@ -85,6 +85,9 @@ skip_empty = true
 show_missing = true
 fail_under = 80
 
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
