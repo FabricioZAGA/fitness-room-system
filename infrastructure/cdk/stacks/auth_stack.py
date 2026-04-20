@@ -24,8 +24,10 @@ class AuthStack(cdk.Stack):
         construct_id: str,
         env_name: str,
         domain: str = "",
-        admin_subdomain: str = "app",
+        admin_subdomain: str = "admin",
         portal_subdomain: str = "portal",
+        admin_cloudfront_url: str = "",
+        portal_cloudfront_url: str = "",
         **kwargs: object,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -34,6 +36,8 @@ class AuthStack(cdk.Stack):
         self.domain = domain
         self.admin_subdomain = admin_subdomain
         self.portal_subdomain = portal_subdomain
+        self.admin_cloudfront_url = admin_cloudfront_url
+        self.portal_cloudfront_url = portal_cloudfront_url
         is_prod = env_name == "prod"
 
         self.user_pool = cognito.UserPool(
@@ -156,6 +160,10 @@ class AuthStack(cdk.Stack):
         if self.domain:
             urls.append(f"https://{self.admin_subdomain}.{self.domain}/auth/callback")
             urls.append(f"https://{self.portal_subdomain}.{self.domain}/auth/callback")
+        if self.admin_cloudfront_url:
+            urls.append(f"{self.admin_cloudfront_url}/auth/callback")
+        if self.portal_cloudfront_url:
+            urls.append(f"{self.portal_cloudfront_url}/auth/callback")
         return urls
 
     def _get_logout_urls(self, env_name: str) -> list[str]:
@@ -167,4 +175,8 @@ class AuthStack(cdk.Stack):
         if self.domain:
             urls.append(f"https://{self.admin_subdomain}.{self.domain}/auth/logout")
             urls.append(f"https://{self.portal_subdomain}.{self.domain}/auth/logout")
+        if self.admin_cloudfront_url:
+            urls.append(f"{self.admin_cloudfront_url}/auth/logout")
+        if self.portal_cloudfront_url:
+            urls.append(f"{self.portal_cloudfront_url}/auth/logout")
         return urls

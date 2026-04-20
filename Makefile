@@ -1,4 +1,4 @@
-.PHONY: help install dev dev-backend dev-frontend dev-portal test lint format deploy deploy-infra deploy-backend deploy-frontend deploy-portal clean release tag version
+.PHONY: help install dev dev-backend dev-frontend dev-portal test lint format deploy deploy-infra deploy-backend deploy-frontend deploy-portal clean release tag version create-admin
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 AWS_PROFILE     ?= salle-cajas
@@ -36,9 +36,13 @@ help:
 	@echo "  clean             Remove all build artifacts"
 	@echo ""
 	@echo "  ── Release / CI/CD ──────────────────────────────────────"
-	@echo "  tag VERSION=x.y.z Create git tag and update VERSION file"
+	@echo "  tag V=x.y.z       Create git tag and update VERSION file"
 	@echo "  release           Package repo + upload to S3 → triggers CodePipeline"
 	@echo "  version           Show current version"
+	@echo "  deploy-sites      Build + sync frontend & portal to S3 + CloudFront"
+	@echo ""
+	@echo "  ── Admin ────────────────────────────────────────────────"
+	@echo "  create-admin EMAIL=x NAME=y  Create Cognito admin user + send welcome email"
 	@echo ""
 
 # ── Install ────────────────────────────────────────────────────────────────────
@@ -233,3 +237,45 @@ release:
 	AWS_PROFILE=$(AWS_PROFILE) aws s3 cp /tmp/$(SOURCE_KEY) s3://$(SOURCE_BUCKET)/$(SOURCE_KEY)
 	@echo "✅ Release $(VERSION) uploaded — CodePipeline will start automatically"
 	@echo "   View pipeline: https://$(AWS_REGION).console.aws.amazon.com/codesuite/codepipeline/pipelines/fitness-room-$(ENV)/view"
+
+# ── Deploy sites (frontend + portal) ─────────────────────────────────────────
+
+FRONTEND_BUCKET  := fitness-room-frontend-$(ENV)-$(AWS_ACCOUNT_ID)
+PORTAL_BUCKET    := fitness-room-portal-$(ENV)-$(AWS_ACCOUNT_ID)
+FRONTEND_DIST_ID := $(shell AWS_PROFILE=$(AWS_PROFILE) aws cloudformation describe-stacks --stack-name FitnessRoomHostingStack-$(ENV) --region $(AWS_REGION) --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" --output text 2>/dev/null)
+PORTAL_DIST_ID   := $(shell AWS_PROFILE=$(AWS_PROFILE) aws cloudformation describe-stacks --stack-name FitnessRoomPortalHostingStack-$(ENV) --region $(AWS_REGION) --query "Stacks[0].Outputs[?OutputKey=='PortalCloudFrontDistributionId'].OutputValue" --output text 2>/dev/null)
+
+deploy-sites: deploy-frontend deploy-portal
+	@echo "✅ Both sites deployed"
+
+deploy-frontend:
+	@echo "🔨 Building frontend..."
+	cd $(FRONTEND_DIR) && npm run build
+	@echo "📤 Syncing to s3://$(FRONTEND_BUCKET)..."
+	AWS_PROFILE=$(AWS_PROFILE) aws s3 sync $(FRONTEND_DIR)/dist/ s3://$(FRONTEND_BUCKET)/ --delete \
+		--cache-control "public, max-age=31536000, immutable" \
+		--exclude "index.html" --exclude "*.json" --region $(AWS_REGION)
+	AWS_PROFILE=$(AWS_PROFILE) aws s3 cp $(FRONTEND_DIR)/dist/index.html s3://$(FRONTEND_BUCKET)/index.html \
+		--cache-control "no-cache, no-store, must-revalidate" --region $(AWS_REGION)
+	@echo "🔄 Invalidating CloudFront $(FRONTEND_DIST_ID)..."
+	AWS_PROFILE=$(AWS_PROFILE) aws cloudfront create-invalidation --distribution-id $(FRONTEND_DIST_ID) --paths "/*"
+	@echo "✅ Frontend deployed"
+
+deploy-portal:
+	@echo "🔨 Building portal..."
+	cd $(PORTAL_DIR) && npm run build
+	@echo "📤 Syncing to s3://$(PORTAL_BUCKET)..."
+	AWS_PROFILE=$(AWS_PROFILE) aws s3 sync $(PORTAL_DIR)/dist/ s3://$(PORTAL_BUCKET)/ --delete \
+		--cache-control "public, max-age=31536000, immutable" \
+		--exclude "index.html" --exclude "*.json" --region $(AWS_REGION)
+	AWS_PROFILE=$(AWS_PROFILE) aws s3 cp $(PORTAL_DIR)/dist/index.html s3://$(PORTAL_BUCKET)/index.html \
+		--cache-control "no-cache, no-store, must-revalidate" --region $(AWS_REGION)
+	@echo "🔄 Invalidating CloudFront $(PORTAL_DIST_ID)..."
+	AWS_PROFILE=$(AWS_PROFILE) aws cloudfront create-invalidation --distribution-id $(PORTAL_DIST_ID) --paths "/*"
+	@echo "✅ Portal deployed"
+
+# ── Admin user management ─────────────────────────────────────────────────────
+
+create-admin:
+	@if [ -z "$(EMAIL)" ]; then echo "Usage: make create-admin EMAIL=user@example.com NAME='Full Name'"; exit 1; fi
+	python3 infrastructure/scripts/create_admin_user.py --email "$(EMAIL)" --name "$(NAME)" --profile $(AWS_PROFILE)
