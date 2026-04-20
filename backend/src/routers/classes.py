@@ -108,6 +108,74 @@ def get_class(
     return service.get_class(class_id)
 
 
+@router.get(
+    "/{class_id}/attendees",
+    summary="Get Class Attendees",
+    description="Get class details with the full list of enrolled students and waitlisted students.",
+)
+def get_class_attendees(
+    class_id: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: ClassService = Depends(get_service),
+) -> dict[str, Any]:
+    """Return class info + enriched attendee list (confirmed + waitlisted)."""
+    cls = service.get_class(class_id)
+
+    res_repo = ReservationRepository()
+    stu_repo = StudentRepository()
+
+    reservations, _ = res_repo.list_for_class(class_id, limit=500)
+
+    confirmed: list[dict[str, Any]] = []
+    waitlisted: list[dict[str, Any]] = []
+
+    for r in reservations:
+        if r.status not in ("confirmed", "waitlisted"):
+            continue
+        student_info: dict[str, Any] = {
+            "student_id": r.student_id,
+            "reservation_id": r.reservation_id,
+            "status": r.status,
+            "waitlist_position": r.waitlist_position,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        try:
+            item = stu_repo.get_item(f"STUDENT#{r.student_id}", "PROFILE")
+            if item:
+                student_info["first_name"] = item.get("first_name", "")
+                student_info["last_name"] = item.get("last_name", "")
+                student_info["email"] = item.get("email", "")
+                student_info["phone"] = item.get("phone")
+                student_info["full_name"] = f"{item.get('first_name', '')} {item.get('last_name', '')}".strip()
+        except Exception:
+            student_info["full_name"] = "Desconocido"
+
+        if r.status == "confirmed":
+            confirmed.append(student_info)
+        else:
+            waitlisted.append(student_info)
+
+    waitlisted.sort(key=lambda w: w.get("waitlist_position") or 999)
+
+    return {
+        "class_id": cls.class_id,
+        "class_type": cls.class_type,
+        "instructor_name": cls.instructor_name,
+        "class_date": cls.class_date,
+        "start_time": cls.start_time,
+        "duration_minutes": cls.duration_minutes,
+        "capacity": cls.capacity,
+        "location": cls.location,
+        "description": cls.description,
+        "is_cancelled": cls.is_cancelled,
+        "reservations_count": cls.reservations_count,
+        "waitlist_count": cls.waitlist_count,
+        "available_spots": cls.available_spots,
+        "confirmed": confirmed,
+        "waitlisted": waitlisted,
+    }
+
+
 @router.patch(
     "/{class_id}",
     response_model=ClassResponse,

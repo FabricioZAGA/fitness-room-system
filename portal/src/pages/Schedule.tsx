@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { portalApi, type UpcomingClass, type Reservation } from '../services/api'
+import { portalApi, type UpcomingClass, type Reservation, type ClassDetail } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { Container, Card, PageHeader, LoadingState } from '../components'
 
@@ -107,6 +107,13 @@ export default function Schedule(): React.JSX.Element {
   const [enrollingId, setEnrollingId] = useState<string | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
+
+  const { data: classDetail, isLoading: detailLoading } = useQuery<ClassDetail>({
+    queryKey: ['class-detail', selectedClassId],
+    queryFn: () => portalApi.getClassDetail(selectedClassId!).then((r) => r.data),
+    enabled: !!selectedClassId && !isDev,
+  })
 
   const { data: classesData, isLoading: classesLoading } = useQuery({
     queryKey: ['upcoming-classes'],
@@ -277,6 +284,7 @@ export default function Schedule(): React.JSX.Element {
                         cls={cls}
                         onEnroll={handleEnroll}
                         onCancel={handleCancel}
+                        onViewDetail={(id) => setSelectedClassId(id)}
                         enrollingId={enrollingId}
                         cancellingId={cancellingId}
                       />
@@ -328,8 +336,223 @@ export default function Schedule(): React.JSX.Element {
             )}
           </div>
         )}
+        {/* Class Detail Modal */}
+        {selectedClassId && (
+          <ClassDetailModal
+            detail={classDetail ?? null}
+            isLoading={detailLoading}
+            onClose={() => setSelectedClassId(null)}
+          />
+        )}
       </div>
     </Container>
+  )
+}
+
+// ─── Class Detail Modal ─────────────────────────────────────────────────────
+
+function ClassDetailModal({
+  detail,
+  isLoading,
+  onClose,
+}: {
+  detail: ClassDetail | null
+  isLoading: boolean
+  onClose: () => void
+}): React.JSX.Element {
+  const typeName = detail ? (CLASS_TYPE_LABELS[detail.class_type] || detail.class_type) : ''
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '672px',
+          maxHeight: '85vh',
+          borderRadius: '24px 24px 0 0',
+          background: '#111827',
+          border: '1px solid rgba(255,255,255,0.1)',
+          overflow: 'auto',
+          padding: '24px',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.2)' }} />
+        </div>
+
+        {isLoading || !detail ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+            <div style={{ width: 32, height: 32, border: '3px solid rgba(212,175,55,0.3)', borderTopColor: '#d4af37', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+              <h2 style={{ color: '#fff', fontWeight: 700, fontSize: '20px', margin: 0 }}>{typeName}</h2>
+              {detail.is_cancelled && (
+                <span style={{ padding: '2px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 600, background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}>
+                  Cancelada
+                </span>
+              )}
+            </div>
+
+            {/* Info */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px' }}>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', margin: 0 }}>
+                👤 {detail.instructor_name}
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', margin: 0 }}>
+                🕐 {detail.start_time?.slice(0, 5)} · {detail.duration_minutes} min
+              </p>
+              {detail.location && (
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', margin: 0 }}>
+                  📍 {detail.location}
+                </p>
+              )}
+              {detail.description && (
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', margin: '4px 0 0 0' }}>
+                  {detail.description}
+                </p>
+              )}
+            </div>
+
+            {/* Capacity bar */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Ocupación</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
+                  {detail.reservations_count}/{detail.capacity}
+                </span>
+              </div>
+              <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    borderRadius: '3px',
+                    background: detail.available_spots === 0 ? '#ef4444' : '#22c55e',
+                    width: `${Math.min(100, Math.round((detail.reservations_count / detail.capacity) * 100))}%`,
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Confirmed attendees */}
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#d4af37', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+                Inscritos ({detail.confirmed.length})
+              </p>
+              {detail.confirmed.length === 0 ? (
+                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px', textAlign: 'center', padding: '12px 0' }}>
+                  Sin inscripciones aún
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {detail.confirmed.map((a, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 12px',
+                        borderRadius: '12px',
+                        background: 'rgba(34, 197, 94, 0.08)',
+                        border: '1px solid rgba(34, 197, 94, 0.2)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          background: 'rgba(34, 197, 94, 0.2)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: '#22c55e',
+                        }}
+                      >
+                        {a.first_name[0]?.toUpperCase() || '?'}
+                      </div>
+                      <span style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
+                        {a.first_name} {a.last_initial}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Waitlisted */}
+            {detail.waitlisted.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+                  Lista de espera ({detail.waitlisted.length})
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {detail.waitlisted.map((a, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 12px',
+                        borderRadius: '12px',
+                        background: 'rgba(245, 158, 11, 0.08)',
+                        border: '1px solid rgba(245, 158, 11, 0.2)',
+                      }}
+                    >
+                      <span style={{ fontSize: '13px', color: '#f59e0b', fontWeight: 500 }}>
+                        {a.first_name} {a.last_initial}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              style={{
+                width: '100%',
+                padding: '14px',
+                borderRadius: '14px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.05)',
+                color: 'rgba(255,255,255,0.6)',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                marginTop: '8px',
+              }}
+            >
+              Cerrar
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -339,12 +562,14 @@ function ClassCard({
   cls,
   onEnroll,
   onCancel,
+  onViewDetail,
   enrollingId,
   cancellingId,
 }: {
   cls: UpcomingClass
   onEnroll: (id: string) => void
   onCancel: (id: string) => void
+  onViewDetail: (id: string) => void
   enrollingId: string | null
   cancellingId: string | null
 }): React.JSX.Element {
@@ -356,7 +581,10 @@ function ClassCard({
 
   return (
     <Card>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer' }}
+        onClick={() => onViewDetail(cls.class_id)}
+      >
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <p style={{ color: '#fff', fontWeight: 700, fontSize: '16px', margin: 0 }}>

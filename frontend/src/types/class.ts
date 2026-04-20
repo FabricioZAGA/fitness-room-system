@@ -52,6 +52,37 @@ export interface UpdateClassRequest {
   is_cancelled?: boolean;
 }
 
+export interface ClassAttendee {
+  student_id: string;
+  reservation_id: string;
+  status: "confirmed" | "waitlisted";
+  waitlist_position: number | null;
+  created_at: string | null;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string | null;
+  full_name?: string;
+}
+
+export interface ClassAttendees {
+  class_id: string;
+  class_type: ClassType;
+  instructor_name: string;
+  class_date: string;
+  start_time: string;
+  duration_minutes: number;
+  capacity: number;
+  location: string | null;
+  description: string | null;
+  is_cancelled: boolean;
+  reservations_count: number;
+  waitlist_count: number;
+  available_spots: number;
+  confirmed: ClassAttendee[];
+  waitlisted: ClassAttendee[];
+}
+
 export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
   zumba: "Zumba",
   strong: "STRONG",

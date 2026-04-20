@@ -127,6 +127,30 @@ export interface EnrollmentResponse {
   waitlist_position?: number
 }
 
+export interface ClassAttendee {
+  first_name: string
+  last_initial: string
+  status: 'confirmed' | 'waitlisted'
+}
+
+export interface ClassDetail {
+  class_id: string
+  class_type: string
+  instructor_name: string
+  class_date: string
+  start_time: string
+  duration_minutes: number
+  capacity: number
+  location: string | null
+  description: string | null
+  is_cancelled: boolean
+  reservations_count: number
+  waitlist_count: number
+  available_spots: number
+  confirmed: ClassAttendee[]
+  waitlisted: ClassAttendee[]
+}
+
 export interface Checkin {
   checkin_id: string
   student_id: string
@@ -160,6 +184,9 @@ export const portalApi = {
   
   // QR
   getQR: () => apiClient.get<{ role: UserRole; user_id: string; user_name: string; qr_base64: string; mime_type: string }>('/api/v1/portal/qr'),
+
+  // Class detail
+  getClassDetail: (classId: string) => apiClient.get<ClassDetail>(`/api/v1/portal/classes/${classId}`),
 }
 
 interface MessageResponse {

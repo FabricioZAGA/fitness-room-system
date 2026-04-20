@@ -486,6 +486,69 @@ def cancel_reservation(
         )
 
 
+@router.get("/classes/{class_id}")
+def get_class_detail(
+    class_id: str,
+    current_user: dict = Depends(require_student_or_staff_group()),
+    student_repo: StudentRepository = Depends(get_student_repository),
+    class_repo: ClassRepository = Depends(get_class_repository),
+    reservation_repo: ReservationRepository = Depends(get_reservation_repository),
+):
+    """Return class details with instructor and enrolled classmates.
+
+    Privacy: students only see first names and last initial of classmates.
+    """
+    try:
+        cls = class_repo.get_by_id(class_id)
+    except ResourceNotFoundException:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Class not found")
+
+    reservations, _ = reservation_repo.list_for_class(class_id, limit=500)
+
+    confirmed = []
+    waitlisted = []
+    for r in reservations:
+        if r.status not in ("confirmed", "waitlisted"):
+            continue
+        attendee: dict = {"status": r.status}
+        try:
+            item = student_repo.get_item(f"STUDENT#{r.student_id}", "PROFILE")
+            if item:
+                first = item.get("first_name", "")
+                last = item.get("last_name", "")
+                attendee["first_name"] = first
+                attendee["last_initial"] = f"{last[0]}." if last else ""
+            else:
+                attendee["first_name"] = "Alumno"
+                attendee["last_initial"] = ""
+        except Exception:
+            attendee["first_name"] = "Alumno"
+            attendee["last_initial"] = ""
+
+        if r.status == "confirmed":
+            confirmed.append(attendee)
+        else:
+            waitlisted.append(attendee)
+
+    return JSONResponse(content={
+        "class_id": cls.class_id,
+        "class_type": cls.class_type,
+        "instructor_name": cls.instructor_name,
+        "class_date": cls.class_date,
+        "start_time": cls.start_time,
+        "duration_minutes": cls.duration_minutes,
+        "capacity": cls.capacity,
+        "location": cls.location,
+        "description": cls.description,
+        "is_cancelled": cls.is_cancelled,
+        "reservations_count": cls.reservations_count,
+        "waitlist_count": cls.waitlist_count,
+        "available_spots": max(0, cls.capacity - cls.reservations_count),
+        "confirmed": confirmed,
+        "waitlisted": waitlisted,
+    })
+
+
 @router.get("/classes")
 def get_upcoming_classes(
     current_user: dict = Depends(require_student_or_staff_group()),

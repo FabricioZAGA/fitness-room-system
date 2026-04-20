@@ -1,7 +1,7 @@
 /** Class API service — all HTTP calls for the Classes module. */
 
 import type { PaginatedResponse } from "@/types/common";
-import type { CreateClassRequest, FitnessClass, UpdateClassRequest } from "@/types/class";
+import type { ClassAttendees, CreateClassRequest, FitnessClass, UpdateClassRequest } from "@/types/class";
 import { apiClient } from "./apiClient";
 
 export const classService = {
@@ -41,5 +41,10 @@ export const classService = {
 
   async delete(classId: string): Promise<void> {
     await apiClient.delete(`/classes/${classId}`);
+  },
+
+  async getAttendees(classId: string): Promise<ClassAttendees> {
+    const response = await apiClient.get<ClassAttendees>(`/classes/${classId}/attendees`);
+    return response.data;
   },
 } as const;

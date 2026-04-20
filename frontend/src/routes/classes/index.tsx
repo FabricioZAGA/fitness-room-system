@@ -11,7 +11,7 @@ import {
   Link as LinkIcon,
   XCircle,
 } from "lucide-react";
-import { useClasses, useCancelClass } from "@/hooks/useClasses";
+import { useClasses, useCancelClass, useClassAttendees } from "@/hooks/useClasses";
 import { CreateClassModal } from "@/components/shared/CreateClassModal";
 import { ClassCalendar } from "@/components/shared/ClassCalendar";
 import { AddToClassModal } from "@/components/shared/AddToClassModal";
@@ -239,89 +239,150 @@ function ClassDetailPanel({
   onClose: () => void;
 }): React.JSX.Element {
   const occupancyPct = Math.round((cls.reservations_count / cls.capacity) * 100);
+  const { data: attendees, isLoading: attendeesLoading } = useClassAttendees(cls.class_id);
 
   return (
-    <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
-      {/* Header */}
-      <div className="mb-5 flex items-start justify-between">
-        <span className={`rounded-xl border px-3 py-1.5 text-sm font-semibold ${CLASS_TYPE_COLORS[cls.class_type]}`}>
-          {CLASS_TYPE_LABELS[cls.class_type]}
-        </span>
-        <button
-          onClick={onClose}
-          className="rounded-lg p-1.5 text-[--tx-disabled] hover:text-[--tx-primary] transition-colors"
-        >
-          <XCircle className="h-5 w-5" />
-        </button>
-      </div>
+    <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] overflow-y-auto max-h-[calc(100vh-120px)]">
+      <div className="p-6">
+        {/* Header */}
+        <div className="mb-5 flex items-start justify-between">
+          <span className={`rounded-xl border px-3 py-1.5 text-sm font-semibold ${CLASS_TYPE_COLORS[cls.class_type]}`}>
+            {CLASS_TYPE_LABELS[cls.class_type]}
+          </span>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-[--tx-disabled] hover:text-[--tx-primary] transition-colors"
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
+        </div>
 
-      <h3 className="mb-1 text-xl font-bold text-[--tx-primary]">{cls.instructor_name}</h3>
-      {cls.is_cancelled && (
-        <p className="mb-3 text-sm font-medium text-[--color-danger]">Clase cancelada</p>
-      )}
+        <h3 className="mb-1 text-xl font-bold text-[--tx-primary]">{cls.instructor_name}</h3>
+        {cls.is_cancelled && (
+          <p className="mb-3 text-sm font-medium text-[--color-danger]">Clase cancelada</p>
+        )}
 
-      {/* Details */}
-      <div className="mb-6 space-y-3">
-        <DetailRow icon={Calendar} label="Fecha" value={formatDate(cls.class_date)} />
-        <DetailRow icon={Clock} label="Hora" value={`${formatTime(cls.start_time)} (${cls.duration_minutes ?? 60} min)`} />
-        <DetailRow icon={MapPin} label="Lugar" value={cls.location ?? "Sin especificar"} />
-        {cls.class_link && (
-          <DetailRow icon={LinkIcon} label="Enlace" value="Ver clase en línea" link={cls.class_link} />
+        {/* Details */}
+        <div className="mb-6 space-y-3">
+          <DetailRow icon={Calendar} label="Fecha" value={formatDate(cls.class_date)} />
+          <DetailRow icon={Clock} label="Hora" value={`${formatTime(cls.start_time)} (${cls.duration_minutes ?? 60} min)`} />
+          <DetailRow icon={MapPin} label="Lugar" value={cls.location ?? "Sin especificar"} />
+          {cls.class_link && (
+            <DetailRow icon={LinkIcon} label="Enlace" value="Ver clase en línea" link={cls.class_link} />
+          )}
+        </div>
+
+        {/* Occupancy */}
+        <div className="mb-6 rounded-xl border border-[--bd-subtle] bg-[--bg-muted]/50 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-[--tx-muted]">
+              <Users className="h-4 w-4" />
+              Ocupación
+            </div>
+            <span className="text-lg font-bold text-[--tx-primary]">
+              {cls.reservations_count}/{cls.capacity}
+            </span>
+          </div>
+          <div className="h-2.5 overflow-hidden rounded-full bg-[--bd-subtle]">
+            <div
+              className={`h-full rounded-full transition-all ${
+                occupancyPct >= 90 ? "bg-[--color-danger]" : occupancyPct >= 70 ? "bg-[--color-warning]" : "bg-[--color-success]"
+              }`}
+              style={{ width: `${Math.min(occupancyPct, 100)}%` }}
+            />
+          </div>
+          <p className="mt-1 text-xs text-[--tx-disabled]">
+            {cls.available_spots > 0
+              ? `${cls.available_spots} lugares disponibles`
+              : "Clase llena — lista de espera activa"}
+          </p>
+        </div>
+
+        {/* Enrolled students */}
+        <div className="mb-6">
+          <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[--tx-muted]">
+            <Users className="h-4 w-4" />
+            Inscritos ({attendees?.confirmed.length ?? cls.reservations_count})
+          </h4>
+          {attendeesLoading ? (
+            <div className="flex justify-center py-4">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-[--gold] border-t-transparent" />
+            </div>
+          ) : attendees && attendees.confirmed.length > 0 ? (
+            <div className="space-y-2">
+              {attendees.confirmed.map((a) => (
+                <div
+                  key={a.reservation_id}
+                  className="flex items-center gap-3 rounded-lg border border-[--bd-subtle] bg-[--bg-muted]/30 px-3 py-2"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[--color-success-bg] text-xs font-bold text-[--color-success]">
+                    {(a.first_name?.[0] ?? "?").toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-[--tx-primary]">{a.full_name || "Sin nombre"}</p>
+                    <p className="truncate text-xs text-[--tx-disabled]">{a.email || ""}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="py-2 text-center text-sm text-[--tx-disabled]">Sin inscripciones aún</p>
+          )}
+        </div>
+
+        {/* Waitlisted students */}
+        {attendees && attendees.waitlisted.length > 0 && (
+          <div className="mb-6">
+            <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[--color-warning]">
+              <Clock className="h-4 w-4" />
+              Lista de espera ({attendees.waitlisted.length})
+            </h4>
+            <div className="space-y-2">
+              {attendees.waitlisted.map((a) => (
+                <div
+                  key={a.reservation_id}
+                  className="flex items-center gap-3 rounded-lg border border-[--bd-subtle] bg-[--bg-muted]/30 px-3 py-2"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[--color-warning-bg] text-xs font-bold text-[--color-warning]">
+                    #{a.waitlist_position ?? "?"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-[--tx-primary]">{a.full_name || "Sin nombre"}</p>
+                    <p className="truncate text-xs text-[--tx-disabled]">{a.email || ""}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        {!cls.is_cancelled && (
+          <div className="space-y-3">
+            <button
+              onClick={onAddMember}
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-semibold transition-all"
+              style={{
+                background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                color: "var(--gold-fg)",
+                boxShadow: "0 10px 25px var(--gold-bg)"
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
+            >
+              <UserPlus className="h-5 w-5" />
+              Añadir Miembro
+            </button>
+            <button
+              onClick={onCancel}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[--color-danger-bd] py-3 text-sm font-medium text-[--color-danger] transition-colors hover:border-[--color-danger-bd] hover:bg-[--color-danger-bg]"
+            >
+              <XCircle className="h-4 w-4" />
+              Cancelar clase
+            </button>
+          </div>
         )}
       </div>
-
-      {/* Occupancy */}
-      <div className="mb-6 rounded-xl border border-[--bd-subtle] bg-[--bg-muted]/50 p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-[--tx-muted]">
-            <Users className="h-4 w-4" />
-            Ocupación
-          </div>
-          <span className="text-lg font-bold text-[--tx-primary]">
-            {cls.reservations_count}/{cls.capacity}
-          </span>
-        </div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-[--bd-subtle]">
-          <div
-            className={`h-full rounded-full transition-all ${
-              occupancyPct >= 90 ? "bg-[--color-danger]" : occupancyPct >= 70 ? "bg-[--color-warning]" : "bg-[--color-success]"
-            }`}
-            style={{ width: `${Math.min(occupancyPct, 100)}%` }}
-          />
-        </div>
-        <p className="mt-1 text-xs text-[--tx-disabled]">
-          {cls.available_spots > 0
-            ? `${cls.available_spots} lugares disponibles`
-            : "Clase llena — lista de espera activa"}
-        </p>
-      </div>
-
-      {/* Actions */}
-      {!cls.is_cancelled && (
-        <div className="space-y-3">
-          <button
-            onClick={onAddMember}
-            className="flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-semibold transition-all"
-            style={{
-              background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-              color: "var(--gold-fg)",
-              boxShadow: "0 10px 25px var(--gold-bg)"
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
-          >
-            <UserPlus className="h-5 w-5" />
-            Añadir Miembro
-          </button>
-          <button
-            onClick={onCancel}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[--color-danger-bd] py-3 text-sm font-medium text-[--color-danger] transition-colors hover:border-[--color-danger-bd] hover:bg-[--color-danger-bg]"
-          >
-            <XCircle className="h-4 w-4" />
-            Cancelar clase
-          </button>
-        </div>
-      )}
     </div>
   );
 }

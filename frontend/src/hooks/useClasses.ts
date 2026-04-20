@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { CreateClassRequest, FitnessClass, UpdateClassRequest } from "@/types/class";
+import type { ClassAttendees, CreateClassRequest, FitnessClass, UpdateClassRequest } from "@/types/class";
 import { classService } from "@/services/classService";
 
 export const CLASSES_KEY = "classes";
@@ -79,5 +79,13 @@ export function useDeleteClass() {
       qc.invalidateQueries({ queryKey: [CLASSES_KEY] });
       toast.success("Clase eliminada.");
     },
+  });
+}
+
+export function useClassAttendees(classId: string | null) {
+  return useQuery<ClassAttendees>({
+    queryKey: [CLASSES_KEY, "attendees", classId],
+    queryFn: () => classService.getAttendees(classId!),
+    enabled: Boolean(classId),
   });
 }
