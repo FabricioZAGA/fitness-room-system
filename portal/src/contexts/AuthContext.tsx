@@ -73,6 +73,15 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       const groups =
         (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) ?? []
 
+      const allowedPortalGroups = ['student', 'teacher']
+      const hasPortalAccess = groups.some((g) => allowedPortalGroups.includes(g))
+      if (!hasPortalAccess) {
+        await signOut()
+        localStorage.removeItem('id_token')
+        setUser(null)
+        return
+      }
+
       setUser({
         userId: currentUser.userId,
         email: currentUser.signInDetails?.loginId ?? '',
@@ -113,10 +122,17 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       return
     }
 
+    const session = await fetchAuthSession()
+    const groups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) ?? []
+    const allowedPortalGroups = ['student', 'teacher']
+    if (!groups.some((g) => allowedPortalGroups.includes(g))) {
+      await signOut()
+      localStorage.removeItem('id_token')
+      throw new Error('Esta cuenta no tiene acceso al portal de alumnos. Si eres administrador, ingresa en admin.fitnessroom.mx')
+    }
+
     await checkUser()
 
-    // Store token for API interceptor
-    const session = await fetchAuthSession()
     const token = session.tokens?.idToken?.toString()
     if (token) {
       localStorage.setItem('id_token', token)
@@ -137,9 +153,18 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
         },
       },
     })
+
+    const session = await fetchAuthSession()
+    const groups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) ?? []
+    const allowedPortalGroups = ['student', 'teacher']
+    if (!groups.some((g) => allowedPortalGroups.includes(g))) {
+      await signOut()
+      localStorage.removeItem('id_token')
+      throw new Error('Esta cuenta no tiene acceso al portal de alumnos. Si eres administrador, ingresa en admin.fitnessroom.mx')
+    }
+
     setAuthStep('login')
     await checkUser()
-    const session = await fetchAuthSession()
     const token = session.tokens?.idToken?.toString()
     if (token) {
       localStorage.setItem('id_token', token)

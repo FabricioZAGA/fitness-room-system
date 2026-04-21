@@ -77,6 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       const session = await fetchAuthSession();
       const groups = (session.tokens?.accessToken?.payload?.["cognito:groups"] as string[]) ?? [];
 
+      if (!groups.includes("admin")) {
+        await signOut();
+        setUser(null);
+        return;
+      }
+
       setUser({
         userId: currentUser.userId,
         email: currentUser.signInDetails?.loginId ?? "",
@@ -105,6 +111,13 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       return;
     }
 
+    const session = await fetchAuthSession();
+    const groups = (session.tokens?.accessToken?.payload?.["cognito:groups"] as string[]) ?? [];
+    if (!groups.includes("admin")) {
+      await signOut();
+      throw new Error("No tienes permisos de administrador. Si eres alumno, ingresa en portal.fitnessroom.mx");
+    }
+
     await checkUser();
   };
 
@@ -122,6 +135,14 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
         },
       },
     });
+
+    const session = await fetchAuthSession();
+    const groups = (session.tokens?.accessToken?.payload?.["cognito:groups"] as string[]) ?? [];
+    if (!groups.includes("admin")) {
+      await signOut();
+      throw new Error("No tienes permisos de administrador. Si eres alumno, ingresa en portal.fitnessroom.mx");
+    }
+
     setAuthStep("login");
     await checkUser();
   };
