@@ -290,4 +290,7 @@ class ApiStack(cdk.Stack):
             origins.append(self.frontend_url)
         if self.portal_url and self.portal_url.startswith("https"):
             origins.append(self.portal_url)
+        # Legacy CloudFront URLs (transition period)
+        origins.append("https://d3awxegxyh5p20.cloudfront.net")
+        origins.append("https://d36xs3aztdpnk5.cloudfront.net")
         return origins
