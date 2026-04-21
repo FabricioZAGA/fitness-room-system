@@ -1,140 +1,165 @@
-const FEATURES = [
+import {
+  Zap, CreditCard, CalendarDays, Users, LayoutDashboard,
+  GraduationCap, QrCode, Smartphone, Snowflake, BarChart3,
+  Mail, Moon, Globe, type LucideIcon,
+} from "lucide-react";
+
+interface Feature {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  tag: string;
+  span?: string;
+}
+
+const FEATURES: Feature[] = [
   {
-    icon: "⚡",
+    icon: Zap,
     title: "Check-in Instantáneo",
     description:
-      "El recepcionista escribe 2 letras y el sistema muestra al miembro de inmediato. Un clic registra la entrada. Valida membresía activa y estado del alumno en tiempo real.",
+      "2 letras y el miembro aparece. Un clic registra la entrada. Valida membresía y estado en tiempo real.",
     tag: "Uso diario",
+    span: "sm:col-span-2",
   },
   {
-    icon: "💳",
+    icon: CreditCard,
     title: "Control de Membresías",
     description:
-      "Mensual, trimestral, semestral, anual y packs de 5, 10 o 20 clases. Alertas automáticas cuando vencen en 7 o 30 días. Renovación con un clic desde el panel.",
+      "Mensual, trimestral, semestral, anual y packs de clases. Alertas de vencimiento y renovación con un clic.",
     tag: "Pagos en MXN",
   },
   {
-    icon: "📅",
+    icon: CalendarDays,
     title: "Clases Grupales",
     description:
-      "Zumba, Pilates, Yoga, Spinning, Cross Training y más. Calendario visual por semana. Control de capacidad con lista de espera automática.",
+      "Calendario visual por semana. Capacidad máxima con lista de espera automática.",
     tag: "Con lista de espera",
   },
   {
-    icon: "👥",
+    icon: Users,
     title: "Gestión de Alumnos",
     description:
-      "Registro completo con nombre, correo y teléfono. Historial de membresías y clases. Estados: Nuevo, Activo, Fundador e Inactivo. Búsqueda instantánea.",
+      "Perfil completo con historial de membresías y clases. Búsqueda instantánea. Estados automáticos.",
     tag: "Perfil completo",
   },
   {
-    icon: "🎯",
+    icon: LayoutDashboard,
     title: "Dashboard en Tiempo Real",
     description:
-      "Vista general con miembros activos, clases del día, membresías por vencer e instructores. Una sola llamada a la API — sin lentitud. Actualización cada 5 minutos.",
+      "Alumnos activos, clases del día, membresías por vencer. Una sola llamada a la API.",
     tag: "1 llamada API",
+    span: "sm:col-span-2",
   },
   {
-    icon: "👨‍🏫",
+    icon: GraduationCap,
     title: "Instructores",
     description:
-      "Registro de instructores con especialidades. Asignación a clases. Control de estado activo/inactivo. Historial de clases impartidas.",
+      "Especialidades, asignación a clases, estado activo/inactivo. Historial completo.",
     tag: "Gestión de equipo",
   },
   {
-    icon: "📲",
+    icon: QrCode,
     title: "Check-in por QR",
     description:
-      "Cada alumno tiene su código QR único. El kiosco de entrada lo escanea con la cámara y registra el acceso automáticamente — sin tocar nada. Ideal para horas pico.",
+      "Código QR único por alumno. Escaneo en kiosco — registro automático sin tocar nada.",
     tag: "Kiosco de entrada",
   },
   {
-    icon: "\ud83d\udcf1",
+    icon: Smartphone,
     title: "Portal del Alumno",
     description:
-      "Cada alumno tiene su propio portal móvil. Ve sus próximas clases, inscríbete en un toque, únete a la lista de espera si la clase está llena, y cancela hasta 2 horas antes.",
+      "Su propio portal móvil: clases, inscripciones, lista de espera y cancelaciones.",
     tag: "Self-service",
+    span: "sm:col-span-2",
   },
   {
-    icon: "\u2744\ufe0f",
+    icon: Snowflake,
     title: "Congelar Membresía",
     description:
-      "¿Lesión o viaje? Congela la membresía de 7 a 180 días. La fecha de vencimiento se extiende automáticamente. El historial queda registrado con total transparencia.",
+      "Pausa de 7 a 180 días por lesión o viaje. La fecha de vencimiento se extiende automáticamente.",
     tag: "Hasta 180 días",
   },
   {
-    icon: "📊",
+    icon: BarChart3,
     title: "Exportar Reportes",
     description:
-      "Descarga tus reportes de ingresos, rankings y alumnos inactivos en Excel o PDF. Con diseño corporativo y colores de tu gimnasio. Listo para presentar o archivar.",
+      "Ingresos, rankings y alumnos inactivos en Excel o PDF con diseño corporativo.",
     tag: "Excel + PDF",
   },
   {
-    icon: "📧",
+    icon: Mail,
     title: "Notificaciones Email",
     description:
-      "Envío automático diario de recordatorios a alumnos con membresía próxima a vencer. Alertas de inactividad y notificaciones personalizadas. Configurado con AWS SES.",
+      "Recordatorios automáticos de vencimiento. Alertas de inactividad. AWS SES integrado.",
     tag: "Automático",
   },
   {
-    icon: "🌙",
+    icon: Moon,
     title: "Modo Oscuro y Claro",
     description:
-      "El sistema recuerda tu preferencia. Diseño negro y dorado adaptado para uso en recepción con cualquier iluminación. Funciona en pantallas brillantes y oscuras.",
+      "Diseño negro y dorado, adaptable a cualquier iluminación de recepción.",
     tag: "Dark mode",
   },
   {
-    icon: "🌎",
+    icon: Globe,
     title: "Español e Inglés",
     description:
-      "Interfaz completa en español (default) con opción de cambiar a inglés. El sistema detecta el idioma del navegador automáticamente.",
+      "Interfaz completa en ambos idiomas. Detección automática del navegador.",
     tag: "i18n",
   },
 ];
 
 export function Features() {
   return (
-    <section id="features" className="px-6 py-24">
-      <div className="mx-auto max-w-6xl">
+    <section id="features" className="px-6 py-28">
+      <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-16 text-center">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-[--gold]">
+        <div className="mb-20 text-center">
+          <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[--gold]">
             Funcionalidades
           </p>
-          <h2 className="text-3xl font-bold text-[--tx-primary] sm:text-4xl">
-            Todo lo que necesita tu gimnasio
+          <h2 className="text-4xl font-extrabold tracking-tight text-[--tx-primary] sm:text-5xl">
+            Todo lo que tu gimnasio necesita
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-[--tx-muted]">
-            Construido para la operación diaria de un estudio de fitness en México.
-            Cada función fue diseñada para hacer la vida del recepcionista más fácil.
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-[--tx-muted]">
+            Diseñado para la operación diaria de estudios de fitness en México.
           </p>
         </div>
 
-        {/* Grid */}
+        {/* Bento grid */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((feature) => (
+          {FEATURES.map((f) => (
             <div
-              key={feature.title}
-              className="group rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6 transition-all hover:border-[--gold-bd]"
+              key={f.title}
+              className={`card-hover group rounded-[20px] border border-[--bd-default] bg-[--bg-surface] p-6 ${f.span ?? ""}`}
             >
-              <div className="mb-4 text-3xl">{feature.icon}</div>
-              <div className="mb-2 flex items-start justify-between gap-2">
-                <h3 className="text-base font-semibold text-[--tx-primary]">
-                  {feature.title}
-                </h3>
-              </div>
-              <p className="mb-4 text-sm leading-relaxed text-[--tx-muted]">
-                {feature.description}
-              </p>
-              <span
-                className="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium"
+              {/* Icon */}
+              <div
+                className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl transition-all group-hover:scale-110"
                 style={{
-                  backgroundColor: "var(--gold-bg)",
+                  background: "var(--gold-bg)",
+                  border: "1px solid var(--gold-bd)",
+                }}
+              >
+                <f.icon size={20} className="text-[--gold]" />
+              </div>
+
+              <h3 className="mb-2 text-base font-semibold text-[--tx-primary]">
+                {f.title}
+              </h3>
+              <p className="mb-4 text-sm leading-relaxed text-[--tx-muted]">
+                {f.description}
+              </p>
+
+              <span
+                className="inline-block rounded-full px-3 py-1 text-xs font-medium"
+                style={{
+                  background: "var(--gold-bg)",
                   color: "var(--gold)",
                   border: "1px solid var(--gold-bd)",
                 }}
               >
-                {feature.tag}
+                {f.tag}
               </span>
             </div>
           ))}

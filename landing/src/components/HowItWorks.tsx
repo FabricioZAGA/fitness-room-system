@@ -1,100 +1,106 @@
-const STEPS = [
+import { UserPlus, CalendarCheck, ScanLine, ArrowRight, type LucideIcon } from "lucide-react";
+
+interface Step {
+  number: string;
+  title: string;
+  description: string;
+  details: string[];
+  icon: LucideIcon;
+}
+
+const STEPS: Step[] = [
   {
     number: "01",
+    icon: UserPlus,
     title: "Registra a tus miembros",
     description:
-      "Agrega nombre, correo y teléfono. Asigna el tipo de membresía: mensual, trimestral o paquete de clases. El sistema calcula fechas de vencimiento automáticamente.",
-    details: ["Nombre completo y contacto", "Tipo de membresía con fecha automática", "Estado inicial: Nuevo → Activo"],
+      "Agrega nombre, correo y teléfono. Asigna la membresía y el sistema calcula fechas de vencimiento automáticamente.",
+    details: ["Datos completos + contacto de emergencia", "Membresía con cálculo automático de fechas", "Carta responsiva en PDF"],
   },
   {
     number: "02",
+    icon: CalendarCheck,
     title: "Gestiona tus clases",
     description:
-      "Programa clases con tipo (Zumba, Pilates, Yoga…), instructor, fecha, hora y capacidad. Los miembros se agregan a la clase o quedan en lista de espera.",
-    details: ["Instructor asignado", "Capacidad máxima configurable", "Lista de espera automática"],
+      "Programa clases con instructor, horario y capacidad. Lista de espera automática cuando se llena la clase.",
+    details: ["Zumba, Pilates, Yoga, Spinning y más", "Capacidad máxima configurable", "Lista de espera inteligente"],
   },
   {
     number: "03",
-    title: "Check-in rápido en recepción",
+    icon: ScanLine,
+    title: "Check-in en 2 segundos",
     description:
-      "Al llegar el miembro, el recepcionista escribe su nombre. En 2 segundos aparece el estado: acceso permitido, membresía por vencer o acceso denegado.",
-    details: ["Búsqueda por nombre o correo", "Validación en tiempo real", "Registro automático de entrada"],
+      "El recepcionista escribe 2 letras y aparece el miembro. Un clic registra la entrada con validación en tiempo real.",
+    details: ["Búsqueda instantánea", "Validación de membresía activa", "QR o búsqueda manual"],
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="px-6 py-24">
-      <div className="mx-auto max-w-6xl">
+    <section id="how-it-works" className="px-6 py-28">
+      <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-16 text-center">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-[--gold]">
-            Flujo de trabajo
+        <div className="mb-20 text-center">
+          <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[--gold]">
+            Cómo funciona
           </p>
-          <h2 className="text-3xl font-bold text-[--tx-primary] sm:text-4xl">
-            Así funciona en el día a día
+          <h2 className="text-4xl font-extrabold tracking-tight text-[--tx-primary] sm:text-5xl">
+            Listo en 3 pasos
           </h2>
+          <p className="mx-auto mt-5 max-w-xl text-lg text-[--tx-muted]">
+            Sin instalación, sin servidores. Tu gym operando en minutos.
+          </p>
         </div>
 
-        {/* Steps */}
-        <div className="grid gap-8 lg:grid-cols-3">
-          {STEPS.map((step) => (
-            <div key={step.number} className="relative">
-              {/* Step number */}
-              <div
-                className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold"
-                style={{
-                  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-                  color: "var(--gold-fg)",
-                }}
-              >
-                {step.number}
-              </div>
+        {/* Steps grid */}
+        <div className="mx-auto max-w-5xl">
+          <div className="grid gap-8 lg:grid-cols-3">
+            {STEPS.map((step, idx) => (
+              <div key={step.number} className="relative">
+                {/* Connector arrow (desktop) */}
+                {idx < STEPS.length - 1 && (
+                  <div className="absolute -right-4 top-14 z-10 hidden text-[--tx-disabled] lg:block">
+                    <ArrowRight size={20} />
+                  </div>
+                )}
 
-              <h3 className="mb-3 text-xl font-semibold text-[--tx-primary]">
-                {step.title}
-              </h3>
-              <p className="mb-4 text-[--tx-muted]">{step.description}</p>
+                {/* Card */}
+                <div className="card-hover rounded-[20px] border border-[--bd-default] bg-[--bg-surface] p-8">
+                  {/* Number + Icon row */}
+                  <div className="mb-6 flex items-center gap-4">
+                    <div
+                      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-lg font-extrabold"
+                      style={{
+                        background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                        color: "var(--gold-fg)",
+                        boxShadow: "0 8px 30px rgba(212,175,55,0.2)",
+                      }}
+                    >
+                      {step.number}
+                    </div>
+                    <div
+                      className="flex h-10 w-10 items-center justify-center rounded-xl"
+                      style={{ background: "var(--gold-bg)", border: "1px solid var(--gold-bd)" }}
+                    >
+                      <step.icon size={18} className="text-[--gold]" />
+                    </div>
+                  </div>
 
-              <ul className="space-y-2">
-                {step.details.map((detail) => (
-                  <li key={detail} className="flex items-center gap-2 text-sm text-[--tx-muted]">
-                    <span
-                      className="h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: "var(--gold)" }}
-                    />
-                    {detail}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+                  <h3 className="mb-3 text-xl font-bold text-[--tx-primary]">
+                    {step.title}
+                  </h3>
+                  <p className="mb-5 text-sm leading-relaxed text-[--tx-muted]">
+                    {step.description}
+                  </p>
 
-        {/* Membership types */}
-        <div className="mt-20 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-8">
-          <h3 className="mb-6 text-center text-xl font-semibold text-[--tx-primary]">
-            Tipos de membresía disponibles
-          </h3>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { type: "Mensual", detail: "30 días", icon: "📅" },
-              { type: "Trimestral", detail: "90 días", icon: "📆" },
-              { type: "Semestral", detail: "180 días", icon: "🗓️" },
-              { type: "Anual", detail: "365 días", icon: "🏆" },
-              { type: "Pack 5 clases", detail: "5 sesiones", icon: "5️⃣" },
-              { type: "Pack 10 clases", detail: "10 sesiones", icon: "🔟" },
-              { type: "Pack 20 clases", detail: "20 sesiones", icon: "2️⃣0️⃣" },
-              { type: "Día suelto", detail: "Acceso de 1 día", icon: "☀️" },
-            ].map((m) => (
-              <div
-                key={m.type}
-                className="flex items-center gap-3 rounded-xl border border-[--bd-default] p-3"
-              >
-                <span className="text-xl">{m.icon}</span>
-                <div>
-                  <p className="text-sm font-medium text-[--tx-primary]">{m.type}</p>
-                  <p className="text-xs text-[--tx-disabled]">{m.detail}</p>
+                  <ul className="space-y-2.5">
+                    {step.details.map((detail) => (
+                      <li key={detail} className="flex items-center gap-2.5 text-sm text-[--tx-muted]">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[--gold]" />
+                        {detail}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             ))}
