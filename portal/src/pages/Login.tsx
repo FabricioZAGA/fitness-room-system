@@ -38,6 +38,8 @@ export default function Login(): React.JSX.Element {
   const [password, setPassword] = useState('')
   const [newPw, setNewPw] = useState('')
   const [confirmPw, setConfirmPw] = useState('')
+  const [givenName, setGivenName] = useState('')
+  const [familyName, setFamilyName] = useState('')
   const [resetCode, setResetCode] = useState('')
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -56,6 +58,8 @@ export default function Login(): React.JSX.Element {
     setSuccessMsg('')
     setNewPw('')
     setConfirmPw('')
+    setGivenName('')
+    setFamilyName('')
     setResetCode('')
   }
 
@@ -79,12 +83,13 @@ export default function Login(): React.JSX.Element {
   }
 
   const handleNewPassword = async (): Promise<void> => {
+    if (!givenName.trim() || !familyName.trim()) { setError('Ingresa tu nombre y apellido'); return }
     if (newPw !== confirmPw) { setError('Las contraseñas no coinciden'); return }
     if (newPw.length < 8) { setError('La contraseña debe tener al menos 8 caracteres'); return }
     setError('')
     setLoading(true)
     try {
-      await completeNewPassword(newPw)
+      await completeNewPassword(newPw, givenName.trim(), familyName.trim())
       navigate('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cambiar contraseña')
@@ -231,6 +236,12 @@ export default function Login(): React.JSX.Element {
         {/* ── NEW PASSWORD REQUIRED ── */}
         {step === 'newPasswordRequired' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <input type="text" placeholder="Nombre" value={givenName}
+                onChange={(e) => setGivenName(e.target.value)} style={inputStyle} />
+              <input type="text" placeholder="Apellido" value={familyName}
+                onChange={(e) => setFamilyName(e.target.value)} style={inputStyle} />
+            </div>
             <input type="password" placeholder="Nueva contraseña (mín. 8 caracteres)" value={newPw}
               onChange={(e) => setNewPw(e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, handleNewPassword)}
@@ -250,8 +261,8 @@ export default function Login(): React.JSX.Element {
               Mínimo 8 caracteres, incluir mayúsculas, minúsculas y números.
             </div>
             <button onClick={handleNewPassword}
-              disabled={loading || newPw.length < 8 || newPw !== confirmPw}
-              style={{ ...btnStyle, opacity: (loading || newPw.length < 8 || newPw !== confirmPw) ? 0.5 : 1 }}>
+              disabled={loading || !givenName.trim() || !familyName.trim() || newPw.length < 8 || newPw !== confirmPw}
+              style={{ ...btnStyle, opacity: (loading || !givenName.trim() || !familyName.trim() || newPw.length < 8 || newPw !== confirmPw) ? 0.5 : 1 }}>
               {loading ? 'Cambiando...' : 'Cambiar contraseña'}
             </button>
           </div>
