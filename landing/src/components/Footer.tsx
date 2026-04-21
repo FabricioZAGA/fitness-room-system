@@ -16,7 +16,7 @@ const LINKS = {
 
 export function Footer() {
   return (
-    <footer className="border-t border-[--bd-default] bg-[--bg-surface] px-6 py-16">
+    <footer className="px-6 py-16">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
@@ -45,13 +45,13 @@ export function Footer() {
                 href="https://github.com/FabricioZAGA/fitness-room-system"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[--bd-default] text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[--bg-surface] text-[--tx-muted] transition-all hover:text-[--gold]"
               >
                 <ExternalLink size={18} />
               </a>
               <a
                 href="mailto:fabricio@devzaga.com"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[--bd-default] text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[--bg-surface] text-[--tx-muted] transition-all hover:text-[--gold]"
               >
                 <Mail size={18} />
               </a>
@@ -89,7 +89,7 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-[--bd-default] pt-8 text-xs text-[--tx-disabled] sm:flex-row">
+        <div className="mt-14 flex flex-col items-center justify-between gap-4 pt-8 text-xs text-[--tx-disabled] sm:flex-row">
           <p>© 2026 Fitness Room. Todos los derechos reservados.</p>
           <p>
             React 19 · FastAPI · AWS Lambda · DynamoDB ·{" "}

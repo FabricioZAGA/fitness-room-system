@@ -18,7 +18,7 @@ export function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="glass sticky top-0 z-50 border-b border-[--bd-default]">
+    <header className="glass sticky top-0 z-50">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3">
@@ -68,7 +68,7 @@ export function Header() {
         {/* Mobile toggle */}
         <button
           onClick={() => setOpen(!open)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[--bd-default] text-[--tx-muted] md:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-[--bg-surface] text-[--tx-muted] md:hidden"
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -76,7 +76,7 @@ export function Header() {
 
       {/* Mobile Menu */}
       {open && (
-        <div className="glass animate-fade-in border-t border-[--bd-default] px-6 pb-6 pt-4 md:hidden">
+        <div className="glass animate-fade-in px-6 pb-6 pt-4 md:hidden">
           <nav className="flex flex-col gap-1">
             {NAV_LINKS.map((link) => (
               <Link

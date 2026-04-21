@@ -7,7 +7,7 @@ function FAQAccordion({ item }: { item: FAQItem }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border-b border-[--bd-default]">
+    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between py-5 text-left transition-colors hover:text-[--gold]"
@@ -48,10 +48,10 @@ export function FAQ({ preview = false }: { preview?: boolean }) {
       <div className="mb-8 flex flex-wrap gap-2">
         <button
           onClick={() => setActiveCategory("all")}
-          className={`rounded-xl border px-4 py-2 text-sm font-medium transition-all ${
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
             activeCategory === "all"
-              ? "border-[--gold-bd] bg-[--gold-bg] text-[--gold]"
-              : "border-[--bd-default] bg-[--bg-muted] text-[--tx-muted] hover:border-[--bd-subtle] hover:text-[--tx-primary]"
+              ? "bg-[--gold-bg] text-[--gold]"
+              : "bg-[--bg-surface] text-[--tx-muted] hover:text-[--tx-primary]"
           }`}
         >
           Todas
@@ -60,10 +60,10 @@ export function FAQ({ preview = false }: { preview?: boolean }) {
           <button
             key={key}
             onClick={() => setActiveCategory(key)}
-            className={`rounded-xl border px-4 py-2 text-sm font-medium transition-all ${
+            className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
               activeCategory === key
-                ? "border-[--gold-bd] bg-[--gold-bg] text-[--gold]"
-                : "border-[--bd-default] bg-[--bg-muted] text-[--tx-muted] hover:border-[--bd-subtle] hover:text-[--tx-primary]"
+                ? "bg-[--gold-bg] text-[--gold]"
+                : "bg-[--bg-surface] text-[--tx-muted] hover:text-[--tx-primary]"
             }`}
           >
             {label}
@@ -72,7 +72,7 @@ export function FAQ({ preview = false }: { preview?: boolean }) {
       </div>
 
       {/* Items */}
-      <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] px-6">
+      <div className="rounded-2xl bg-[--bg-surface] px-6">
         {displayItems.map((item) => (
           <FAQAccordion key={item.question} item={item} />
         ))}

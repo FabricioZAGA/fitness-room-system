@@ -131,14 +131,13 @@ export function Features() {
           {FEATURES.map((f) => (
             <div
               key={f.title}
-              className={`card-hover group rounded-[20px] border border-[--bd-default] bg-[--bg-surface] p-6 ${f.span ?? ""}`}
+              className={`card-hover group rounded-[20px] p-6 ${f.span ?? ""}`}
             >
               {/* Icon */}
               <div
                 className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl transition-all group-hover:scale-110"
                 style={{
                   background: "var(--gold-bg)",
-                  border: "1px solid var(--gold-bd)",
                 }}
               >
                 <f.icon size={20} className="text-[--gold]" />
@@ -156,7 +155,6 @@ export function Features() {
                 style={{
                   background: "var(--gold-bg)",
                   color: "var(--gold)",
-                  border: "1px solid var(--gold-bd)",
                 }}
               >
                 {f.tag}

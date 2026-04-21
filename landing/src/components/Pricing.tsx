@@ -88,14 +88,14 @@ export function Pricing() {
           {PLANS.map((plan) => (
             <div
               key={plan.name}
-              className={`relative flex flex-col rounded-[24px] border p-8 transition-all ${
+              className={`relative flex flex-col rounded-[24px] p-8 transition-all ${
                 plan.highlight
-                  ? "border-[--gold-bd] bg-[--bg-elevated]"
-                  : "border-[--bd-default] bg-[--bg-surface]"
+                  ? "bg-[--bg-elevated]"
+                  : "card-hover"
               }`}
               style={
                 plan.highlight
-                  ? { boxShadow: "0 0 60px rgba(212,175,55,0.08), 0 0 0 1px rgba(212,175,55,0.12)" }
+                  ? { boxShadow: "0 0 60px rgba(196,163,79,0.05), 0 0 0 1px rgba(196,163,79,0.1)" }
                   : undefined
               }
             >
@@ -141,16 +141,16 @@ export function Pricing() {
               <a
                 href={CONTACT_MAILTO}
                 className={`block rounded-2xl py-3.5 text-center text-sm font-semibold transition-all hover:scale-[1.02] ${
-                  plan.highlight ? "" : "border border-[--bd-default] text-[--tx-primary] hover:border-[--gold-bd]"
+                  plan.highlight ? "" : "text-[--tx-primary]"
                 }`}
                 style={
                   plan.highlight
                     ? {
                         background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
                         color: "var(--gold-fg)",
-                        boxShadow: "0 8px 30px rgba(212,175,55,0.2)",
+                        boxShadow: "0 8px 30px rgba(196,163,79,0.15)",
                       }
-                    : undefined
+                    : { border: "1px solid rgba(255,255,255,0.06)" }
                 }
               >
                 {plan.cta}

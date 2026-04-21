@@ -40,7 +40,7 @@ export default function FAQPage() {
           </div>
 
           {/* Quick links */}
-          <div className="mb-12 grid gap-4 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6 sm:grid-cols-3">
+          <div className="mb-12 grid gap-4 rounded-2xl bg-[--bg-surface] p-6 sm:grid-cols-3">
             <div className="flex items-start gap-3">
               <span className="text-2xl">⚡</span>
               <div>
@@ -68,7 +68,7 @@ export default function FAQPage() {
           <FAQ />
 
           {/* No answer found */}
-          <div className="mt-16 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-8 text-center">
+          <div className="mt-16 rounded-2xl bg-[--bg-surface] p-8 text-center">
             <p className="mb-2 text-lg font-semibold text-[--tx-primary]">
               ¿No encontraste lo que buscabas?
             </p>

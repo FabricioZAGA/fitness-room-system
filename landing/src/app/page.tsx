@@ -13,21 +13,13 @@ const CONTACT_MAILTO =
 
 export default function HomePage() {
   return (
-    <div className="noise min-h-screen bg-[--bg-base]">
+    <div className="min-h-screen bg-[--bg-base]">
       <Header />
       <main>
         <Hero />
         <Features />
 
-        {/* Gradient divider */}
-        <div className="mx-auto max-w-5xl px-6">
-          <div
-            className="h-px"
-            style={{
-              background: "linear-gradient(90deg, transparent, var(--gold-bd), transparent)",
-            }}
-          />
-        </div>
+        <div className="spacer my-4" />
 
         <Pricing />
         <HowItWorks />
@@ -50,7 +42,7 @@ export default function HomePage() {
             <div className="mt-10 text-center">
               <Link
                 href="/faq"
-                className="inline-flex items-center gap-2 rounded-2xl border border-[--bd-default] bg-[--bg-surface] px-6 py-3 text-sm font-semibold text-[--tx-primary] transition-all hover:border-[--gold-bd]"
+                className="inline-flex items-center gap-2 rounded-2xl bg-[--bg-surface] px-6 py-3 text-sm font-semibold text-[--tx-primary] transition-all hover:bg-[--bg-elevated]"
               >
                 Ver todas las preguntas →
               </Link>
@@ -91,7 +83,8 @@ export default function HomePage() {
               </a>
               <Link
                 href="/faq"
-                className="w-full rounded-2xl border border-[--bd-default] bg-[--bg-surface] px-10 py-4 text-base font-semibold text-[--tx-primary] transition-all hover:border-[--gold-bd] sm:w-auto"
+                className="w-full rounded-2xl px-10 py-4 text-base font-semibold text-[--tx-primary] transition-all hover:bg-[--bg-elevated] sm:w-auto"
+                style={{ border: '1px solid rgba(255,255,255,0.06)' }}
               >
                 Más información
               </Link>

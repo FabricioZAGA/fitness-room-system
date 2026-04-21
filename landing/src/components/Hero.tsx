@@ -109,7 +109,8 @@ export function Hero() {
           </a>
           <a
             href="#features"
-            className="w-full rounded-2xl border border-[--bd-default] bg-[--bg-elevated]/50 px-10 py-4 text-base font-semibold text-[--tx-primary] transition-all hover:border-[--gold-bd] hover:bg-[--bg-elevated] sm:w-auto"
+            className="w-full rounded-2xl px-10 py-4 text-base font-semibold text-[--tx-primary] transition-all hover:bg-[--bg-elevated] sm:w-auto"
+            style={{ border: '1px solid rgba(255,255,255,0.06)' }}
           >
             Explorar funciones
           </a>
@@ -122,7 +123,7 @@ export function Hero() {
         >
           {STATS.map((stat) => (
             <div key={stat.label} className="group text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-[--bd-default] bg-[--bg-elevated] transition-all group-hover:border-[--gold-bd] group-hover:bg-[--gold-bg]">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[--bg-elevated] transition-all group-hover:bg-[--gold-bg]">
                 <stat.icon size={20} className="text-[--gold]" />
               </div>
               <p className="text-2xl font-bold text-[--tx-primary] sm:text-3xl">

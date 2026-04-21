@@ -50,7 +50,7 @@ export function Testimonials() {
           {TESTIMONIALS.map((t) => (
             <div
               key={t.name}
-              className="card-hover flex flex-col rounded-[20px] border border-[--bd-default] bg-[--bg-surface] p-8"
+              className="card-hover flex flex-col rounded-[20px] p-8"
             >
               {/* Stars */}
               <div className="mb-5 flex gap-1">
@@ -65,7 +65,7 @@ export function Testimonials() {
               </p>
 
               {/* Author */}
-              <div className="flex items-center gap-3 border-t border-[--bd-default] pt-5">
+              <div className="flex items-center gap-3 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
                 <div
                   className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
                   style={{

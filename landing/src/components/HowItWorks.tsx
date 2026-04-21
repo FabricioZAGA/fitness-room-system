@@ -65,7 +65,7 @@ export function HowItWorks() {
                 )}
 
                 {/* Card */}
-                <div className="card-hover rounded-[20px] border border-[--bd-default] bg-[--bg-surface] p-8">
+                <div className="card-hover rounded-[20px] p-8">
                   {/* Number + Icon row */}
                   <div className="mb-6 flex items-center gap-4">
                     <div
@@ -80,7 +80,7 @@ export function HowItWorks() {
                     </div>
                     <div
                       className="flex h-10 w-10 items-center justify-center rounded-xl"
-                      style={{ background: "var(--gold-bg)", border: "1px solid var(--gold-bd)" }}
+                      style={{ background: "var(--gold-bg)" }}
                     >
                       <step.icon size={18} className="text-[--gold]" />
                     </div>
