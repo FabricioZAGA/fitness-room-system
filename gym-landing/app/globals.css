@@ -1,37 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  /* Warm dark palette — no pure black or pure white */
-  --bg: #0a0a0b;
-  --bg-warm: #0f0e0d;
-  --surface: #151413;
-  --surface-warm: #1a1917;
-  --elevated: #1f1e1c;
-  --elevated-2: #262523;
-  --border: rgba(212,175,55,0.08);
-  --border-subtle: rgba(255,255,255,0.04);
+  /* Warm dark palette — seamless tones, no visible jumps */
+  --bg: #0b0b0c;
+  --surface: #111112;
+  --elevated: #18181a;
 
-  /* Text — cream-warm tones, never pure white */
-  --text: #ede8df;
-  --text-secondary: #b8b0a2;
-  --text-muted: #807a6f;
-  --text-dim: #5a5549;
+  /* Borders — almost invisible, just enough to define without cutting */
+  --border: rgba(255,255,255,0.035);
+  --border-hover: rgba(201,168,76,0.12);
 
-  /* Gold system */
-  --gold: #c9a84c;
-  --gold-vivid: #dbb94d;
-  --gold-hover: #e0c85e;
-  --gold-soft: #b89a42;
-  --gold-bg: rgba(201,168,76,0.07);
-  --gold-bd: rgba(201,168,76,0.15);
-  --gold-glow: rgba(201,168,76,0.12);
+  /* Text — warm cream tones, never pure white */
+  --text: #e8e3da;
+  --text-secondary: #a9a196;
+  --text-muted: #706b63;
+  --text-dim: #4d4943;
 
-  /* Radius system */
+  /* Gold system — warmer, less saturated */
+  --gold: #c4a34f;
+  --gold-vivid: #d4b458;
+  --gold-hover: #dfc06a;
+  --gold-soft: #a8903e;
+  --gold-bg: rgba(196,163,79,0.06);
+  --gold-bd: rgba(196,163,79,0.12);
+  --gold-glow: rgba(196,163,79,0.08);
+
+  /* Radius */
   --r-sm: 12px;
   --r-md: 16px;
   --r-lg: 20px;
-  --r-xl: 28px;
-  --r-full: 9999px;
+  --r-xl: 24px;
 }
 
 /* ── KEYFRAMES ── */
@@ -86,9 +84,9 @@
 /* ── UTILITIES ── */
 @layer utilities {
   .glass {
-    background: rgba(15,14,13,0.72);
-    backdrop-filter: blur(24px) saturate(1.6);
-    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    background: rgba(11,11,12,0.8);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
   }
   .animate-fade-up {
     animation: fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -133,29 +131,29 @@
     font-size: 15px;
     color: var(--text);
     background: transparent;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255,255,255,0.06);
     transition: all 0.3s ease;
     text-decoration: none;
     cursor: pointer;
   }
   .btn-ghost:hover {
-    border-color: var(--gold-bd);
+    border-color: rgba(196,163,79,0.18);
     background: var(--gold-bg);
     color: var(--gold-vivid);
   }
 
-  /* Card with warm glow on hover */
+  /* Card — shadow-defined, no hard borders */
   .card {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1px solid transparent;
     border-radius: var(--r-lg);
-    transition: all 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.025);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
   .card:hover {
-    border-color: var(--gold-bd);
-    background: var(--surface-warm);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px var(--gold-bd);
-    transform: translateY(-4px);
+    background: var(--elevated);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.35), 0 0 0 1px var(--border-hover);
+    transform: translateY(-3px);
   }
 
   /* Soft image treatment */
@@ -187,11 +185,11 @@
     background: var(--gold-soft);
   }
 
-  /* Divider with gradient */
-  .divider {
+  /* Seamless section spacer — no visible line */
+  .spacer {
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--gold-bd), transparent);
+    background: linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.025) 50%, transparent 90%);
     margin: 0 auto;
-    max-width: 320px;
+    max-width: 400px;
   }
 }

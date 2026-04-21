@@ -28,7 +28,7 @@ export default function GymLanding() {
     <div className="min-h-screen">
 
       {/* ═══ NAV ═══ */}
-      <nav className="glass sticky top-0 z-50 border-b border-[--border-subtle]">
+      <nav className="glass sticky top-0 z-50">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
           <a href="#" className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-extrabold" style={{ background: "linear-gradient(135deg, var(--gold-vivid), var(--gold-hover))", color: "var(--bg)" }}>
@@ -90,7 +90,7 @@ export default function GymLanding() {
           {/* Social proof strip — immediately after CTA */}
           <div className="animate-fade-up mt-14 grid grid-cols-2 gap-4 sm:grid-cols-4" style={{ animationDelay: "0.36s" }}>
             {SOCIAL_PROOF.map((s) => (
-              <div key={s.label} className="rounded-2xl border border-[--border-subtle] bg-[--surface]/60 px-4 py-4 backdrop-blur-sm">
+              <div key={s.label} className="rounded-2xl bg-[--surface]/50 px-4 py-4 backdrop-blur-sm">
                 <p className="text-2xl font-bold text-[--gold-vivid]">{s.value}</p>
                 <p className="mt-0.5 text-[12px] text-[--text-muted]">{s.label}</p>
               </div>
@@ -111,7 +111,7 @@ export default function GymLanding() {
           <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {BENEFITS.map((b) => (
               <div key={b.title} className="card group p-6">
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[--gold-bg] border border-[--gold-bd] transition-transform group-hover:scale-110">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[--gold-bg] transition-transform group-hover:scale-110">
                   <b.icon size={20} className="text-[--gold]" />
                 </div>
                 <h3 className="mb-1.5 text-[15px] font-semibold text-[--text]">{b.title}</h3>
@@ -122,12 +122,12 @@ export default function GymLanding() {
         </div>
       </section>
 
-      <div className="divider" />
+      <div className="spacer my-4" />
 
       {/* ═══ ABOUT — Story with image ═══ */}
       <section className="px-6 py-24">
         <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-2">
-          <div className="group overflow-hidden rounded-[var(--r-xl)] border border-[--border]">
+          <div className="group overflow-hidden rounded-[var(--r-xl)]">
             <img src={c.images.about} alt="Interior del gym" className="img-cover aspect-[4/3]" loading="lazy" />
           </div>
           <div>
@@ -147,7 +147,7 @@ export default function GymLanding() {
         </div>
       </section>
 
-      <div className="divider" />
+      <div className="spacer my-4" />
 
       {/* ═══ CLASSES ═══ */}
       <section id="clases" className="px-6 py-24">
@@ -179,7 +179,7 @@ export default function GymLanding() {
       </section>
 
       {/* ═══ TRAINERS ═══ */}
-      <section className="px-6 py-24 bg-[--bg-warm]">
+      <section className="px-6 py-24">
         <div className="mx-auto max-w-6xl">
           <div className="text-center">
             <p className="section-label">Nuestro equipo</p>
@@ -219,8 +219,8 @@ export default function GymLanding() {
               return (
                 <div
                   key={plan.name}
-                  className={`relative flex flex-col rounded-[var(--r-xl)] border p-7 transition-all ${isHl ? "border-[--gold-bd] bg-[--elevated]" : "card"}`}
-                  style={isHl ? { boxShadow: "0 0 80px rgba(201,168,76,0.06), 0 0 0 1px var(--gold-bd)" } : undefined}
+                  className={`relative flex flex-col rounded-[var(--r-xl)] p-7 transition-all ${isHl ? "bg-[--elevated]" : "card"}`}
+                  style={isHl ? { boxShadow: "0 0 60px rgba(196,163,79,0.05), 0 0 0 1px rgba(196,163,79,0.1)" } : undefined}
                 >
                   {isHl && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -256,7 +256,7 @@ export default function GymLanding() {
         </div>
       </section>
 
-      <div className="divider" />
+      <div className="spacer my-4" />
 
       {/* ═══ SCHEDULE ═══ */}
       <section id="horarios" className="px-6 py-24">
@@ -293,7 +293,7 @@ export default function GymLanding() {
                 { icon: Mail, main: c.contact.email, sub: "Escríbenos para más info" },
               ].map((item) => (
                 <div key={item.main} className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[--gold-bg] border border-[--gold-bd]">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[--gold-bg]">
                     <item.icon size={19} className="text-[--gold]" />
                   </div>
                   <div>
@@ -305,18 +305,18 @@ export default function GymLanding() {
               {/* Social */}
               <div className="flex gap-2.5 pt-2">
                 {c.contact.instagram && (
-                  <a href={`https://instagram.com/${c.contact.instagram}`} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-lg border border-[--border] text-[--text-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]">
+                  <a href={`https://instagram.com/${c.contact.instagram}`} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-lg bg-[--surface] text-[--text-muted] transition-all hover:text-[--gold]">
                     <Camera size={17} />
                   </a>
                 )}
                 {c.contact.tiktok && (
-                  <a href={`https://tiktok.com/@${c.contact.tiktok}`} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-lg border border-[--border] text-[--text-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]">
+                  <a href={`https://tiktok.com/@${c.contact.tiktok}`} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-lg bg-[--surface] text-[--text-muted] transition-all hover:text-[--gold]">
                     <Dumbbell size={17} />
                   </a>
                 )}
               </div>
             </div>
-            <div className="overflow-hidden rounded-[var(--r-xl)] border border-[--border]">
+            <div className="overflow-hidden rounded-[var(--r-xl)]">
               <iframe
                 src={c.location.googleMapsUrl}
                 width="100%"
@@ -335,8 +335,8 @@ export default function GymLanding() {
       {/* ═══ CTA FINAL ═══ */}
       <section className="relative overflow-hidden px-6 py-28">
         <div className="absolute inset-0">
-          <img src={c.images.cta} alt="" className="h-full w-full object-cover opacity-30" />
-          <div className="absolute inset-0 bg-[--bg]/80" />
+          <img src={c.images.cta} alt="" className="h-full w-full object-cover opacity-20" />
+          <div className="absolute inset-0 bg-[--bg]/85" />
         </div>
         <div className="relative z-10 mx-auto max-w-2xl text-center">
           <p className="section-label justify-center">Da el primer paso</p>
@@ -358,7 +358,7 @@ export default function GymLanding() {
       </section>
 
       {/* ═══ FOOTER ═══ */}
-      <footer className="border-t border-[--border-subtle] px-6 py-10">
+      <footer className="px-6 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 sm:flex-row">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg text-[11px] font-extrabold" style={{ background: "linear-gradient(135deg, var(--gold-vivid), var(--gold-hover))", color: "var(--bg)" }}>
