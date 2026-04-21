@@ -1,64 +1,32 @@
 import { UserPlus, CalendarCheck, ScanLine, ArrowRight, type LucideIcon } from "lucide-react";
+import type { DictHowItWorks } from "@/lib/i18n";
 
-interface Step {
-  number: string;
-  title: string;
-  description: string;
-  details: string[];
-  icon: LucideIcon;
-}
+const STEP_ICONS: LucideIcon[] = [UserPlus, CalendarCheck, ScanLine];
 
-const STEPS: Step[] = [
-  {
-    number: "01",
-    icon: UserPlus,
-    title: "Registra a tus miembros",
-    description:
-      "Agrega nombre, correo y teléfono. Asigna la membresía y el sistema calcula fechas de vencimiento automáticamente.",
-    details: ["Datos completos + contacto de emergencia", "Membresía con cálculo automático de fechas", "Carta responsiva en PDF"],
-  },
-  {
-    number: "02",
-    icon: CalendarCheck,
-    title: "Gestiona tus clases",
-    description:
-      "Programa clases con instructor, horario y capacidad. Lista de espera automática cuando se llena la clase.",
-    details: ["Zumba, Pilates, Yoga, Spinning y más", "Capacidad máxima configurable", "Lista de espera inteligente"],
-  },
-  {
-    number: "03",
-    icon: ScanLine,
-    title: "Check-in en 2 segundos",
-    description:
-      "El recepcionista escribe 2 letras y aparece el miembro. Un clic registra la entrada con validación en tiempo real.",
-    details: ["Búsqueda instantánea", "Validación de membresía activa", "QR o búsqueda manual"],
-  },
-];
-
-export function HowItWorks() {
+export function HowItWorks({ t }: { t: DictHowItWorks }) {
   return (
     <section id="how-it-works" className="px-6 py-28">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-20 text-center">
           <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[--gold]">
-            Cómo funciona
+            {t.label}
           </p>
           <h2 className="text-4xl font-extrabold tracking-tight text-[--tx-primary] sm:text-5xl">
-            Listo en 3 pasos
+            {t.title}
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-lg text-[--tx-muted]">
-            Sin instalación, sin servidores. Tu gym operando en minutos.
+            {t.subtitle}
           </p>
         </div>
 
         {/* Steps grid */}
         <div className="mx-auto max-w-5xl">
           <div className="grid gap-8 lg:grid-cols-3">
-            {STEPS.map((step, idx) => (
+            {t.steps.map((step, idx) => (
               <div key={step.number} className="relative">
                 {/* Connector arrow (desktop) */}
-                {idx < STEPS.length - 1 && (
+                {idx < t.steps.length - 1 && (
                   <div className="absolute -right-4 top-14 z-10 hidden text-[--tx-disabled] lg:block">
                     <ArrowRight size={20} />
                   </div>
@@ -82,7 +50,7 @@ export function HowItWorks() {
                       className="flex h-10 w-10 items-center justify-center rounded-xl"
                       style={{ background: "var(--gold-bg)" }}
                     >
-                      <step.icon size={18} className="text-[--gold]" />
+                      {(() => { const Icon = STEP_ICONS[idx] ?? UserPlus; return <Icon size={18} className="text-[--gold]" />; })()}
                     </div>
                   </div>
 

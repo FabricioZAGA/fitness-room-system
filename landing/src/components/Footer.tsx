@@ -1,20 +1,26 @@
 import Link from "next/link";
 import { ExternalLink, Mail } from "lucide-react";
+import type { DictFooter, DictNav, Locale } from "@/lib/i18n";
 
-const LINKS = {
-  Producto: [
-    { href: "/#features", label: "Funciones" },
-    { href: "/#pricing", label: "Precios" },
-    { href: "/#how-it-works", label: "Cómo funciona" },
-    { href: "/faq", label: "FAQ" },
-  ],
-  Recursos: [
+interface FooterProps {
+  locale: Locale;
+  t: DictFooter;
+  nav: DictNav;
+}
+
+export function Footer({ locale, t, nav }: FooterProps) {
+  const prefix = `/${locale}`;
+  const productLinks = [
+    { href: `${prefix}/#features`, label: nav.features },
+    { href: `${prefix}/#pricing`, label: nav.pricing },
+    { href: `${prefix}/#how-it-works`, label: nav.howItWorks },
+    { href: `${prefix}/faq/`, label: nav.faq },
+  ];
+  const resourceLinks = [
     { href: "https://github.com/FabricioZAGA/fitness-room-system", label: "GitHub", external: true },
     { href: "mailto:fabricio@devzaga.com", label: "Contacto", external: true },
-  ],
-};
+  ];
 
-export function Footer() {
   return (
     <footer className="px-6 py-16">
       <div className="mx-auto max-w-7xl">
@@ -27,7 +33,7 @@ export function Footer() {
                 style={{
                   background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
                   color: "var(--gold-fg)",
-                  boxShadow: "0 4px 20px rgba(212,175,55,0.15)",
+                  boxShadow: "0 4px 20px rgba(196,163,79,0.15)",
                 }}
               >
                 FR
@@ -37,8 +43,7 @@ export function Footer() {
               </span>
             </div>
             <p className="mb-6 max-w-sm text-sm leading-relaxed text-[--tx-muted]">
-              Sistema integral de gestión para gimnasios y estudios de fitness.
-              Diseñado en México, corriendo en AWS.
+              {t.description}
             </p>
             <div className="flex gap-3">
               <a
@@ -58,41 +63,35 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Link columns */}
-          {Object.entries(LINKS).map(([title, links]) => (
-            <div key={title}>
-              <p className="mb-4 text-sm font-semibold text-[--tx-primary]">{title}</p>
-              <nav className="flex flex-col gap-2.5 text-sm">
-                {links.map((link) =>
-                  "external" in link ? (
-                    <a
-                      key={link.label}
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[--tx-muted] transition-colors hover:text-[--tx-primary]"
-                    >
-                      {link.label}
-                    </a>
-                  ) : (
-                    <Link
-                      key={link.label}
-                      href={link.href}
-                      className="text-[--tx-muted] transition-colors hover:text-[--tx-primary]"
-                    >
-                      {link.label}
-                    </Link>
-                  ),
-                )}
-              </nav>
-            </div>
-          ))}
+          {/* Product links */}
+          <div>
+            <p className="mb-4 text-sm font-semibold text-[--tx-primary]">{t.productLabel}</p>
+            <nav className="flex flex-col gap-2.5 text-sm">
+              {productLinks.map((link) => (
+                <Link key={link.href} href={link.href} className="text-[--tx-muted] transition-colors hover:text-[--tx-primary]">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          {/* Resource links */}
+          <div>
+            <p className="mb-4 text-sm font-semibold text-[--tx-primary]">{t.resourcesLabel}</p>
+            <nav className="flex flex-col gap-2.5 text-sm">
+              {resourceLinks.map((link) => (
+                <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="text-[--tx-muted] transition-colors hover:text-[--tx-primary]">
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+          </div>
         </div>
 
         <div className="mt-14 flex flex-col items-center justify-between gap-4 pt-8 text-xs text-[--tx-disabled] sm:flex-row">
-          <p>© 2026 Fitness Room. Todos los derechos reservados.</p>
+          <p>{t.copyright}</p>
           <p>
-            React 19 · FastAPI · AWS Lambda · DynamoDB ·{" "}
+            {t.techStack} ·{" "}
             <span className="text-[--gold]">Serverless</span>
           </p>
         </div>

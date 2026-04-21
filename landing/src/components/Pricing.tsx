@@ -1,91 +1,29 @@
 import { Check, Star } from "lucide-react";
+import type { DictPricing } from "@/lib/i18n";
 
 const CONTACT_MAILTO =
   "mailto:fabricio@devzaga.com?subject=Interesado%20en%20Fitness%20Room%20System&body=Hola%2C%0A%0AEstoy%20interesado%20en%20implementar%20Fitness%20Room%20System%20en%20mi%20gimnasio.%0A%0APor%20favor%20comparteme%20más%20información.%0A%0AGracias.";
 
-interface Plan {
-  name: string;
-  description: string;
-  price: string;
-  period: string;
-  features: string[];
-  highlight?: boolean;
-  badge?: string;
-  cta: string;
-}
-
-const PLANS: Plan[] = [
-  {
-    name: "Starter",
-    description: "Para gimnasios pequeños que inician su digitalización",
-    price: "$2,499",
-    period: "/mes MXN",
-    cta: "Comenzar",
-    features: [
-      "Hasta 100 alumnos activos",
-      "Check-in y membresías",
-      "Clases grupales básicas",
-      "1 usuario administrador",
-      "Soporte por email",
-    ],
-  },
-  {
-    name: "Professional",
-    description: "Todo lo que necesitas para operar sin límites",
-    price: "$4,999",
-    period: "/mes MXN",
-    highlight: true,
-    badge: "Más popular",
-    cta: "Elegir plan",
-    features: [
-      "Alumnos ilimitados",
-      "Check-in + QR kiosco",
-      "Portal del alumno",
-      "Reportes Excel + PDF",
-      "Notificaciones por email",
-      "3 usuarios administradores",
-      "Modo oscuro y claro",
-      "Soporte prioritario",
-    ],
-  },
-  {
-    name: "Enterprise",
-    description: "Para cadenas y estudios con múltiples sucursales",
-    price: "Personalizado",
-    period: "",
-    cta: "Contactar",
-    features: [
-      "Todo en Professional",
-      "Multi-sucursal",
-      "API personalizada",
-      "Usuarios admin ilimitados",
-      "Integración WhatsApp",
-      "SLA garantizado",
-      "Soporte dedicado 24/7",
-    ],
-  },
-];
-
-export function Pricing() {
+export function Pricing({ t }: { t: DictPricing }) {
   return (
     <section id="pricing" className="px-6 py-28">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-20 text-center">
           <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[--gold]">
-            Precios
+            {t.label}
           </p>
           <h2 className="text-4xl font-extrabold tracking-tight text-[--tx-primary] sm:text-5xl">
-            Simple y transparente
+            {t.title}
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-[--tx-muted]">
-            Sin contratos largos. Sin costos ocultos. Cancela cuando quieras.
+            {t.subtitle}
           </p>
         </div>
 
         {/* Cards */}
         <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-3">
-          {PLANS.map((plan) => (
+          {t.plans.map((plan) => (
             <div
               key={plan.name}
               className={`relative flex flex-col rounded-[24px] p-8 transition-all ${
@@ -161,7 +99,7 @@ export function Pricing() {
 
         {/* Guarantee */}
         <p className="mt-12 text-center text-sm text-[--tx-disabled]">
-          14 días de prueba gratis en todos los planes. Sin tarjeta de crédito.
+          {t.guarantee}
         </p>
       </div>
     </section>

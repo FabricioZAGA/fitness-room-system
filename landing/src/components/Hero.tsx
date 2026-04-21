@@ -1,35 +1,29 @@
 "use client";
 
 import { Zap, Shield, Globe } from "lucide-react";
+import type { DictHero } from "@/lib/i18n";
 
-const STATS = [
-  { value: "100%", label: "En la nube", icon: Globe },
-  { value: "< 200ms", label: "Tiempo respuesta", icon: Zap },
-  { value: "99.9%", label: "Disponibilidad", icon: Shield },
-];
+const STAT_ICONS = [Globe, Zap, Shield];
 
-export function Hero() {
+export function Hero({ t }: { t: DictHero }) {
   return (
     <section className="relative overflow-hidden px-6 pb-32 pt-24">
       {/* Multi-layer background */}
       <div className="absolute inset-0 -z-10">
-        {/* Main radial glow */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 60% 40% at 50% -5%, rgba(212,175,55,0.15) 0%, transparent 70%)",
+              "radial-gradient(ellipse 60% 40% at 50% -5%, rgba(196,163,79,0.12) 0%, transparent 70%)",
           }}
         />
-        {/* Secondary accent */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(circle 600px at 80% 60%, rgba(212,175,55,0.04) 0%, transparent 70%)",
+              "radial-gradient(circle 600px at 80% 60%, rgba(196,163,79,0.04) 0%, transparent 70%)",
           }}
         />
-        {/* Grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -71,24 +65,21 @@ export function Hero() {
             />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-[--gold]" />
           </span>
-          Disponible ahora — Listo para producción
+          {t.badge}
         </div>
 
         {/* Headline */}
-        <h1
-          className="animate-slide-up text-5xl font-extrabold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl"
-        >
-          <span className="text-[--tx-primary]">La plataforma que </span>
+        <h1 className="animate-slide-up text-5xl font-extrabold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
+          <span className="text-[--tx-primary]">{t.headline1}</span>
           <br className="hidden sm:block" />
-          <span className="gradient-text">tu gimnasio necesita</span>
+          <span className="gradient-text">{t.headline2}</span>
         </h1>
 
         <p
           className="animate-slide-up mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-[--tx-muted] sm:text-xl"
           style={{ animationDelay: "0.15s" }}
         >
-          Membresías, check-in, clases, instructores y portal del alumno.
-          Todo en un solo sistema diseñado para estudios de fitness en México.
+          {t.subtitle}
         </p>
 
         {/* CTAs */}
@@ -102,17 +93,17 @@ export function Hero() {
             style={{
               background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
               color: "var(--gold-fg)",
-              boxShadow: "0 10px 40px rgba(212,175,55,0.25)",
+              boxShadow: "0 10px 40px rgba(196,163,79,0.2)",
             }}
           >
-            <span className="relative z-10">Comenzar ahora</span>
+            <span className="relative z-10">{t.ctaPrimary}</span>
           </a>
           <a
             href="#features"
             className="w-full rounded-2xl px-10 py-4 text-base font-semibold text-[--tx-primary] transition-all hover:bg-[--bg-elevated] sm:w-auto"
-            style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ border: "1px solid rgba(255,255,255,0.06)" }}
           >
-            Explorar funciones
+            {t.ctaSecondary}
           </a>
         </div>
 
@@ -121,17 +112,18 @@ export function Hero() {
           className="animate-slide-up mx-auto mt-20 grid max-w-3xl grid-cols-3 gap-8"
           style={{ animationDelay: "0.45s" }}
         >
-          {STATS.map((stat) => (
-            <div key={stat.label} className="group text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[--bg-elevated] transition-all group-hover:bg-[--gold-bg]">
-                <stat.icon size={20} className="text-[--gold]" />
+          {t.stats.map((stat, i) => {
+            const Icon = STAT_ICONS[i] ?? Globe;
+            return (
+              <div key={stat.label} className="group text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[--bg-elevated] transition-all group-hover:bg-[--gold-bg]">
+                  <Icon size={20} className="text-[--gold]" />
+                </div>
+                <p className="text-2xl font-bold text-[--tx-primary] sm:text-3xl">{stat.value}</p>
+                <p className="mt-1 text-sm text-[--tx-muted]">{stat.label}</p>
               </div>
-              <p className="text-2xl font-bold text-[--tx-primary] sm:text-3xl">
-                {stat.value}
-              </p>
-              <p className="mt-1 text-sm text-[--tx-muted]">{stat.label}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Trust strip */}
@@ -139,15 +131,14 @@ export function Hero() {
           className="animate-fade-in mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-[--tx-disabled]"
           style={{ animationDelay: "0.6s" }}
         >
-          <span className="flex items-center gap-1.5">
-            <Shield size={14} className="text-[--gold]" /> Cifrado TLS 256-bit
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="text-[--gold]">AWS</span> Lambda + DynamoDB
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Globe size={14} className="text-[--gold]" /> Hecho en México
-          </span>
+          {t.trust.map((item, i) => (
+            <span key={i} className="flex items-center gap-1.5">
+              {i === 0 && <Shield size={14} className="text-[--gold]" />}
+              {i === 1 && <span className="text-[--gold]">AWS</span>}
+              {i === 2 && <Globe size={14} className="text-[--gold]" />}
+              {i === 1 ? item.replace("AWS ", "") : item}
+            </span>
+          ))}
         </div>
       </div>
     </section>

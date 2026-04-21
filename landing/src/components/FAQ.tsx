@@ -1,13 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { FAQ_ITEMS, FAQ_CATEGORIES, type FAQItem } from "@/lib/faq-data";
+import type { DictFaqData } from "@/lib/i18n";
 
-function FAQAccordion({ item }: { item: FAQItem }) {
+interface FaqItem {
+  category: string;
+  question: string;
+  answer: string;
+}
+
+function FAQAccordion({ item }: { item: FaqItem }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+    <div style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between py-5 text-left transition-colors hover:text-[--gold]"
@@ -32,13 +38,18 @@ function FAQAccordion({ item }: { item: FAQItem }) {
   );
 }
 
-export function FAQ({ preview = false }: { preview?: boolean }) {
+interface FAQProps {
+  t: DictFaqData;
+  preview?: boolean;
+}
+
+export function FAQ({ t, preview = false }: FAQProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
   const filtered =
     activeCategory === "all"
-      ? FAQ_ITEMS
-      : FAQ_ITEMS.filter((i) => i.category === activeCategory);
+      ? t.items
+      : t.items.filter((i) => i.category === activeCategory);
 
   const displayItems = preview ? filtered.slice(0, 6) : filtered;
 
@@ -54,9 +65,9 @@ export function FAQ({ preview = false }: { preview?: boolean }) {
               : "bg-[--bg-surface] text-[--tx-muted] hover:text-[--tx-primary]"
           }`}
         >
-          Todas
+          {t.allCategory}
         </button>
-        {Object.entries(FAQ_CATEGORIES).map(([key, label]) => (
+        {Object.entries(t.categories).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setActiveCategory(key)}
