@@ -86,6 +86,8 @@ _cors_origins = (
     else [
         settings.frontend_url,
         settings.portal_url,
+        "https://d3awxegxyh5p20.cloudfront.net",
+        "https://d36xs3aztdpnk5.cloudfront.net",
         "http://localhost:5173",
         "http://localhost:3001",
     ]

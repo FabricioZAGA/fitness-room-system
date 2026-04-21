@@ -38,7 +38,7 @@ def _base_layout(title: str, content: str, gym_name: str = "Fitness Room") -> st
           <tr>
             <td style="padding:24px 0;text-align:center;">
               <p style="margin:0;font-size:12px;color:#555555;">
-                Este correo fue enviado por {gym_name}.<br>
+                Este correo fue enviado por {gym_name} — <a href="https://portal.fitnessroom.mx" style="color:#d4af37;text-decoration:none;">portal.fitnessroom.mx</a><br>
                 Si tienes dudas, contacta directamente al gimnasio.
               </p>
             </td>

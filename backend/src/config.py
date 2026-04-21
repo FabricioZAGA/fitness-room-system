@@ -50,7 +50,7 @@ class Settings(BaseSettings):
 
     # ── SES / Notifications ────────────────────────────────────────────────────
     ses_sender_email: str = Field(
-        default="noreply@fitness-room.mx",
+        default="noreply@fitnessroom.mx",
         description="Verified SES sender email address",
     )
     ses_sender_name: str = Field(

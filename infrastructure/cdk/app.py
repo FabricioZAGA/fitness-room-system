@@ -27,11 +27,11 @@ app = cdk.App()
 
 ENV_NAME = "prod"
 
-domain: str = app.node.try_get_context("domain") or ""
-admin_subdomain: str = app.node.try_get_context("adminSubdomain") or "app"
+domain: str = app.node.try_get_context("domain") or "fitnessroom.mx"
+admin_subdomain: str = app.node.try_get_context("adminSubdomain") or "admin"
 portal_subdomain: str = app.node.try_get_context("portalSubdomain") or "portal"
 api_subdomain: str = app.node.try_get_context("apiSubdomain") or "api"
-sender_email: str = app.node.try_get_context("senderEmail") or "devzaga@gmail.com"
+sender_email: str = app.node.try_get_context("senderEmail") or "noreply@fitnessroom.mx"
 sender_name: str = app.node.try_get_context("senderName") or "Fitness Room"
 project_name: str = app.node.try_get_context("projectName") or "fitness-room"
 
