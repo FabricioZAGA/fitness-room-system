@@ -16,6 +16,9 @@ import {
   signOut,
   signUp,
   confirmSignUp,
+  confirmSignIn,
+  resetPassword,
+  confirmResetPassword,
   getCurrentUser,
   fetchAuthSession,
   type SignInInput,
@@ -29,11 +32,18 @@ export interface User {
   groups: string[];
 }
 
+export type AuthStep = "login" | "newPasswordRequired" | "forgotPassword" | "confirmReset";
+
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  authStep: AuthStep;
   login: (email: string, password: string) => Promise<void>;
+  completeNewPassword: (newPassword: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  confirmForgotPassword: (email: string, code: string, newPassword: string) => Promise<void>;
+  resetAuthStep: () => void;
   logout: () => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   confirmAccount: (email: string, code: string) => Promise<void>;
@@ -45,6 +55,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }): React.JSX.Element {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authStep, setAuthStep] = useState<AuthStep>("login");
 
   const isLocalDev = import.meta.env.VITE_APP_ENV === "local";
 
@@ -85,8 +96,40 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
 
   const login = async (email: string, password: string): Promise<void> => {
     const input: SignInInput = { username: email, password };
-    await signIn(input);
+    const result = await signIn(input);
+
+    if (
+      result.nextStep?.signInStep === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED"
+    ) {
+      setAuthStep("newPasswordRequired");
+      return;
+    }
+
     await checkUser();
+  };
+
+  const completeNewPassword = async (newPassword: string): Promise<void> => {
+    await confirmSignIn({ challengeResponse: newPassword });
+    setAuthStep("login");
+    await checkUser();
+  };
+
+  const forgotPassword = async (email: string): Promise<void> => {
+    await resetPassword({ username: email });
+    setAuthStep("confirmReset");
+  };
+
+  const confirmForgotPassword = async (
+    email: string,
+    code: string,
+    newPassword: string,
+  ): Promise<void> => {
+    await confirmResetPassword({ username: email, confirmationCode: code, newPassword });
+    setAuthStep("login");
+  };
+
+  const resetAuthStep = (): void => {
+    setAuthStep("login");
   };
 
   const logout = async (): Promise<void> => {
@@ -128,7 +171,12 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
         user,
         isLoading,
         isAuthenticated: !!user,
+        authStep,
         login,
+        completeNewPassword,
+        forgotPassword,
+        confirmForgotPassword,
+        resetAuthStep,
         logout,
         signup,
         confirmAccount,

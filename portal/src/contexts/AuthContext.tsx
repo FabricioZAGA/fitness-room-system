@@ -14,6 +14,9 @@ import {
 import {
   signIn,
   signOut,
+  confirmSignIn,
+  resetPassword,
+  confirmResetPassword,
   getCurrentUser,
   fetchAuthSession,
   type SignInInput,
@@ -26,11 +29,18 @@ export interface PortalUser {
   groups: string[]
 }
 
+export type AuthStep = 'login' | 'newPasswordRequired' | 'forgotPassword' | 'confirmReset'
+
 interface AuthContextType {
   user: PortalUser | null
   isLoading: boolean
   isAuthenticated: boolean
+  authStep: AuthStep
   login: (email: string, password: string) => Promise<void>
+  completeNewPassword: (newPassword: string) => Promise<void>
+  forgotPassword: (email: string) => Promise<void>
+  confirmForgotPassword: (email: string, code: string, newPassword: string) => Promise<void>
+  resetAuthStep: () => void
   logout: () => Promise<void>
   getAccessToken: () => Promise<string | null>
 }
@@ -42,6 +52,7 @@ const isDev = import.meta.env.DEV
 export function AuthProvider({ children }: { children: ReactNode }): React.JSX.Element {
   const [user, setUser] = useState<PortalUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [authStep, setAuthStep] = useState<AuthStep>('login')
 
   const checkUser = useCallback(async () => {
     try {
@@ -93,7 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
     }
 
     const input: SignInInput = { username: email, password }
-    await signIn(input)
+    const result = await signIn(input)
+
+    if (
+      result.nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED'
+    ) {
+      setAuthStep('newPasswordRequired')
+      return
+    }
+
     await checkUser()
 
     // Store token for API interceptor
@@ -102,6 +121,35 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
     if (token) {
       localStorage.setItem('id_token', token)
     }
+  }
+
+  const completeNewPassword = async (newPassword: string): Promise<void> => {
+    await confirmSignIn({ challengeResponse: newPassword })
+    setAuthStep('login')
+    await checkUser()
+    const session = await fetchAuthSession()
+    const token = session.tokens?.idToken?.toString()
+    if (token) {
+      localStorage.setItem('id_token', token)
+    }
+  }
+
+  const forgotPasswordFn = async (email: string): Promise<void> => {
+    await resetPassword({ username: email })
+    setAuthStep('confirmReset')
+  }
+
+  const confirmForgotPasswordFn = async (
+    email: string,
+    code: string,
+    newPassword: string,
+  ): Promise<void> => {
+    await confirmResetPassword({ username: email, confirmationCode: code, newPassword })
+    setAuthStep('login')
+  }
+
+  const resetAuthStep = (): void => {
+    setAuthStep('login')
   }
 
   const logout = async (): Promise<void> => {
@@ -132,7 +180,12 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
         user,
         isLoading,
         isAuthenticated: !!user,
+        authStep,
         login,
+        completeNewPassword,
+        forgotPassword: forgotPasswordFn,
+        confirmForgotPassword: confirmForgotPasswordFn,
+        resetAuthStep,
         logout,
         getAccessToken,
       }}
