@@ -64,7 +64,7 @@ app = FastAPI(
         "Todos los endpoints (excepto `/health`) requieren un Bearer token de Cognito.\n"
         "Incluye el token en el header: `Authorization: Bearer <token>`"
     ),
-    version="1.0.0",
+    version="1.1.0",
     contact={
         "name": "FabricioZAGA",
         "url": "https://github.com/FabricioZAGA/fitness-room-system",
