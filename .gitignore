@@ -119,3 +119,9 @@ playwright/.cache/
 
 # ===== AI / PROMPTS =====
 PROMPT*.md
+
+# ===== NEGATE SOURCE LIB DIRS (the broad lib/ rule above is for Python) =====
+!frontend/src/lib/
+!portal/src/lib/
+!gym-landing/lib/
+!landing/lib/

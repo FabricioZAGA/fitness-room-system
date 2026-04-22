@@ -118,6 +118,8 @@ class ClassRepository(DynamoRepository):
             updates["location"] = data.location
         if data.description is not None:
             updates["description"] = data.description
+        if data.class_mode is not None:
+            updates["class_mode"] = data.class_mode.value
         if data.class_link is not None:
             updates["class_link"] = data.class_link
         if data.is_cancelled is not None:

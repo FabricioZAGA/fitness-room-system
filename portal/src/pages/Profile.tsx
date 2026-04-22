@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { portalApi, type Profile } from '../services/api'
+import { portalApi, type Profile, type StudentProfile, type StaffProfile } from '../services/api'
 import { useNavigate } from 'react-router-dom'
-import { Container, Card, PageHeader, LoadingState } from '../components'
+import { Container, Card, PageHeader, LoadingState, ErrorState } from '../components'
 
 const isDev = import.meta.env.DEV
 
@@ -20,11 +20,15 @@ const mockProfile: Profile = {
 export default function Profile(): React.JSX.Element {
   const navigate = useNavigate()
   
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, isError, refetch } = useQuery({
     queryKey: ['profile'],
     queryFn: () => portalApi.getProfile().then((res) => res.data),
     enabled: !isDev,
   })
+
+  if (isError && !isDev) {
+    return <ErrorState title="Error al cargar perfil" onRetry={() => refetch()} />
+  }
 
   const displayProfile = isDev ? mockProfile : profile
   const role = displayProfile?.role || 'student'
@@ -34,9 +38,11 @@ export default function Profile(): React.JSX.Element {
   }
 
   const isStudent = role === 'student'
-  const userId = isStudent ? (displayProfile as any)?.student_id : (displayProfile as any)?.instructor_id
-  const specialties = !isStudent ? (displayProfile as any)?.specialties : null
-  const bio = !isStudent ? (displayProfile as any)?.bio : null
+  const userId = isStudent
+    ? (displayProfile as StudentProfile | undefined)?.student_id
+    : (displayProfile as StaffProfile | undefined)?.instructor_id
+  const specialties = !isStudent ? (displayProfile as StaffProfile | undefined)?.specialties : null
+  const bio = !isStudent ? (displayProfile as StaffProfile | undefined)?.bio : null
 
   return (
     <Container>

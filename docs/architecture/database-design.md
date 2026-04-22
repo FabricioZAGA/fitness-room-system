@@ -45,6 +45,21 @@ GSI2PK: EMAIL#{email}
 GSI2SK: STUDENT#{student_id}
 ```
 
+**Student attributes (v1.1.0):**
+| Attribute | Type | Description |
+|---|---|---|
+| `first_name` | String | Required |
+| `last_name` | String | Required |
+| `email` | String | Required, unique |
+| `phone` | String | Optional, +52XXXXXXXXXX format |
+| `birth_date` | String (ISO) | Optional |
+| `address` | String | Optional, street address |
+| `city` | String | Optional |
+| `emergency_contact` | Map | Optional — `{name, relationship, phone}` |
+| `photo_url` | String | Optional, S3 URL for profile photo |
+| `status` | String | active, inactive, new, founder |
+| `notes` | String | Optional, internal notes |
+
 ---
 
 ### Memberships

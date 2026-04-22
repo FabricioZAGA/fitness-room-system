@@ -19,6 +19,7 @@ from aws_cdk import (
     aws_iam as iam,
     aws_lambda as lambda_,
     aws_logs as logs,
+    aws_s3 as s3,
     aws_ses as ses,
 )
 from constructs import Construct
@@ -62,6 +63,34 @@ class ApiStack(cdk.Stack):
         )
 
         table.grant_read_write_data(lambda_role)
+
+        # ── S3 media bucket (student photos, product images) ──────────────
+        is_prod = env_name == "prod"
+        self.media_bucket = s3.Bucket(
+            self,
+            "MediaBucket",
+            bucket_name=f"fitness-room-media-{env_name}-{self.account}",
+            block_public_access=s3.BlockPublicAccess(
+                block_public_acls=True,
+                ignore_public_acls=True,
+                block_public_policy=False,
+                restrict_public_buckets=False,
+            ),
+            encryption=s3.BucketEncryption.S3_MANAGED,
+            removal_policy=(
+                cdk.RemovalPolicy.RETAIN if is_prod else cdk.RemovalPolicy.DESTROY
+            ),
+            auto_delete_objects=not is_prod,
+            cors=[
+                s3.CorsRule(
+                    allowed_methods=[s3.HttpMethods.GET, s3.HttpMethods.PUT],
+                    allowed_origins=["*"],
+                    allowed_headers=["*"],
+                    max_age=3600,
+                ),
+            ],
+        )
+        self.media_bucket.grant_read_write(lambda_role)
 
         # SES — allow the Lambda to send emails
         lambda_role.add_to_policy(
@@ -159,6 +188,7 @@ class ApiStack(cdk.Stack):
                 "COGNITO_REGION": self.region,
                 "FRONTEND_URL": frontend_url,
                 "PORTAL_URL": portal_url,
+                "S3_MEDIA_BUCKET": self.media_bucket.bucket_name,
                 "SES_SENDER_EMAIL": sender_email,
                 "SES_SENDER_NAME": sender_name,
             },

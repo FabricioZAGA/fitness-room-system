@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       const groups =
         (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) ?? []
 
-      const allowedPortalGroups = ['student', 'teacher']
+      const allowedPortalGroups = ['student', 'teacher', 'staff']
       const hasPortalAccess = groups.some((g) => allowedPortalGroups.includes(g))
       if (!hasPortalAccess) {
         await signOut()
@@ -124,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
 
     const session = await fetchAuthSession()
     const groups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) ?? []
-    const allowedPortalGroups = ['student', 'teacher']
+    const allowedPortalGroups = ['student', 'teacher', 'staff']
     if (!groups.some((g) => allowedPortalGroups.includes(g))) {
       await signOut()
       localStorage.removeItem('id_token')
@@ -156,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
 
     const session = await fetchAuthSession()
     const groups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) ?? []
-    const allowedPortalGroups = ['student', 'teacher']
+    const allowedPortalGroups = ['student', 'teacher', 'staff']
     if (!groups.some((g) => allowedPortalGroups.includes(g))) {
       await signOut()
       localStorage.removeItem('id_token')

@@ -1,6 +1,7 @@
 """Portal router — self-service endpoints for students and instructors."""
 
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from io import BytesIO
 import base64
 
@@ -53,9 +54,9 @@ def get_class_repository() -> ClassRepository:
 # ---------------------------------------------------------------------------
 
 def get_user_role(current_user: dict) -> str:
-    """Return 'staff' if user belongs to the staff Cognito group, else 'student'."""
+    """Return 'staff' if user belongs to the staff/teacher Cognito group, else 'student'."""
     groups = current_user.get("cognito:groups", [])
-    if "staff" in groups:
+    if "staff" in groups or "teacher" in groups:
         return "staff"
     return "student"
 
@@ -105,11 +106,9 @@ def _can_cancel_reservation(
     """Check if a reservation can be cancelled (2-hour cutoff before class start)."""
     try:
         class_datetime_str = f"{class_item.class_date}T{class_item.start_time}"
-        # Mexico City timezone approximation (UTC-6)
-        class_start = datetime.fromisoformat(class_datetime_str).replace(
-            tzinfo=timezone(timedelta(hours=-6))
-        )
-        now = datetime.now(tz=timezone(timedelta(hours=-6)))
+        mx_tz = ZoneInfo("America/Mexico_City")
+        class_start = datetime.fromisoformat(class_datetime_str).replace(tzinfo=mx_tz)
+        now = datetime.now(tz=mx_tz)
         hours_until_class = (class_start - now).total_seconds() / 3600
 
         if hours_until_class < CANCELLATION_CUTOFF_HOURS:

@@ -124,13 +124,21 @@ function StudentsPage(): React.JSX.Element {
               >
                 <div className="flex items-center gap-5">
                   {/* Avatar */}
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-lg font-bold"
-                    style={{
-                      background: "linear-gradient(135deg, var(--gold-bg) 0%, var(--gold-bg) 100%)",
-                      color: "var(--gold)"
-                    }}>
-                    {getInitials(student.full_name)}
-                  </div>
+                  {student.photo_url ? (
+                    <img
+                      src={student.photo_url}
+                      alt={student.full_name}
+                      className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-lg font-bold"
+                      style={{
+                        background: "linear-gradient(135deg, var(--gold-bg) 0%, var(--gold-bg) 100%)",
+                        color: "var(--gold)"
+                      }}>
+                      {getInitials(student.full_name)}
+                    </div>
+                  )}
 
                   {/* Info */}
                   <div>

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { portalApi, type UserRole } from '../services/api'
 import { useNavigate } from 'react-router-dom'
-import { Container, PageHeader, LoadingState } from '../components'
+import { Container, PageHeader, LoadingState, ErrorState } from '../components'
 
 const isDev = import.meta.env.DEV
 
@@ -16,11 +16,15 @@ const mockQRData = {
 export default function QR(): React.JSX.Element {
   const navigate = useNavigate()
   
-  const { data: qrData, isLoading } = useQuery({
+  const { data: qrData, isLoading, isError, refetch } = useQuery({
     queryKey: ['qr'],
     queryFn: () => portalApi.getQR().then((res) => res.data),
     enabled: !isDev,
   })
+
+  if (isError && !isDev) {
+    return <ErrorState title="Error al cargar tu QR" onRetry={() => refetch()} />
+  }
 
   const displayQRData = isDev ? mockQRData : qrData
 

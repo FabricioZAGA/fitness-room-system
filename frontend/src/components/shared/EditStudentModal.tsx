@@ -1,9 +1,11 @@
 /** Modal form for editing an existing student's profile. */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Camera, User } from "lucide-react";
 import { Dialog } from "./Dialog";
-import { useUpdateStudent } from "@/hooks/useStudents";
-import type { Student, StudentStatus, UpdateStudentRequest } from "@/types/student";
+import { CameraCapture } from "./CameraCapture";
+import { useUpdateStudent, useUploadStudentPhoto } from "@/hooks/useStudents";
+import type { Student, StudentStatus, UpdateStudentRequest, EmergencyContact } from "@/types/student";
 
 interface EditStudentModalProps {
   open: boolean;
@@ -41,27 +43,38 @@ export function EditStudentModal({
   onClose,
   student,
 }: EditStudentModalProps): React.JSX.Element {
-  const [form, setForm] = useState<UpdateStudentRequest>({
-    first_name: student.first_name,
-    last_name: student.last_name,
-    email: student.email,
-    phone: student.phone ?? "",
-    status: student.status,
-    notes: student.notes ?? "",
-  });
+  type FormState = UpdateStudentRequest & {
+    ec_name: string;
+    ec_relationship: string;
+    ec_phone: string;
+  };
+
+  const buildForm = useCallback((s: Student): FormState => ({
+    first_name: s.first_name,
+    last_name: s.last_name,
+    email: s.email,
+    phone: s.phone ?? "",
+    birth_date: s.birth_date ?? "",
+    address: s.address ?? "",
+    city: s.city ?? "",
+    ec_name: s.emergency_contact?.name ?? "",
+    ec_relationship: s.emergency_contact?.relationship ?? "",
+    ec_phone: s.emergency_contact?.phone ?? "",
+    status: s.status,
+    notes: s.notes ?? "",
+  }), []);
+
+  const [form, setForm] = useState<FormState>(buildForm(student));
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
 
   useEffect(() => {
-    setForm({
-      first_name: student.first_name,
-      last_name: student.last_name,
-      email: student.email,
-      phone: student.phone ?? "",
-      status: student.status,
-      notes: student.notes ?? "",
-    });
-  }, [student]);
+    setForm(buildForm(student));
+    setPhotoPreview(null);
+  }, [student, buildForm]);
 
   const { mutate, isPending } = useUpdateStudent(student.student_id);
+  const { mutate: uploadPhoto } = useUploadStudentPhoto(student.student_id);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -86,13 +99,35 @@ export function EditStudentModal({
     e.preventDefault();
     if (phoneError || emailError) return;
     const normalizedPhone = form.phone ? normalizePhone(form.phone) : undefined;
+    const hasEC = form.ec_name && form.ec_phone;
+    const ec: EmergencyContact | undefined = hasEC
+      ? {
+          name: form.ec_name,
+          relationship: form.ec_relationship || "familiar",
+          phone: normalizePhone(form.ec_phone),
+        }
+      : undefined;
     mutate(
       {
-        ...form,
+        first_name: form.first_name,
+        last_name: form.last_name,
+        email: form.email,
         phone: normalizedPhone || undefined,
+        birth_date: form.birth_date || undefined,
+        address: form.address || undefined,
+        city: form.city || undefined,
+        emergency_contact: ec,
+        status: form.status,
         notes: form.notes || undefined,
       },
-      { onSuccess: onClose }
+      {
+        onSuccess: () => {
+          if (photoPreview) {
+            uploadPhoto(photoPreview);
+          }
+          onClose();
+        },
+      }
     );
   }
 
@@ -104,6 +139,48 @@ export function EditStudentModal({
       description={`Actualiza el perfil de ${student.full_name}`}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Profile Photo */}
+        {showCamera ? (
+          <CameraCapture
+            onCapture={(b64) => { setPhotoPreview(b64); setShowCamera(false); }}
+            onClose={() => setShowCamera(false)}
+            currentPhoto={student.photo_url}
+          />
+        ) : (
+          <div className="flex items-center gap-4">
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-[--bd-subtle] bg-[--bg-muted]">
+              {photoPreview ? (
+                <img src={photoPreview} alt="Preview" className="h-full w-full object-cover" />
+              ) : student.photo_url ? (
+                <img src={student.photo_url} alt={student.full_name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-[--tx-disabled]">
+                  <User className="h-8 w-8" />
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowCamera(true)}
+                className="flex items-center gap-2 rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-3 py-2 text-xs font-medium text-[--tx-muted] transition-all hover:border-[--gold] hover:text-[--gold]"
+              >
+                <Camera className="h-3.5 w-3.5" />
+                {photoPreview || student.photo_url ? "Cambiar foto" : "Tomar foto"}
+              </button>
+              {photoPreview && (
+                <button
+                  type="button"
+                  onClick={() => setPhotoPreview(null)}
+                  className="text-xs text-[--tx-disabled] hover:text-[--color-danger] transition-colors"
+                >
+                  Quitar cambio
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nombre *">
             <input
@@ -169,6 +246,75 @@ export function EditStudentModal({
               ))}
             </select>
           </Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Fecha de nacimiento">
+            <input
+              name="birth_date"
+              type="date"
+              value={form.birth_date ?? ""}
+              onChange={handleChange}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Ciudad">
+            <input
+              name="city"
+              value={form.city ?? ""}
+              onChange={handleChange}
+              placeholder="CDMX"
+              className={inputCls}
+            />
+          </Field>
+        </div>
+
+        <Field label="Domicilio">
+          <input
+            name="address"
+            value={form.address ?? ""}
+            onChange={handleChange}
+            placeholder="Calle, número, colonia"
+            className={inputCls}
+          />
+        </Field>
+
+        {/* Emergency contact */}
+        <div className="border-t border-[--bd-subtle] pt-3 mt-1">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">Contacto de emergencia</p>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Nombre">
+              <input
+                name="ec_name"
+                value={form.ec_name}
+                onChange={handleChange}
+                placeholder="María García"
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Parentesco">
+              <input
+                name="ec_relationship"
+                value={form.ec_relationship}
+                onChange={handleChange}
+                placeholder="Madre"
+                className={inputCls}
+              />
+            </Field>
+          </div>
+          <div className="mt-3">
+            <Field label="Teléfono de emergencia">
+              <input
+                name="ec_phone"
+                value={form.ec_phone}
+                onChange={handleChange}
+                placeholder="55 1234 5678"
+                inputMode="tel"
+                maxLength={18}
+                className={inputCls}
+              />
+            </Field>
+          </div>
         </div>
 
         <Field label="Notas">

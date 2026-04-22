@@ -54,6 +54,7 @@ class ProductCreate(BaseModel):
         description="Alert when stock falls below this number",
     )
     sku: str | None = Field(default=None, max_length=50, description="Internal code")
+    image_url: str | None = Field(default=None, max_length=500, description="Product image URL")
 
 
 class ProductUpdate(BaseModel):
@@ -66,6 +67,7 @@ class ProductUpdate(BaseModel):
     stock: int | None = Field(default=None, ge=0)
     low_stock_threshold: int | None = Field(default=None, ge=0)
     sku: str | None = Field(default=None, max_length=50)
+    image_url: str | None = Field(default=None, max_length=500)
     is_active: bool | None = None
 
 
@@ -80,6 +82,7 @@ class ProductResponse(TimestampedModel):
     stock: int
     low_stock_threshold: int
     sku: str | None
+    image_url: str | None = None
     is_active: bool
     is_low_stock: bool = False
 
@@ -103,6 +106,7 @@ class ProductDynamoItem(BaseModel):
     stock: int
     low_stock_threshold: int
     sku: str | None
+    image_url: str | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -124,6 +128,7 @@ class ProductDynamoItem(BaseModel):
             stock=data.stock,
             low_stock_threshold=data.low_stock_threshold,
             sku=data.sku,
+            image_url=data.image_url,
             is_active=True,
             created_at=now,
             updated_at=now,
@@ -139,6 +144,7 @@ class ProductDynamoItem(BaseModel):
             stock=self.stock,
             low_stock_threshold=self.low_stock_threshold,
             sku=self.sku,
+            image_url=self.image_url,
             is_active=self.is_active,
             created_at=self.created_at,
             updated_at=self.updated_at,

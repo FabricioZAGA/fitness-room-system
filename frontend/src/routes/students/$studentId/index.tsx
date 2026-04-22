@@ -13,6 +13,7 @@ import { StudentStatusBadge, MembershipStatusBadge, ReservationStatusBadge } fro
 import { CreateMembershipModal } from "@/components/shared/CreateMembershipModal";
 import { EditStudentModal } from "@/components/shared/EditStudentModal";
 import { Dialog } from "@/components/shared/Dialog";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import { CLASS_TYPE_LABELS } from "@/types/class";
 import { formatDate, formatCurrency, getInitials } from "@/lib/utils";
@@ -37,6 +38,7 @@ function StudentDetailPage(): React.JSX.Element {
   const [freezeMembershipId, setFreezeMembershipId] = useState<string | null>(null);
   const [freezeDays, setFreezeDays] = useState(14);
   const [qrOpen, setQrOpen] = useState(false);
+  const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
 
   const { data: student, isLoading } = useStudent(studentId);
   const { data: membershipsData } = useMembershipsForStudent(studentId);
@@ -100,14 +102,22 @@ function StudentDetailPage(): React.JSX.Element {
         {/* Hero header */}
         <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-5">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl text-2xl font-bold shadow-lg"
-              style={{
-                background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-                color: "var(--gold-fg)",
-                boxShadow: "0 10px 25px var(--gold-bg)"
-              }}>
-              {getInitials(student.full_name)}
-            </div>
+            {student.photo_url ? (
+              <img
+                src={student.photo_url}
+                alt={student.full_name}
+                className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-lg"
+              />
+            ) : (
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl text-2xl font-bold shadow-lg"
+                style={{
+                  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                  color: "var(--gold-fg)",
+                  boxShadow: "0 10px 25px var(--gold-bg)"
+                }}>
+                {getInitials(student.full_name)}
+              </div>
+            )}
             <div>
               <h1 className="text-3xl font-bold text-[--tx-primary]">{student.full_name}</h1>
               <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[--tx-muted]">
@@ -115,7 +125,23 @@ function StudentDetailPage(): React.JSX.Element {
                 {student.phone && (
                   <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{student.phone}</span>
                 )}
+                {student.age !== null && student.age !== undefined && (
+                  <span className="text-[--tx-disabled]">{student.age} años</span>
+                )}
+                {student.city && (
+                  <span className="text-[--tx-disabled]">{student.city}</span>
+                )}
               </div>
+              {student.address && (
+                <p className="mt-1 text-xs text-[--tx-disabled]">{student.address}</p>
+              )}
+              {student.emergency_contact && (
+                <div className="mt-2 flex items-center gap-2 rounded-lg border border-[--color-warning-bd] bg-[--color-warning-bg] px-3 py-1.5 text-xs">
+                  <span className="font-medium text-[--color-warning]">Emergencia:</span>
+                  <span className="text-[--tx-primary]">{student.emergency_contact.name} ({student.emergency_contact.relationship})</span>
+                  <span className="text-[--tx-muted]">{student.emergency_contact.phone}</span>
+                </div>
+              )}
               <div className="mt-2"><StudentStatusBadge status={student.status} /></div>
             </div>
           </div>
@@ -138,7 +164,7 @@ function StudentDetailPage(): React.JSX.Element {
             </button>
             {isActive ? (
               <button
-                onClick={() => deactivate(studentId)}
+                onClick={() => setDeactivateConfirmOpen(true)}
                 disabled={deactivating}
                 className="flex items-center gap-2 rounded-xl border border-[--color-danger-bd] bg-[--color-danger-bg] px-4 py-2.5 text-sm font-medium text-[--color-danger] transition-all hover:bg-[--color-danger-bg] disabled:opacity-50"
               >
@@ -393,6 +419,21 @@ function StudentDetailPage(): React.JSX.Element {
           </div>
         </div>
       </Dialog>
+
+      {/* Deactivate confirmation */}
+      <ConfirmDialog
+        open={deactivateConfirmOpen}
+        onClose={() => setDeactivateConfirmOpen(false)}
+        onConfirm={() => {
+          deactivate(studentId);
+          setDeactivateConfirmOpen(false);
+        }}
+        title="Desactivar miembro"
+        description={`¿Estás seguro de desactivar a ${student.full_name}? No podrá reservar clases ni hacer check-in mientras esté inactivo.`}
+        confirmLabel="Desactivar"
+        variant="danger"
+        loading={deactivating}
+      />
 
       {/* QR modal */}
       <Dialog open={qrOpen} onClose={() => setQrOpen(false)} title={`Código QR — ${student.full_name}`}>

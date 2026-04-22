@@ -25,11 +25,14 @@ import {
   type SignUpInput,
 } from "aws-amplify/auth";
 
+export type AdminRole = "admin" | "receptionist";
+
 export interface User {
   userId: string;
   email: string;
   name?: string;
   groups: string[];
+  role: AdminRole;
 }
 
 export type AuthStep = "login" | "newPasswordRequired" | "forgotPassword" | "confirmReset";
@@ -38,6 +41,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   authStep: AuthStep;
   login: (email: string, password: string) => Promise<void>;
   completeNewPassword: (newPassword: string, givenName: string, familyName: string) => Promise<void>;
@@ -68,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
           email: "dev@fitness-room.local",
           name: "Dev User",
           groups: ["admin"],
+          role: "admin",
         });
         setIsLoading(false);
         return;
@@ -77,7 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       const session = await fetchAuthSession();
       const groups = (session.tokens?.accessToken?.payload?.["cognito:groups"] as string[]) ?? [];
 
-      if (!groups.includes("admin")) {
+      const adminAllowed = ["admin", "receptionist"] as const;
+      const role = adminAllowed.find((r) => groups.includes(r));
+      if (!role) {
         await signOut();
         setUser(null);
         return;
@@ -88,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
         email: currentUser.signInDetails?.loginId ?? "",
         name: currentUser.username,
         groups,
+        role,
       });
     } catch {
       setUser(null);
@@ -113,9 +121,10 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
 
     const session = await fetchAuthSession();
     const groups = (session.tokens?.accessToken?.payload?.["cognito:groups"] as string[]) ?? [];
-    if (!groups.includes("admin")) {
+    const adminAllowed = ["admin", "receptionist"];
+    if (!adminAllowed.some((r) => groups.includes(r))) {
       await signOut();
-      throw new Error("No tienes permisos de administrador. Si eres alumno, ingresa en portal.fitnessroom.mx");
+      throw new Error("No tienes permisos para acceder. Si eres alumno, ingresa en portal.fitnessroom.mx");
     }
 
     await checkUser();
@@ -138,9 +147,10 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
 
     const session = await fetchAuthSession();
     const groups = (session.tokens?.accessToken?.payload?.["cognito:groups"] as string[]) ?? [];
-    if (!groups.includes("admin")) {
+    const adminAllowed = ["admin", "receptionist"];
+    if (!adminAllowed.some((r) => groups.includes(r))) {
       await signOut();
-      throw new Error("No tienes permisos de administrador. Si eres alumno, ingresa en portal.fitnessroom.mx");
+      throw new Error("No tienes permisos para acceder. Si eres alumno, ingresa en portal.fitnessroom.mx");
     }
 
     setAuthStep("login");
@@ -204,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
         user,
         isLoading,
         isAuthenticated: !!user,
+        isAdmin: user?.role === "admin",
         authStep,
         login,
         completeNewPassword,

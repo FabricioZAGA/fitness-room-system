@@ -58,6 +58,15 @@ export const studentService = {
     return response.data;
   },
 
+  /** Upload a base64-encoded photo for a student. Backend stores in S3. */
+  async uploadPhoto(studentId: string, imageBase64: string): Promise<Student> {
+    const response = await apiClient.post<Student>(
+      `/students/${studentId}/photo`,
+      { image: imageBase64 }
+    );
+    return response.data;
+  },
+
   /** Get a base64-encoded QR code PNG for a student. */
   async getQr(studentId: string): Promise<{
     student_id: string;

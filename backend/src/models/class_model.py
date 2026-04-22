@@ -33,6 +33,13 @@ class ClassType(StrEnum):
     OTHER = "other"
 
 
+class ClassMode(StrEnum):
+    """Whether a class is in-person or virtual."""
+
+    PRESENCIAL = "presencial"
+    VIRTUAL = "virtual"
+
+
 class DayOfWeek(StrEnum):
     """Days of week for recurring classes."""
 
@@ -56,8 +63,9 @@ class ClassCreate(BaseModel):
     capacity: int = Field(default=20, ge=1, le=200, description="Maximum number of students")
     location: str = Field(default="Studio A", max_length=100, description="Class location")
     description: str | None = Field(default=None, max_length=500, description="Class description")
+    class_mode: ClassMode = Field(default=ClassMode.PRESENCIAL, description="In-person or virtual")
     class_link: str | None = Field(
-        default=None, max_length=500, description="External class link (Zumba/STRONG)"
+        default=None, max_length=500, description="External class link (Zoom/Meet/Zumba)"
     )
 
 
@@ -71,6 +79,7 @@ class ClassUpdate(BaseModel):
     capacity: int | None = Field(default=None, ge=1, le=200)
     location: str | None = Field(default=None, max_length=100)
     description: str | None = Field(default=None, max_length=500)
+    class_mode: ClassMode | None = None
     class_link: str | None = Field(default=None, max_length=500)
     is_cancelled: bool | None = None
 
@@ -90,6 +99,7 @@ class ClassResponse(TimestampedModel):
     available_spots: int = Field(default=0, description="Remaining spots")
     location: str
     description: str | None = None
+    class_mode: ClassMode = ClassMode.PRESENCIAL
     class_link: str | None = None
     is_cancelled: bool = False
 
@@ -119,6 +129,7 @@ class ClassDynamoItem(BaseModel):
     waitlist_count: int = 0
     location: str
     description: str | None = None
+    class_mode: str = "presencial"
     class_link: str | None = None
     is_cancelled: bool = False
     created_at: datetime
@@ -147,6 +158,7 @@ class ClassDynamoItem(BaseModel):
             capacity=data.capacity,
             location=data.location,
             description=data.description,
+            class_mode=data.class_mode.value,
             class_link=data.class_link,
             created_at=now,
             updated_at=now,
@@ -166,6 +178,7 @@ class ClassDynamoItem(BaseModel):
             waitlist_count=self.waitlist_count,
             location=self.location,
             description=self.description,
+            class_mode=ClassMode(self.class_mode),
             class_link=self.class_link,
             is_cancelled=self.is_cancelled,
             created_at=self.created_at,

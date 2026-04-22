@@ -9,6 +9,13 @@ export type ClassType =
   | "cycling"
   | "other";
 
+export type ClassMode = "presencial" | "virtual";
+
+export const CLASS_MODE_LABELS: Record<ClassMode, string> = {
+  presencial: "Presencial",
+  virtual: "Virtual",
+};
+
 export interface FitnessClass {
   class_id: string;
   class_type: ClassType;
@@ -22,6 +29,7 @@ export interface FitnessClass {
   available_spots: number;
   location: string;
   description: string | null;
+  class_mode: ClassMode;
   class_link: string | null;
   is_cancelled: boolean;
   created_at: string;
@@ -37,6 +45,7 @@ export interface CreateClassRequest {
   capacity?: number;
   location?: string;
   description?: string;
+  class_mode?: ClassMode;
   class_link?: string;
 }
 
@@ -48,6 +57,7 @@ export interface UpdateClassRequest {
   capacity?: number;
   location?: string;
   description?: string;
+  class_mode?: ClassMode;
   class_link?: string;
   is_cancelled?: boolean;
 }

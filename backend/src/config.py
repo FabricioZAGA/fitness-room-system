@@ -74,6 +74,12 @@ class Settings(BaseSettings):
         description="Days without check-in before inactivity alert",
     )
 
+    # ── S3 / Media ──────────────────────────────────────────────────────────────
+    s3_media_bucket: str = Field(
+        default="fitness-room-media-local",
+        description="S3 bucket for media uploads (student photos, product images)",
+    )
+
     # ── SNS / SMS ───────────────────────────────────────────────────────────────
     sms_enabled: bool = Field(
         default=False,

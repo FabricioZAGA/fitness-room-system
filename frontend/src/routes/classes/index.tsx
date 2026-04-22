@@ -15,6 +15,7 @@ import { useClasses, useCancelClass, useClassAttendees } from "@/hooks/useClasse
 import { CreateClassModal } from "@/components/shared/CreateClassModal";
 import { ClassCalendar } from "@/components/shared/ClassCalendar";
 import { AddToClassModal } from "@/components/shared/AddToClassModal";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { CLASS_TYPE_COLORS, CLASS_TYPE_LABELS } from "@/types/class";
 import type { FitnessClass } from "@/types/class";
 import { formatDate, formatTime } from "@/lib/utils";
@@ -30,9 +31,10 @@ function ClassesPage(): React.JSX.Element {
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   const [selectedClass, setSelectedClass] = useState<FitnessClass | null>(null);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   const { data, isLoading } = useClasses({ upcoming_only: false, limit: 200 });
-  const { mutate: cancelClass } = useCancelClass();
+  const { mutate: cancelClass, isPending: cancelling } = useCancelClass();
   const classes = data?.items ?? [];
 
   function handleClassClick(cls: FitnessClass): void {
@@ -146,10 +148,7 @@ function ClassesPage(): React.JSX.Element {
             <ClassDetailPanel
               cls={selectedClass}
               onAddMember={() => handleAddMember(selectedClass)}
-              onCancel={() => {
-                cancelClass(selectedClass.class_id);
-                setSelectedClass(null);
-              }}
+              onCancel={() => setCancelConfirmOpen(true)}
               onClose={() => setSelectedClass(null)}
             />
           ) : (
@@ -215,6 +214,23 @@ function ClassesPage(): React.JSX.Element {
             </div>
           ))}
         </div>
+      )}
+
+      {selectedClass && (
+        <ConfirmDialog
+          open={cancelConfirmOpen}
+          onClose={() => setCancelConfirmOpen(false)}
+          onConfirm={() => {
+            cancelClass(selectedClass.class_id);
+            setCancelConfirmOpen(false);
+            setSelectedClass(null);
+          }}
+          title="Cancelar clase"
+          description={`¿Estás seguro de cancelar esta clase? Todos los alumnos inscritos serán notificados y sus reservaciones serán canceladas.`}
+          confirmLabel="Cancelar clase"
+          variant="danger"
+          loading={cancelling}
+        />
       )}
 
       <CreateClassModal open={createOpen} onClose={() => setCreateOpen(false)} />

@@ -146,7 +146,7 @@ All config lives in `infrastructure/cdk/cdk.json` context:
 | ----- | --------- |
 | `FitnessRoomDatabaseStack-prod` | DynamoDB table + 3 GSIs |
 | `FitnessRoomAuthStack-prod` | Cognito User Pool + Client + Groups |
-| `FitnessRoomApiStack-prod` | Lambda + API Gateway v2 + SES + EventBridge |
+| `FitnessRoomApiStack-prod` | Lambda + API Gateway v2 + SES + EventBridge + S3 media bucket |
 | `FitnessRoomHostingStack-prod` | S3 + CloudFront (admin) |
 | `FitnessRoomPortalHostingStack-prod` | S3 + CloudFront (portal) |
 | `FitnessRoomPipelineStack-prod` | S3 source + CodePipeline + 2 CodeBuild projects |

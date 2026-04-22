@@ -2,13 +2,16 @@
 
 import base64
 import io
+import uuid
 from typing import Any
 
+import boto3
 import qrcode
 import qrcode.image.svg
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 
+from src.config import get_settings
 from src.models.checkin import CheckinResponse
 from src.models.common import MessageResponse, PaginatedResponse
 from src.models.student import StudentCreate, StudentResponse, StudentStatus, StudentUpdate
@@ -238,3 +241,84 @@ def get_student_qr(
             "mime_type": "image/png",
         }
     )
+
+
+@router.post(
+    "/{student_id}/photo/upload-url",
+    summary="Get presigned URL for photo upload",
+    description="Generate a presigned S3 PUT URL for student photo upload.",
+)
+def get_photo_upload_url(
+    student_id: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: StudentService = Depends(get_service),
+) -> JSONResponse:
+    """Return a presigned URL + the final photo URL for the student."""
+    service.get_student(student_id)  # validate student exists
+    settings = get_settings()
+    s3_client = boto3.client("s3", region_name=settings.aws_region)
+
+    file_key = f"students/{student_id}/photo-{uuid.uuid4().hex[:8]}.jpg"
+
+    presigned_url = s3_client.generate_presigned_url(
+        "put_object",
+        Params={
+            "Bucket": settings.s3_media_bucket,
+            "Key": file_key,
+            "ContentType": "image/jpeg",
+        },
+        ExpiresIn=300,
+    )
+
+    photo_url = f"https://{settings.s3_media_bucket}.s3.{settings.aws_region}.amazonaws.com/{file_key}"
+
+    return JSONResponse(
+        content={
+            "upload_url": presigned_url,
+            "photo_url": photo_url,
+            "key": file_key,
+        }
+    )
+
+
+@router.post(
+    "/{student_id}/photo",
+    response_model=StudentResponse,
+    summary="Upload student photo (base64)",
+    description=(
+        "Upload a student photo as base64-encoded JPEG. "
+        "The image is stored in S3 and the photo_url is saved on the student profile."
+    ),
+)
+def upload_student_photo(
+    student_id: str,
+    payload: dict[str, str],
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: StudentService = Depends(get_service),
+) -> StudentResponse:
+    """Accept base64 image, upload to S3, update student.photo_url."""
+    service.get_student(student_id)  # validate exists
+    image_b64 = payload.get("image", "")
+    if not image_b64:
+        return JSONResponse(status_code=400, content={"detail": "Missing 'image' field"})  # type: ignore[return-value]
+
+    # Strip data URI prefix if present
+    if "," in image_b64:
+        image_b64 = image_b64.split(",", 1)[1]
+
+    image_data = base64.b64decode(image_b64)
+
+    settings = get_settings()
+    s3_client = boto3.client("s3", region_name=settings.aws_region)
+    file_key = f"students/{student_id}/photo-{uuid.uuid4().hex[:8]}.jpg"
+
+    s3_client.put_object(
+        Bucket=settings.s3_media_bucket,
+        Key=file_key,
+        Body=image_data,
+        ContentType="image/jpeg",
+    )
+
+    photo_url = f"https://{settings.s3_media_bucket}.s3.{settings.aws_region}.amazonaws.com/{file_key}"
+
+    return service.update_student(student_id, StudentUpdate(photo_url=photo_url))

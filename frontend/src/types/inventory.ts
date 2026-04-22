@@ -24,6 +24,7 @@ export interface Product {
   stock: number;
   low_stock_threshold: number;
   sku: string | null;
+  image_url: string | null;
   is_active: boolean;
   is_low_stock: boolean;
   created_at: string;
@@ -38,6 +39,7 @@ export interface CreateProductRequest {
   stock: number;
   low_stock_threshold?: number;
   sku?: string;
+  image_url?: string;
 }
 
 export interface UpdateProductRequest {
@@ -48,6 +50,7 @@ export interface UpdateProductRequest {
   stock?: number;
   low_stock_threshold?: number;
   sku?: string;
+  image_url?: string;
   is_active?: boolean;
 }
 

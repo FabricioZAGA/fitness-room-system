@@ -109,6 +109,51 @@ def require_group(group: str) -> Any:
     return _check_group
 
 
+def require_any_admin_group() -> Any:
+    """Return a dependency that requires the user to belong to 'admin' or 'receptionist' group.
+
+    Usage:
+        @router.get("/dashboard", dependencies=[Depends(require_any_admin_group())])
+    """
+
+    async def _check_any_admin_group(
+        current_user: dict[str, Any] = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        user_groups: list[str] = current_user.get("cognito:groups", [])
+        allowed = {"admin", "receptionist"}
+        if not allowed.intersection(user_groups):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access restricted to admin panel users.",
+            )
+        return current_user
+
+    return _check_any_admin_group
+
+
+def require_admin_only() -> Any:
+    """Return a dependency that requires the user to belong to the 'admin' group only.
+
+    Receptionist users are blocked from these endpoints.
+
+    Usage:
+        @router.get("/settings", dependencies=[Depends(require_admin_only())])
+    """
+
+    async def _check_admin_only(
+        current_user: dict[str, Any] = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        user_groups: list[str] = current_user.get("cognito:groups", [])
+        if "admin" not in user_groups:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access restricted to 'admin' group members only.",
+            )
+        return current_user
+
+    return _check_admin_only
+
+
 def require_student_group() -> Any:
     """Return a dependency that requires the user to belong to the 'student' group.
 
@@ -154,7 +199,8 @@ def require_student_or_staff_group() -> Any:
             return current_user
 
         user_groups: list[str] = current_user.get("cognito:groups", [])
-        if "student" not in user_groups and "staff" not in user_groups:
+        allowed = {"student", "staff", "teacher"}
+        if not allowed.intersection(user_groups):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access restricted to 'student' or 'staff' group members.",

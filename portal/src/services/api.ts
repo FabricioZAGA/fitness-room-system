@@ -1,12 +1,15 @@
 import axios from 'axios'
+import { fetchAuthSession } from 'aws-amplify/auth'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const isDev = import.meta.env.DEV
 
 export const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30_000,
 })
 
 // Add auth token to requests
@@ -17,6 +20,46 @@ apiClient.interceptors.request.use((config) => {
   }
   return config
 })
+
+// Handle 401 responses: attempt token refresh, then redirect if still unauthorized
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (!axios.isAxiosError(error) || error.response?.status !== 401) {
+      return Promise.reject(error)
+    }
+
+    // Skip refresh in dev mode
+    if (isDev) {
+      return Promise.reject(error)
+    }
+
+    // Only retry once
+    const originalRequest = error.config
+    if (!originalRequest || (originalRequest as unknown as { _retried?: boolean })._retried) {
+      localStorage.removeItem('id_token')
+      window.location.href = '/login'
+      return Promise.reject(error)
+    }
+
+    try {
+      (originalRequest as unknown as { _retried?: boolean })._retried = true
+      const session = await fetchAuthSession({ forceRefresh: true })
+      const newToken = session.tokens?.idToken?.toString()
+      if (newToken) {
+        localStorage.setItem('id_token', newToken)
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        return apiClient(originalRequest)
+      }
+    } catch {
+      // Refresh failed
+    }
+
+    localStorage.removeItem('id_token')
+    window.location.href = '/login'
+    return Promise.reject(error)
+  },
+)
 
 export type UserRole = 'student' | 'staff'
 

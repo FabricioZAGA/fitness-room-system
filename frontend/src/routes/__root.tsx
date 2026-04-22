@@ -2,6 +2,7 @@ import { createRootRoute, Outlet, useNavigate, useRouterState } from "@tanstack/
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { WhatsNewDialog } from "@/components/shared/WhatsNewDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
@@ -49,6 +50,7 @@ function RootComponent(): React.JSX.Element {
       <AppLayout>
         <Outlet />
       </AppLayout>
+      <WhatsNewDialog />
       {import.meta.env.DEV && <TanStackRouterDevtools />}
     </ErrorBoundary>
   );

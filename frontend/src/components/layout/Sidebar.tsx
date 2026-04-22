@@ -24,6 +24,7 @@ interface NavItem {
   to: string;
   icon: React.ComponentType<{ className?: string }>;
   section?: "main" | "operations" | "admin";
+  adminOnly?: boolean;
 }
 
 function useNavItems(): NavItem[] {
@@ -32,14 +33,14 @@ function useNavItems(): NavItem[] {
     { label: t("nav.home"), to: "/", icon: Home, section: "main" },
     { label: t("nav.checkin"), to: "/checkin", icon: QrCode, section: "operations" },
     { label: t("nav.members"), to: "/students", icon: Users, section: "main" },
-    { label: t("nav.classes"), to: "/classes", icon: Calendar, section: "main" },
-    { label: t("nav.reservations"), to: "/reservations", icon: CalendarCheck, section: "main" },
-    { label: t("nav.memberships"), to: "/memberships", icon: CreditCard, section: "main" },
+    { label: t("nav.classes"), to: "/classes", icon: Calendar, section: "main", adminOnly: true },
+    { label: t("nav.reservations"), to: "/reservations", icon: CalendarCheck, section: "main", adminOnly: true },
+    { label: t("nav.memberships"), to: "/memberships", icon: CreditCard, section: "main", adminOnly: true },
     { label: t("nav.caja"), to: "/caja", icon: Receipt, section: "main" },
     { label: t("nav.inventario"), to: "/inventario", icon: Package, section: "main" },
-    { label: t("nav.reportes"), to: "/reportes", icon: BarChart3, section: "main" },
+    { label: t("nav.reportes"), to: "/reportes", icon: BarChart3, section: "main", adminOnly: true },
     { label: t("nav.instructors"), to: "/instructors", icon: UserCog, section: "admin" },
-    { label: t("nav.settings"), to: "/settings", icon: Settings, section: "admin" },
+    { label: t("nav.settings"), to: "/settings", icon: Settings, section: "admin", adminOnly: true },
   ];
 }
 
@@ -56,14 +57,15 @@ const navActiveProps = {
 } as const;
 
 export function Sidebar(): React.JSX.Element {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const { t } = useTranslation();
   const NAV_ITEMS = useNavItems();
   const gymName = useGymStore((s) => s.name);
 
-  const mainItems = NAV_ITEMS.filter((i) => i.section === "main");
-  const operationsItems = NAV_ITEMS.filter((i) => i.section === "operations");
-  const adminItems = NAV_ITEMS.filter((i) => i.section === "admin");
+  const visibleItems = NAV_ITEMS.filter((i) => !i.adminOnly || isAdmin);
+  const mainItems = visibleItems.filter((i) => i.section === "main");
+  const operationsItems = visibleItems.filter((i) => i.section === "operations");
+  const adminItems = visibleItems.filter((i) => i.section === "admin");
 
   return (
     <aside className="flex h-screen w-72 flex-col bg-[--bg-surface] border-r border-[--bd-default]">
@@ -115,15 +117,19 @@ export function Sidebar(): React.JSX.Element {
           </Link>
         ))}
 
-        <p className="mb-2 mt-6 px-3 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">
-          {t("nav.administration")}
-        </p>
-        {adminItems.map((item) => (
-          <Link key={item.to} to={item.to} className={navItemCls} activeProps={navActiveProps}>
-            <item.icon className="h-5 w-5 shrink-0" />
-            {item.label}
-          </Link>
-        ))}
+        {adminItems.length > 0 && (
+          <>
+            <p className="mb-2 mt-6 px-3 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">
+              {t("nav.administration")}
+            </p>
+            {adminItems.map((item) => (
+              <Link key={item.to} to={item.to} className={navItemCls} activeProps={navActiveProps}>
+                <item.icon className="h-5 w-5 shrink-0" />
+                {item.label}
+              </Link>
+            ))}
+          </>
+        )}
       </nav>
 
       {/* User section */}
@@ -135,9 +141,19 @@ export function Sidebar(): React.JSX.Element {
             {user?.name?.charAt(0).toUpperCase() ?? "U"}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium text-[--tx-primary]">
-              {user?.name ?? "Usuario"}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="truncate text-sm font-medium text-[--tx-primary]">
+                {user?.name ?? "Usuario"}
+              </p>
+              <span className={cn(
+                "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase",
+                isAdmin
+                  ? "bg-[--gold-bg] text-[--gold] border border-[--gold-bd]"
+                  : "bg-[--color-info-bg] text-[--color-info] border border-[--color-info-bd]"
+              )}>
+                {isAdmin ? "Admin" : "Recepción"}
+              </span>
+            </div>
             <p className="truncate text-xs text-[--tx-muted]">{user?.email}</p>
           </div>
           <button

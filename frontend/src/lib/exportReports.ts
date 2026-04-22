@@ -37,7 +37,7 @@ export function exportIncomeExcel(
   // Sheet 1: Summary
   const summaryRows = [
     ["Reporte de Ingresos", period],
-    ["Gimnasio", gymName],
+    ["Studio", gymName],
     [],
     ["Concepto", "Monto"],
     ["Total del Período", income.grand_total],

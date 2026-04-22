@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { portalApi, type Profile, type MembershipResponse } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Container, Card, Button, LoadingState } from '../components'
+import { Container, Card, Button, LoadingState, ErrorState } from '../components'
 
 const isDev = import.meta.env.DEV
 
@@ -38,17 +38,31 @@ export default function Dashboard(): React.JSX.Element {
   const navigate = useNavigate()
   const { logout } = useAuth()
   
-  const { data: profile, isLoading: profileLoading } = useQuery({
+  const { data: profile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useQuery({
     queryKey: ['profile'],
     queryFn: () => portalApi.getProfile().then((res) => res.data),
     enabled: !isDev,
   })
-  
-  const { data: membership, isLoading: membershipLoading } = useQuery({
+
+  const { data: membership, isLoading: membershipLoading, isError: membershipError, refetch: refetchMembership } = useQuery({
     queryKey: ['membership'],
     queryFn: () => portalApi.getMembership().then((res) => res.data),
     enabled: !isDev,
   })
+
+  if ((profileError || membershipError) && !isDev) {
+    return (
+      <ErrorState
+        title="Error al cargar el dashboard"
+        message="No pudimos obtener tu información. Verifica tu conexión e intenta de nuevo."
+        onRetry={() => { refetchProfile(); refetchMembership(); }}
+      />
+    )
+  }
+
+  if ((profileLoading || membershipLoading) && !isDev) {
+    return <LoadingState />
+  }
 
   // Use mock data in dev mode
   const displayProfile = isDev ? mockProfile : profile
@@ -56,10 +70,6 @@ export default function Dashboard(): React.JSX.Element {
   const membershipData = displayMembership?.membership
   const role = displayProfile?.role || 'student'
   const isStudent = role === 'student'
-
-  if ((profileLoading || membershipLoading) && !isDev) {
-    return <LoadingState />
-  }
 
   return (
     <Container>

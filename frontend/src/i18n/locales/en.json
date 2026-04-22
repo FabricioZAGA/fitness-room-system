@@ -87,7 +87,7 @@
   },
   "students": {
     "title": "Members",
-    "subtitle": "Gym student management",
+    "subtitle": "Studio member management",
     "newStudent": "New Member",
     "registerStudent": "Register Student",
     "editStudent": "Edit Student",
@@ -151,7 +151,7 @@
     "english": "English",
     "darkMode": "Dark Mode",
     "lightMode": "Light Mode",
-    "gymInfo": "Gym Information",
+    "gymInfo": "Studio Information",
     "gymInfoDesc": "Name, address, and contact details",
     "notifications": "Notifications",
     "notificationsDesc": "Expiration alerts and reminders",
@@ -173,6 +173,6 @@
     "helpText": "Trouble accessing?",
     "contactAdmin": "Contact the administrator",
     "devMode": "🛠️ Dev Mode — Auto login enabled",
-    "tagline": "Management system for your gym. Simple, fast, and easy to use."
+    "tagline": "Management system for your Studio. Simple, fast, and easy to use."
   }
 }

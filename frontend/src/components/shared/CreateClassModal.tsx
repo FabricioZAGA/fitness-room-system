@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Dialog } from "./Dialog";
 import { useCreateClass } from "@/hooks/useClasses";
 import { useInstructors } from "@/hooks/useInstructors";
-import type { ClassType, CreateClassRequest } from "@/types/class";
-import { CLASS_TYPE_LABELS } from "@/types/class";
+import type { ClassType, ClassMode, CreateClassRequest } from "@/types/class";
+import { CLASS_TYPE_LABELS, CLASS_MODE_LABELS } from "@/types/class";
 
 interface CreateClassModalProps {
   open: boolean;
@@ -13,6 +13,7 @@ interface CreateClassModalProps {
 }
 
 const CLASS_TYPES = Object.entries(CLASS_TYPE_LABELS) as [ClassType, string][];
+const CLASS_MODES = Object.entries(CLASS_MODE_LABELS) as [ClassMode, string][];
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -27,6 +28,7 @@ const INITIAL: CreateClassRequest = {
   capacity: 15,
   location: "Sala A",
   description: "",
+  class_mode: "presencial",
 };
 
 export function CreateClassModal({
@@ -165,16 +167,32 @@ export function CreateClassModal({
           </Field>
         </div>
 
-        <Field label="Link de la clase (opcional)">
-          <input
-            name="class_link"
-            type="url"
-            value={form.class_link ?? ""}
-            onChange={handleChange}
-            placeholder="https://zoom.us/j/..."
-            className={inputCls}
-          />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Modalidad">
+            <select
+              name="class_mode"
+              value={form.class_mode ?? "presencial"}
+              onChange={handleChange}
+              className={inputCls}
+            >
+              {CLASS_MODES.map(([val, label]) => (
+                <option key={val} value={val}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Link de la clase (opcional)">
+            <input
+              name="class_link"
+              type="url"
+              value={form.class_link ?? ""}
+              onChange={handleChange}
+              placeholder="https://zoom.us/j/..."
+              className={inputCls}
+            />
+          </Field>
+        </div>
 
         <Field label="Descripción">
           <textarea

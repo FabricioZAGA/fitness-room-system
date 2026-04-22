@@ -13,7 +13,7 @@ GSI2 (filter by status):
   GSI2SK: STUDENT#{student_id}
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 
 import re
@@ -35,6 +35,31 @@ class StudentStatus(StrEnum):
     NEW = "new"
 
 
+class EmergencyContact(BaseModel):
+    """Nested schema for emergency contact information."""
+
+    name: str = Field(..., min_length=1, max_length=100, description="Contact full name")
+    relationship: str = Field(..., min_length=1, max_length=50, description="Relationship (e.g. madre, padre, hermano)")
+    phone: str = Field(..., max_length=20, description="Contact phone number")
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        """Normalize and validate Mexican phone number (+52XXXXXXXXXX)."""
+        if not v or v.strip() == "":
+            return v
+        cleaned = re.sub(r"[\s\-\(\).]", "", v.strip())
+        if re.match(r"^\d{10}$", cleaned):
+            cleaned = f"+52{cleaned}"
+        if re.match(r"^52\d{10}$", cleaned):
+            cleaned = f"+{cleaned}"
+        if not _PHONE_RE.match(cleaned):
+            raise ValueError(
+                "Teléfono inválido. Formato requerido: +52 seguido de 10 dígitos (ej. +525512345678)"
+            )
+        return cleaned
+
+
 class StudentCreate(BaseModel):
     """Schema for creating a new student."""
 
@@ -44,6 +69,13 @@ class StudentCreate(BaseModel):
     phone: str | None = Field(
         default=None, max_length=20, description="Phone number with country code"
     )
+    birth_date: date | None = Field(default=None, description="Date of birth (YYYY-MM-DD)")
+    address: str | None = Field(default=None, max_length=300, description="Street address")
+    city: str | None = Field(default=None, max_length=100, description="City")
+    emergency_contact: EmergencyContact | None = Field(
+        default=None, description="Emergency contact information"
+    )
+    photo_url: str | None = Field(default=None, max_length=500, description="Profile photo S3 URL")
     status: StudentStatus = Field(default=StudentStatus.NEW, description="Student status")
     notes: str | None = Field(default=None, max_length=1000, description="Internal notes")
 
@@ -75,6 +107,11 @@ class StudentUpdate(BaseModel):
     last_name: str | None = Field(default=None, min_length=1, max_length=100)
     email: EmailStr | None = None
     phone: str | None = Field(default=None, max_length=20)
+    birth_date: date | None = None
+    address: str | None = Field(default=None, max_length=300)
+    city: str | None = Field(default=None, max_length=100)
+    emergency_contact: EmergencyContact | None = None
+    photo_url: str | None = Field(default=None, max_length=500)
     status: StudentStatus | None = None
     notes: str | None = Field(default=None, max_length=1000)
 
@@ -104,14 +141,26 @@ class StudentResponse(TimestampedModel):
     last_name: str
     email: str
     phone: str | None = None
+    birth_date: date | None = None
+    age: int | None = None
+    address: str | None = None
+    city: str | None = None
+    emergency_contact: EmergencyContact | None = None
+    photo_url: str | None = None
     status: StudentStatus
     notes: str | None = None
     full_name: str = Field(default="", description="Computed full name")
 
     def model_post_init(self, __context: object) -> None:
-        """Compute full_name after initialization."""
+        """Compute full_name and age after initialization."""
         if not self.full_name:
             self.full_name = f"{self.first_name} {self.last_name}"
+        if self.birth_date:
+            today = date.today()
+            self.age = (
+                today.year - self.birth_date.year
+                - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
+            )
 
 
 class StudentDynamoItem(BaseModel):
@@ -129,6 +178,11 @@ class StudentDynamoItem(BaseModel):
     last_name: str
     email: str
     phone: str | None = None
+    birth_date: str | None = None
+    address: str | None = None
+    city: str | None = None
+    emergency_contact: dict | None = None
+    photo_url: str | None = None
     status: str
     notes: str | None = None
     created_at: datetime
@@ -152,6 +206,11 @@ class StudentDynamoItem(BaseModel):
             last_name=data.last_name,
             email=data.email,
             phone=data.phone,
+            birth_date=data.birth_date.isoformat() if data.birth_date else None,
+            address=data.address,
+            city=data.city,
+            emergency_contact=data.emergency_contact.model_dump() if data.emergency_contact else None,
+            photo_url=data.photo_url,
             status=status,
             notes=data.notes,
             created_at=now,
@@ -160,12 +219,18 @@ class StudentDynamoItem(BaseModel):
 
     def to_response(self) -> StudentResponse:
         """Convert DynamoDB item to API response schema."""
+        ec = EmergencyContact(**self.emergency_contact) if self.emergency_contact else None
         return StudentResponse(
             student_id=self.student_id,
             first_name=self.first_name,
             last_name=self.last_name,
             email=self.email,
             phone=self.phone,
+            birth_date=date.fromisoformat(self.birth_date) if self.birth_date else None,
+            address=self.address,
+            city=self.city,
+            emergency_contact=ec,
+            photo_url=self.photo_url,
             status=StudentStatus(self.status),
             notes=self.notes,
             created_at=self.created_at,

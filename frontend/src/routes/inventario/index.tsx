@@ -110,7 +110,7 @@ function InventarioPage(): React.JSX.Element {
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-[--tx-primary]">Inventario</h1>
-          <p className="mt-1 text-[--tx-muted]">Productos y ventas del gimnasio</p>
+          <p className="mt-1 text-[--tx-muted]">Productos y ventas del Studio</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}

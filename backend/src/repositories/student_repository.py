@@ -104,6 +104,16 @@ class StudentRepository(DynamoRepository):
             updates["phone"] = data.phone
         if data.notes is not None:
             updates["notes"] = data.notes
+        if data.birth_date is not None:
+            updates["birth_date"] = data.birth_date.isoformat()
+        if data.address is not None:
+            updates["address"] = data.address
+        if data.city is not None:
+            updates["city"] = data.city
+        if data.emergency_contact is not None:
+            updates["emergency_contact"] = data.emergency_contact.model_dump()
+        if data.photo_url is not None:
+            updates["photo_url"] = data.photo_url
 
         if data.status is not None and data.status != StudentStatus(current.status):
             new_status = data.status.value

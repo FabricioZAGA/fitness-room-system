@@ -210,7 +210,7 @@ function LoginPage(): React.JSX.Element {
           </div>
           <h1 className="mb-4 text-4xl font-bold text-[--tx-primary]">Fitness Room</h1>
           <p className="text-xl text-[--tx-muted]">
-            Sistema de gestión para tu gimnasio. Simple, rápido y fácil de usar.
+            Sistema de gestión para tu Studio. Simple, rápido y fácil de usar.
           </p>
           <div className="mt-12 grid grid-cols-3 gap-6 text-center">
             <div>

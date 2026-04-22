@@ -144,6 +144,22 @@ export function useCheckinWithAttendance() {
   });
 }
 
+export function useUploadStudentPhoto(studentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (imageBase64: string) =>
+      studentService.uploadPhoto(studentId, imageBase64),
+    onSuccess: (student) => {
+      qc.invalidateQueries({ queryKey: [STUDENTS_KEY] });
+      qc.setQueryData([STUDENTS_KEY, studentId], student);
+      toast.success("Foto de perfil actualizada.");
+    },
+    onError: () => {
+      toast.error("Error al subir la foto.");
+    },
+  });
+}
+
 export function useStudentQr(studentId: string) {
   return useQuery({
     queryKey: [STUDENTS_KEY, studentId, "qr"],
