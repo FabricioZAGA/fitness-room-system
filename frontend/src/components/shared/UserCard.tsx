@@ -9,9 +9,94 @@ import {
   UserCheck,
   Trash2,
   Mail,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  HelpCircle,
+  RefreshCw,
+  Link2,
 } from "lucide-react";
 import type { CognitoUser } from "@/services/userService";
 import { USER_GROUP_LABELS, USER_GROUP_COLORS, type UserGroup } from "@/lib/userGroups";
+
+type CognitoStatus =
+  | "CONFIRMED"
+  | "FORCE_CHANGE_PASSWORD"
+  | "UNCONFIRMED"
+  | "RESET_REQUIRED"
+  | "EXTERNAL_PROVIDER"
+  | "UNKNOWN"
+  | (string & {});
+
+interface StatusConfig {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  bg: string;
+  text: string;
+  border: string;
+}
+
+const STATUS_MAP: Record<string, StatusConfig> = {
+  CONFIRMED: {
+    label: "Confirmado",
+    icon: CheckCircle2,
+    bg: "var(--color-success-bg)",
+    text: "var(--color-success)",
+    border: "var(--color-success-bd)",
+  },
+  FORCE_CHANGE_PASSWORD: {
+    label: "Cambio de contraseña pendiente",
+    icon: Clock,
+    bg: "var(--color-warning-bg)",
+    text: "var(--color-warning)",
+    border: "var(--color-warning-bd)",
+  },
+  UNCONFIRMED: {
+    label: "Sin confirmar",
+    icon: AlertTriangle,
+    bg: "var(--color-info-bg)",
+    text: "var(--color-info)",
+    border: "var(--color-info-bd)",
+  },
+  RESET_REQUIRED: {
+    label: "Requiere reseteo",
+    icon: RefreshCw,
+    bg: "var(--color-warning-bg)",
+    text: "var(--color-warning)",
+    border: "var(--color-warning-bd)",
+  },
+  EXTERNAL_PROVIDER: {
+    label: "Proveedor externo",
+    icon: Link2,
+    bg: "var(--color-info-bg)",
+    text: "var(--color-info)",
+    border: "var(--color-info-bd)",
+  },
+};
+
+function StatusBadge({ status }: { status: CognitoStatus }): React.JSX.Element {
+  const cfg = STATUS_MAP[status] ?? {
+    label: status,
+    icon: HelpCircle,
+    bg: "var(--bg-muted)",
+    text: "var(--tx-muted)",
+    border: "var(--bd-default)",
+  };
+  const Icon = cfg.icon;
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+      style={{
+        backgroundColor: cfg.bg,
+        color: cfg.text,
+        border: `1px solid ${cfg.border}`,
+      }}
+    >
+      <Icon className="h-2.5 w-2.5 shrink-0" />
+      {cfg.label}
+    </span>
+  );
+}
 
 interface UserCardProps {
   user: CognitoUser;
@@ -70,12 +155,12 @@ export function UserCard({
             </span>
           )}
         </div>
-        <div className="mt-0.5 flex items-center gap-3 text-xs text-[--tx-muted]">
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[--tx-muted]">
           <span className="flex items-center gap-1">
-            <Mail className="h-3 w-3" />
+            <Mail className="h-3 w-3 shrink-0" />
             {user.email}
           </span>
-          <span>Estado: {user.status}</span>
+          <StatusBadge status={user.status} />
         </div>
       </div>
 

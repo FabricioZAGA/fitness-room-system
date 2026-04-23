@@ -5,6 +5,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.5.1] — 2026-04-23
+
+### Fixed
+- Estado de usuarios en la página de gestión ahora muestra badges visuales en lugar de texto plano
+- `CONFIRMED` → badge verde "Confirmado"
+- `FORCE_CHANGE_PASSWORD` → badge amarillo "Cambio de contraseña pendiente"
+- `UNCONFIRMED` → badge azul "Sin confirmar"
+- `RESET_REQUIRED` → badge amarillo "Requiere reseteo"
+- `EXTERNAL_PROVIDER` → badge azul "Proveedor externo"
+- Cualquier estado desconocido muestra el valor raw de Cognito como fallback
+
+---
+
 ## [1.5.0] — 2026-04-23
 
 ### Added
