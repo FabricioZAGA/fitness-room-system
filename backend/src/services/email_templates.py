@@ -767,3 +767,69 @@ def welcome_carta_responsiva_html(
       </p>
     """
     return _base_layout(title=f"¡Bienvenido! — {gym_name}", content=content, gym_name=gym_name)
+
+
+# ─── Student portal credentials ─────────────────────────────────────────────
+
+
+def portal_credentials_html(
+    student_name: str,
+    email: str,
+    password: str,
+    portal_url: str = "https://portal.fitnessroom.mx",
+    gym_name: str = "Fitness Room",
+) -> str:
+    """Email template: portal access credentials for a new student."""
+    content = f"""
+      <p style="margin:0 0 8px;font-size:13px;color:#d4af37;font-weight:600;text-transform:uppercase;letter-spacing:1px;">
+        Acceso al Portal de Alumnos
+      </p>
+      <h1 style="margin:0 0 24px;font-size:24px;font-weight:700;color:#ffffff;line-height:1.3;">
+        {student_name}, ya puedes acceder al portal 🎉
+      </h1>
+      <p style="margin:0 0 20px;font-size:15px;color:#ccc;line-height:1.6;">
+        Se ha creado tu cuenta en el portal de alumnos de
+        <strong style="color:#d4af37;">{gym_name}</strong>.
+        Aquí podrás consultar tus membresías, reservar clases y más.
+      </p>
+
+      <div style="background-color:#111827;border:1px solid #d4af3740;border-radius:12px;padding:24px;margin-bottom:28px;">
+        <p style="margin:0 0 16px;font-size:13px;color:#d4af37;font-weight:600;text-transform:uppercase;letter-spacing:1px;">
+          🔐 Tus credenciales de acceso
+        </p>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="padding:8px 0;font-size:13px;color:#888;width:120px;">Portal</td>
+            <td style="padding:8px 0;">
+              <a href="{portal_url}" style="color:#d4af37;font-size:15px;text-decoration:none;">{portal_url}</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;font-size:13px;color:#888;">Correo</td>
+            <td style="padding:8px 0;font-size:15px;color:#fff;font-weight:600;">{email}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;font-size:13px;color:#888;">Contraseña</td>
+            <td style="padding:8px 0;">
+              <span style="font-size:16px;font-weight:700;color:#fff;font-family:monospace;background:#0d1117;padding:6px 12px;border-radius:6px;border:1px solid #30363d;">{password}</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background-color:#1a150030;border:1px solid #f59e0b40;border-radius:12px;padding:16px 24px;margin-bottom:28px;">
+        <p style="margin:0;font-size:14px;color:#f59e0b;">
+          ⚠️ <strong>Importante:</strong> Al iniciar sesión por primera vez
+          se te pedirá cambiar tu contraseña.
+        </p>
+      </div>
+
+      <p style="margin:0;font-size:14px;color:#aaa;line-height:1.7;">
+        Si tienes algún problema para acceder, contacta a recepción.
+      </p>
+    """
+    return _base_layout(
+        title=f"Acceso al Portal — {gym_name}",
+        content=content,
+        gym_name=gym_name,
+    )

@@ -11,15 +11,20 @@ import qrcode.image.svg
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 
+from aws_lambda_powertools import Logger
+
 from src.config import get_settings
 from src.models.checkin import CheckinResponse
 from src.models.common import MessageResponse, PaginatedResponse
 from src.models.student import StudentCreate, StudentResponse, StudentStatus, StudentUpdate
 from src.services.checkin_service import CheckinService
-from src.services.student_service import StudentService
+from src.services.cognito_service import CognitoService
 from src.services.event_notifier import EventNotifier
 from src.services.notification_service import NotificationService
+from src.services.student_service import StudentService
 from src.utils.auth import get_current_user
+
+logger = Logger()
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
@@ -71,6 +76,26 @@ def create_student(
             )
     except Exception:
         pass
+    # Create Cognito user for portal access
+    settings = get_settings()
+    try:
+        cognito_svc = CognitoService()
+        password = cognito_svc.create_student_user(
+            email=result.email,
+            name=name,
+        )
+        # Send portal credentials email
+        notifier.notify_portal_credentials(
+            student_name=name,
+            student_email=result.email,
+            password=password,
+            portal_url=settings.portal_url,
+        )
+    except Exception as exc:
+        logger.error(
+            "Failed to create Cognito user for student",
+            extra={"student_id": result.student_id, "error": str(exc)},
+        )
     return result
 
 

@@ -55,6 +55,7 @@ from src.services.email_templates import (
     reservation_confirmed_html,
     waitlist_joined_html,
     waitlist_promoted_html,
+    portal_credentials_html,
     welcome_carta_responsiva_html,
 )
 from src.services.carta_responsiva import generate_carta_responsiva
@@ -455,6 +456,39 @@ class EventNotifier:
                 student_name=student_name,
                 error_message=str(exc),
             )
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Portal credentials
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def notify_portal_credentials(
+        self,
+        student_name: str,
+        student_email: str,
+        password: str,
+        portal_url: str = "https://portal.fitnessroom.mx",
+    ) -> None:
+        """Send portal access credentials to a newly registered student."""
+        html = portal_credentials_html(
+            student_name=student_name,
+            email=student_email,
+            password=password,
+            portal_url=portal_url,
+            gym_name=self._gym,
+        )
+        sms = (
+            f"{self._gym}: Tu acceso al portal de alumnos — "
+            f"Entra a {portal_url} con {student_email} / {password}"
+        )
+        self._dispatch(
+            notification_type=NotificationType.CUSTOM,
+            subject=f"🔐 Acceso al Portal de Alumnos — {self._gym}",
+            html_body=html,
+            sms_body=sms,
+            recipient_email=student_email,
+            recipient_role="student",
+            student_name=student_name,
+        )
 
     # ──────────────────────────────────────────────────────────────────────────
     # Instructor events
