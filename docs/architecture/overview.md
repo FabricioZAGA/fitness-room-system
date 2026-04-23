@@ -41,7 +41,7 @@ Browser → API Gateway → Cognito Authorizer → Lambda → DynamoDB
 | **DynamoDB** | NoSQL single-table storage |
 | **S3** | Frontend static asset storage (admin + portal) |
 | **CloudFront** | CDN for frontend, SSL termination (2 distributions) |
-| **SES** | Transactional emails (membership expiry alerts) |
+| **SES** | Transactional emails (membership expiry, portal credentials) |
 | **EventBridge** | Scheduled triggers for notification Lambda |
 | **CloudWatch** | Logs, metrics, alarms |
 | **X-Ray** | Distributed tracing (via Lambda Powertools) |
@@ -75,6 +75,23 @@ HTTP Request
 - **Service** — Orchestrates business rules, calls repositories, raises domain exceptions
 - **Repository** — Encapsulates all DynamoDB operations, returns typed domain models
 - **Models** — Pydantic v2 data models, DynamoDB item converters
+- **Utils** — Shared utilities (phone validation, auth helpers, exceptions)
+
+### Key Backend Modules
+
+| Module | Router | Purpose |
+|---|---|---|
+| Students | `/students` | CRUD, search, photo upload |
+| Memberships | `/memberships` | CRUD, freeze/unfreeze, renewal |
+| Classes | `/classes` | Schedule, capacity, waitlist |
+| Reservations | `/reservations` | Book, cancel, auto-promote from waitlist |
+| Instructors | `/instructors` | CRUD + auto Cognito user creation (staff group) |
+| Check-in | `/checkin` | Search, register, QR scan |
+| Users | `/users` | Admin-only Cognito user management (CRUD, groups, enable/disable) |
+| Portal | `/portal` | Student/instructor self-service (profile, membership, schedule) |
+| Settings | `/settings` | Gym configuration |
+| Dashboard | `/dashboard` | Real-time stats |
+| Reports | `/reports` | Excel/PDF export |
 
 ## Frontend Architecture
 
@@ -105,6 +122,10 @@ Routes (React Router DOM v7)
 
 The portal is a mobile-first app for students and instructors. It uses separate Cognito app client credentials and calls only the `/api/v1/portal/` prefix.
 
+**Role-based views:**
+- **Students** — QR check-in, class enrollment, membership status
+- **Staff/Instructors** — Assigned classes, full schedule view (QR hidden)
+
 ## Authentication Flow
 
 ```
@@ -132,5 +153,28 @@ The portal is a mobile-first app for students and instructors. It uses separate 
 | 1 | Students, Memberships, Classes, Reservations, Instructors, Check-in, Dashboard | Done |
 | 2 | Email notifications (SES), Reports, Cash register, Inventory | Done |
 | 2.5 | QR Check-in, Membership freeze, PDF/Excel export, Student portal | Done |
+| 2.7 | International phone validation, structured address, user management, portal role-based views, configurable specialties | Done |
 | 3 | WhatsApp Business API, Advanced cash management | Planned |
 | 4 | Loyalty rankings, Motivation metrics, Native mobile app | Planned |
+
+## International Phone & Address Support
+
+- **Phone**: E.164 format with country selector (MX, US, CO, AR, ES, CL, PE, BR, EC, GT)
+- **Backend**: `src/utils/phone.py` — `validate_phone_required()`, `validate_phone_optional()`, `normalize_phone()`
+- **Frontend**: `PhoneInput` component with country dropdown, auto-formatting, validation
+- **Address**: Structured fields (street, ext#, int#, colonia, city, state, ZIP) with 32 MX states dictionary
+- **Frontend**: `AddressInput` component with state dropdown
+
+## Cognito User Management
+
+| Group | Access | Created by |
+|---|---|---|
+| `admin` | Full admin panel access | Admin via Users page |
+| `staff` | Limited admin panel (receptionist) | Admin via Users page or auto on instructor creation |
+| `student` | Portal only | Auto on student creation |
+
+**Admin endpoints** (`/api/v1/users/`, admin-only):
+- List all Cognito users with groups
+- Create user with group assignment + auto email credentials
+- Enable/disable/delete users
+- Update group memberships

@@ -22,10 +22,48 @@ export const Route = createFileRoute("/")({
   component: DashboardPage,
 });
 
+function Skeleton({ className = "" }: { className?: string }): React.JSX.Element {
+  return (
+    <div
+      className={`animate-pulse rounded-xl bg-[--bg-muted] ${className}`}
+    />
+  );
+}
+
+function StatCardSkeleton(): React.JSX.Element {
+  return (
+    <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <Skeleton className="h-4 w-24 mb-3" />
+          <Skeleton className="h-10 w-16" />
+        </div>
+        <Skeleton className="h-12 w-12 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+function ListSkeleton({ rows = 3 }: { rows?: number }): React.JSX.Element {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 rounded-xl bg-[--bg-muted]/50 p-4">
+          <Skeleton className="h-11 w-11 shrink-0 rounded-xl" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function DashboardPage(): React.JSX.Element {
-  const { data: stats } = useDashboardStats();
-  const { data: rankings = [] } = useRankings({ limit: 5, days: 30 });
-  const { data: todaySummary } = useTodaySummary();
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: rankings = [], isLoading: rankingsLoading } = useRankings({ limit: 5, days: 30 });
+  const { data: todaySummary, isLoading: summaryLoading } = useTodaySummary();
 
   const activeStudents = stats?.active_students ?? 0;
   const todayClasses = stats?.today_classes ?? 0;
@@ -96,10 +134,21 @@ function DashboardPage(): React.JSX.Element {
 
       {/* Stats Grid */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Miembros Activos" value={activeStudents} icon={Users} href="/students" />
-        <StatCard label="Clases Hoy" value={todayClasses} icon={Calendar} href="/classes" />
-        <StatCard label="Instructores" value={activeInstructors} icon={UserCog} href="/instructors" />
-        <StatCard label="Por Vencer" value={expiring} icon={CreditCard} warning href="/memberships" />
+        {statsLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <StatCard label="Miembros Activos" value={activeStudents} icon={Users} href="/students" />
+            <StatCard label="Clases Hoy" value={todayClasses} icon={Calendar} href="/classes" />
+            <StatCard label="Instructores" value={activeInstructors} icon={UserCog} href="/instructors" />
+            <StatCard label="Por Vencer" value={expiring} icon={CreditCard} warning href="/memberships" />
+          </>
+        )}
       </div>
 
       {/* Two Column Layout */}
@@ -115,7 +164,9 @@ function DashboardPage(): React.JSX.Element {
               Ver todas →
             </Link>
           </div>
-          {upcomingClasses.length ? (
+          {statsLoading ? (
+            <ListSkeleton rows={3} />
+          ) : upcomingClasses.length ? (
             <div className="space-y-2">
               {upcomingClasses.map((cls) => (
                 <div
@@ -161,7 +212,9 @@ function DashboardPage(): React.JSX.Element {
               Ver todas →
             </Link>
           </div>
-          {expiringMemberships.length > 0 ? (
+          {statsLoading ? (
+            <ListSkeleton rows={3} />
+          ) : expiringMemberships.length > 0 ? (
             <div className="space-y-2">
               {expiringMemberships.slice(0, 5).map((m) => (
                 <div
@@ -217,7 +270,9 @@ function DashboardPage(): React.JSX.Element {
               Ver reporte →
             </Link>
           </div>
-          {rankings.length === 0 ? (
+          {rankingsLoading ? (
+            <ListSkeleton rows={3} />
+          ) : rankings.length === 0 ? (
             <div className="rounded-xl bg-[--bg-muted]/30 py-10 text-center">
               <Trophy className="mx-auto mb-3 h-10 w-10 text-[--tx-disabled]" />
               <p className="text-sm text-[--tx-disabled]">Sin check-ins este mes</p>
@@ -274,7 +329,16 @@ function DashboardPage(): React.JSX.Element {
               Ver caja →
             </Link>
           </div>
-          {!todaySummary ? (
+          {summaryLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-28 w-full rounded-xl" />
+              <div className="grid grid-cols-3 gap-2">
+                <Skeleton className="h-16 rounded-xl" />
+                <Skeleton className="h-16 rounded-xl" />
+                <Skeleton className="h-16 rounded-xl" />
+              </div>
+            </div>
+          ) : !todaySummary ? (
             <div className="rounded-xl bg-[--bg-muted]/30 py-10 text-center">
               <DollarSign className="mx-auto mb-3 h-10 w-10 text-[--tx-disabled]" />
               <p className="text-sm text-[--tx-disabled]">Sin movimientos hoy</p>

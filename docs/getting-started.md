@@ -184,25 +184,26 @@ fitness-room-system/
 │   │   ├── main.py            # Lambda + FastAPI entry point
 │   │   ├── models/            # Pydantic v2 domain models
 │   │   ├── repositories/      # DynamoDB access layer
-│   │   ├── routers/           # FastAPI route handlers (12 modules)
-│   │   ├── services/          # Business logic
-│   │   └── utils/             # Auth, exceptions
+│   │   ├── routers/           # FastAPI route handlers (13 modules incl. users)
+│   │   ├── services/          # Business logic + cognito_service
+│   │   └── utils/             # Auth, exceptions, phone validation
 │   └── tests/
 ├── frontend/                  # React 19 TypeScript SPA — Admin panel
 │   └── src/
 │       ├── components/        # UI + shared components
 │       ├── config/            # Theme configuration
-│       ├── hooks/             # TanStack Query hooks
-│       ├── lib/               # Utilities, Amplify config
-│       ├── routes/            # TanStack Router pages (15 routes)
-│       ├── services/          # API client + services
+│       ├── hooks/             # TanStack Query hooks (students, instructors, users)
+│       ├── lib/               # Utilities, Amplify config, phone, address, specialties
+│       ├── routes/            # TanStack Router pages (16 routes incl. /users)
+│       ├── services/          # API client + services (student, instructor, user)
 │       ├── store/             # Zustand stores
 │       └── types/             # TypeScript type definitions
 ├── portal/                    # React 19 TypeScript SPA — Student/Instructor app
 │   └── src/
 │       ├── pages/             # Dashboard, Profile, QR, Schedule, Login
-│       ├── components/        # BottomNav, Card, Button, etc.
+│       ├── components/        # BottomNav (role-aware), Card, Button, etc.
 │       ├── contexts/          # AuthContext (Amplify)
+│       ├── hooks/             # useRole (staff/student detection)
 │       └── services/          # api.ts (portal endpoints)
 ├── infrastructure/
 │   └── cdk/                   # AWS CDK v2 stacks

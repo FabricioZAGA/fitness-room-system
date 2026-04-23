@@ -18,6 +18,7 @@ export function useInstructors(params?: {
   return useQuery({
     queryKey: [QUERY_KEY, params],
     queryFn: () => instructorService.list(params),
+    staleTime: 1000 * 60 * 5, // 5 min — instructors rarely change
   });
 }
 

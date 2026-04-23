@@ -4,6 +4,7 @@ Provides FastAPI dependency `get_current_user` that validates
 Cognito JWT tokens on every protected endpoint.
 """
 
+import time
 from typing import Any
 
 import httpx
@@ -16,17 +17,22 @@ from src.config import Settings, get_settings
 
 security = HTTPBearer()
 
+_JWKS_TTL_SECONDS = 3600  # 1 hour
+
 _jwks_cache: dict[str, Any] | None = None
+_jwks_cache_expires: float = 0.0
 
 
 async def _get_jwks(settings: Settings) -> dict[str, Any]:
-    """Fetch and cache JWKS from Cognito."""
-    global _jwks_cache
-    if _jwks_cache is None:
+    """Fetch and cache JWKS from Cognito with a 1-hour TTL."""
+    global _jwks_cache, _jwks_cache_expires
+    now = time.monotonic()
+    if _jwks_cache is None or now >= _jwks_cache_expires:
         async with httpx.AsyncClient() as client:
             response = await client.get(settings.cognito_jwks_url)
             response.raise_for_status()
             _jwks_cache = response.json()
+            _jwks_cache_expires = now + _JWKS_TTL_SECONDS
     return _jwks_cache
 
 

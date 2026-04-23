@@ -1,9 +1,12 @@
 """API routes for instructor management."""
 
+import threading
 from typing import Any
 
+from aws_lambda_powertools import Logger
 from fastapi import APIRouter, Depends, Query, status
 
+from src.config import get_settings
 from src.models.common import MessageResponse, PaginatedResponse
 from src.models.instructor import (
     InstructorCreate,
@@ -11,8 +14,12 @@ from src.models.instructor import (
     InstructorStatus,
     InstructorUpdate,
 )
+from src.services.cognito_service import CognitoService
+from src.services.event_notifier import EventNotifier
 from src.services.instructor_service import InstructorService
 from src.utils.auth import get_current_user
+
+logger = Logger()
 
 router = APIRouter(prefix="/instructors", tags=["Instructors"])
 
@@ -35,7 +42,29 @@ def create_instructor(
     service: InstructorService = Depends(get_service),
 ) -> InstructorResponse:
     """Create a new instructor."""
-    return service.create_instructor(data)
+    result = service.create_instructor(data)
+    name = f"{result.first_name} {result.last_name}".strip()
+    settings = get_settings()
+
+    def _create_cognito(n: str, email: str, iid: str) -> None:
+        try:
+            pwd = CognitoService().create_staff_user(email=email, name=n)
+            EventNotifier().notify_portal_credentials(
+                student_name=n,
+                student_email=email,
+                password=pwd,
+                portal_url=settings.portal_url,
+            )
+        except Exception:
+            logger.exception("Cognito staff user creation failed", extra={"instructor_id": iid})
+
+    thread = threading.Thread(
+        target=_create_cognito, args=(name, result.email, result.instructor_id),
+    )
+    thread.start()
+    thread.join(timeout=25)
+
+    return result
 
 
 @router.get(

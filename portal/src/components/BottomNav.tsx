@@ -1,21 +1,26 @@
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useRole } from '../hooks/useRole'
 
 interface NavItem {
   path: string
   label: string
   icon: string
+  roles?: Array<'student' | 'staff'>
 }
 
 const NAV_ITEMS: NavItem[] = [
   { path: '/dashboard', label: 'Inicio', icon: '🏠' },
   { path: '/schedule', label: 'Clases', icon: '📅' },
-  { path: '/qr', label: 'QR', icon: '📱' },
+  { path: '/qr', label: 'QR', icon: '📱', roles: ['student'] },
   { path: '/profile', label: 'Perfil', icon: '👤' },
 ]
 
 export default function BottomNav(): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
+  const role = useRole()
+
+  const visibleItems = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(role))
 
   return (
     <nav
@@ -34,7 +39,7 @@ export default function BottomNav(): React.JSX.Element {
         zIndex: 50,
       }}
     >
-      {NAV_ITEMS.map((item) => {
+      {visibleItems.map((item) => {
         const isActive = location.pathname === item.path
         return (
           <button

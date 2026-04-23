@@ -14,6 +14,7 @@ from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from mangum import Mangum
 
@@ -31,6 +32,7 @@ from src.routers import (
     stats,
     students,
     transactions,
+    users,
 )
 from src.utils.exceptions import (
     CapacityExceededException,
@@ -64,7 +66,7 @@ app = FastAPI(
         "Todos los endpoints (excepto `/health`) requieren un Bearer token de Cognito.\n"
         "Incluye el token en el header: `Authorization: Bearer <token>`"
     ),
-    version="1.1.0",
+    version="1.2.0",
     contact={
         "name": "FabricioZAGA",
         "url": "https://github.com/FabricioZAGA/fitness-room-system",
@@ -81,14 +83,12 @@ app = FastAPI(
     ],
 )
 
-_cors_origins = (
+_cors_origins: list[str] = (
     ["*"]
     if settings.is_local
     else [
         settings.frontend_url,
         settings.portal_url,
-        "https://d3awxegxyh5p20.cloudfront.net",
-        "https://d36xs3aztdpnk5.cloudfront.net",
         "http://localhost:5173",
         "http://localhost:3001",
     ]
@@ -100,6 +100,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.exception_handler(ResourceNotFoundException)
@@ -179,6 +180,7 @@ app.include_router(inventory.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(portal.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
 
 
 @logger.inject_lambda_context(log_event=True)
@@ -212,14 +214,22 @@ def _handle_scheduled_event(event: dict[str, Any]) -> dict[str, Any]:
             critical_days=cfg.notification_critical_days,
             warning_days=cfg.notification_warning_days,
         )
-        results["expiry"] = {"sent": result.sent, "failed": result.failed, "skipped": result.skipped}
+        results["expiry"] = {
+            "sent": result.sent,
+            "failed": result.failed,
+            "skipped": result.skipped,
+        }
         logger.info("Scheduled expiry reminders sent", **results["expiry"])
 
     if action in ("send_all", "send_inactivity"):
         result = svc.send_inactivity_alerts(
             inactive_days=cfg.notification_inactive_days,
         )
-        results["inactivity"] = {"sent": result.sent, "failed": result.failed, "skipped": result.skipped}
+        results["inactivity"] = {
+            "sent": result.sent,
+            "failed": result.failed,
+            "skipped": result.skipped,
+        }
         logger.info("Scheduled inactivity alerts sent", **results["inactivity"])
 
     return {"statusCode": 200, "body": results}

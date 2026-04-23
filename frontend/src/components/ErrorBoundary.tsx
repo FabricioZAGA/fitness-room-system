@@ -34,25 +34,36 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="mb-6 text-[--tx-muted]">
               Ha ocurrido un error inesperado. Por favor, recarga la página.
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="rounded-lg px-6 py-2 text-base font-semibold transition-all"
-              style={{
-                background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-                color: "var(--gold-fg)"
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
-            >
-              Recargar página
-            </button>
-            {this.state.error && (
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  window.location.href = "/";
+                }}
+                className="rounded-lg border border-[--bd-default] bg-[--bg-base] px-5 py-2 text-sm font-semibold text-[--tx-primary] transition-all hover:bg-[--bg-elevated]"
+              >
+                Ir al inicio
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="rounded-lg px-5 py-2 text-sm font-semibold transition-all"
+                style={{
+                  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                  color: "var(--gold-fg)"
+                }}
+              >
+                Recargar página
+              </button>
+            </div>
+            {import.meta.env.DEV && this.state.error && (
               <details className="mt-6 text-left">
                 <summary className="cursor-pointer text-sm text-[--tx-disabled]">
                   Ver detalles del error
                 </summary>
                 <pre className="mt-2 overflow-auto rounded-lg bg-[--bg-base] p-4 text-xs text-[--tx-muted]">
                   {this.state.error.toString()}
+                  {"\n"}
+                  {this.state.error.stack}
                 </pre>
               </details>
             )}

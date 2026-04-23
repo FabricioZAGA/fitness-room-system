@@ -28,8 +28,35 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const locale: Locale = isValidLocale(raw) ? raw : "es";
   const d = getDictionary(locale);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Fitness Room System",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `https://platform.fitnessroom.mx/${locale}`,
+    inLanguage: locale,
+    description: d.meta.description,
+    offers: {
+      "@type": "AggregateOffer",
+      priceCurrency: "MXN",
+      lowPrice: "2499",
+      highPrice: "4999",
+      offerCount: "3",
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "5",
+      ratingCount: "3",
+    },
+  };
+
   return (
     <div className="min-h-screen bg-[--bg-base]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Header locale={locale} t={d.nav} />
       <main>
         <Hero t={d.hero} />

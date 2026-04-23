@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { portalApi, type Profile, type MembershipResponse } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useRole } from '../hooks/useRole'
 import { Container, Card, Button, LoadingState, ErrorState } from '../components'
 
 const isDev = import.meta.env.DEV
@@ -37,6 +38,7 @@ const mockMembership: MembershipResponse = {
 export default function Dashboard(): React.JSX.Element {
   const navigate = useNavigate()
   const { logout } = useAuth()
+  const portalRole = useRole()
   
   const { data: profile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useQuery({
     queryKey: ['profile'],
@@ -68,8 +70,9 @@ export default function Dashboard(): React.JSX.Element {
   const displayProfile = isDev ? mockProfile : profile
   const displayMembership = isDev ? mockMembership : membership
   const membershipData = displayMembership?.membership
-  const role = displayProfile?.role || 'student'
+  const role = displayProfile?.role || portalRole
   const isStudent = role === 'student'
+  const isStaff = role === 'staff'
 
   return (
     <Container>
@@ -113,14 +116,48 @@ export default function Dashboard(): React.JSX.Element {
         </header>
 
         <div style={{ display: 'grid', gap: '16px' }}>
-          <Card variant="gold">
-            <Button onClick={() => navigate('/qr')} variant="gold" fullWidth>
-              🎯 Mi Código QR
-            </Button>
-            <p style={{ fontSize: '13px', color: '#d4af37', opacity: 0.8, marginTop: '12px', textAlign: 'center', margin: '12px 0 0 0' }}>
-              Escanea para hacer check-in
-            </p>
-          </Card>
+          {/* QR — students only */}
+          {isStudent && (
+            <Card variant="gold">
+              <Button onClick={() => navigate('/qr')} variant="gold" fullWidth>
+                🎯 Mi Código QR
+              </Button>
+              <p style={{ fontSize: '13px', color: '#d4af37', opacity: 0.8, marginTop: '12px', textAlign: 'center', margin: '12px 0 0 0' }}>
+                Escanea para hacer check-in
+              </p>
+            </Card>
+          )}
+
+          {/* Staff/Instructor: My assigned classes */}
+          {isStaff && (
+            <Card variant="gold">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #d4af37 0%, #f59e0b 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                  }}
+                >
+                  🏋️
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff', margin: '0 0 4px 0' }}>
+                    Mis Clases Asignadas
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#d4af37', margin: 0 }}>
+                    Ve y administra las clases que impartes
+                  </p>
+                </div>
+                <span style={{ fontSize: '20px', color: '#d4af37' }}>→</span>
+              </div>
+            </Card>
+          )}
 
           <Card onClick={() => navigate('/schedule')}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -140,10 +177,10 @@ export default function Dashboard(): React.JSX.Element {
               </div>
               <div style={{ flex: 1 }}>
                 <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#ffffff', margin: '0 0 4px 0' }}>
-                  Mis Clases
+                  {isStaff ? 'Horario General' : 'Mis Clases'}
                 </h3>
                 <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>
-                  Inscríbete y administra tus clases
+                  {isStaff ? 'Ve el horario completo del gym' : 'Inscríbete y administra tus clases'}
                 </p>
               </div>
               <span style={{ fontSize: '20px', color: '#6366f1' }}>→</span>

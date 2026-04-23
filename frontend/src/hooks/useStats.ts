@@ -10,6 +10,7 @@ export function useDashboardStats(): UseQueryResult<DashboardStats> {
   return useQuery({
     queryKey: [STATS_KEY, "dashboard"],
     queryFn: () => statsService.getDashboardStats(),
-    refetchInterval: 1000 * 60 * 5, // Refresh every 5 minutes
+    staleTime: 0,                   // Always re-fetch on mount
+    refetchInterval: 1000 * 30,     // Refresh every 30 seconds
   });
 }

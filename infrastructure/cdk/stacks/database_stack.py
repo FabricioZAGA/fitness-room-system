@@ -45,7 +45,7 @@ class DatabaseStack(cdk.Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             removal_policy=removal_policy,
             point_in_time_recovery=is_prod,
-            stream=dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
+            # Streams disabled — no active consumer. Re-enable when needed.
             time_to_live_attribute="TTL",
         )
 

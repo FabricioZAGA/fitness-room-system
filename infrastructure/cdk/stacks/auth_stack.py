@@ -114,11 +114,20 @@ class AuthStack(cdk.Stack):
 
         cognito.CfnUserPoolGroup(
             self,
+            "ReceptionistGroup",
+            user_pool_id=self.user_pool.user_pool_id,
+            group_name="receptionist",
+            description="Receptionists — admin panel with limited access",
+            precedence=2,
+        )
+
+        cognito.CfnUserPoolGroup(
+            self,
             "StaffGroup",
             user_pool_id=self.user_pool.user_pool_id,
             group_name="staff",
-            description="Instructors and staff — limited access",
-            precedence=2,
+            description="Instructors and staff — portal access",
+            precedence=3,
         )
 
         cognito.CfnUserPoolGroup(
@@ -127,7 +136,7 @@ class AuthStack(cdk.Stack):
             user_pool_id=self.user_pool.user_pool_id,
             group_name="student",
             description="Students — portal access only",
-            precedence=3,
+            precedence=4,
         )
 
         cdk.CfnOutput(

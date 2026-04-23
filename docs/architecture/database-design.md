@@ -51,10 +51,10 @@ GSI2SK: STUDENT#{student_id}
 | `first_name` | String | Required |
 | `last_name` | String | Required |
 | `email` | String | Required, unique |
-| `phone` | String | Optional, +52XXXXXXXXXX format |
+| `phone` | String | Optional, E.164 international format (e.g. +525512345678, +14155551234) |
 | `birth_date` | String (ISO) | Optional |
-| `address` | String | Optional, street address |
-| `city` | String | Optional |
+| `address` | String | Optional, formatted from structured address (street, colonia, city, state, ZIP) |
+| `city` | String | Optional (legacy; now part of structured address) |
 | `emergency_contact` | Map | Optional — `{name, relationship, phone}` |
 | `photo_url` | String | Optional, S3 URL for profile photo |
 | `status` | String | active, inactive, new, founder |
@@ -134,6 +134,53 @@ SK:     WAITLIST#{position:04d}#{student_id}
 GSI1PK: STUDENT#{student_id}
 GSI1SK: WAITLIST#{class_id}
 ```
+
+---
+
+### Instructors
+
+| Pattern | Key | Index |
+|---|---|---|
+| Get instructor by ID | `PK=INSTRUCTOR#{id}`, `SK=PROFILE` | Table |
+| List all instructors | `GSI1PK=INSTRUCTORS`, `GSI1SK=begins_with(STATUS#)` | GSI1 |
+
+**Item shape:**
+```
+PK:     INSTRUCTOR#{instructor_id}
+SK:     PROFILE
+GSI1PK: INSTRUCTORS
+GSI1SK: STATUS#{status}#INSTRUCTOR#{instructor_id}
+GSI2PK: STATUS#{status}
+GSI2SK: INSTRUCTOR#{instructor_id}
+```
+
+**Instructor attributes:**
+| Attribute | Type | Description |
+|---|---|---|
+| `first_name` | String | Required |
+| `last_name` | String | Required |
+| `email` | String | Required |
+| `phone` | String | Optional, E.164 format |
+| `specialties` | List[String] | Configurable tags (e.g. Zumba, Yoga, CrossFit) |
+| `bio` | String | Optional |
+| `photo_url` | String | Optional, S3 URL |
+| `hourly_rate` | Number | Optional |
+| `status` | String | active, inactive |
+
+---
+
+### Cognito User Management (not in DynamoDB)
+
+Users are managed in AWS Cognito, not DynamoDB. The `/users` admin endpoints interact directly with Cognito APIs.
+
+| Operation | Cognito API |
+|---|---|
+| List users | `ListUsers` |
+| Create user | `AdminCreateUser` + `AdminAddUserToGroup` |
+| Get user | `AdminGetUser` + `AdminListGroupsForUser` |
+| Disable/Enable | `AdminDisableUser` / `AdminEnableUser` |
+| Delete | Remove from groups + `AdminDeleteUser` |
+| Update groups | `AdminRemoveUserFromGroup` + `AdminAddUserToGroup` |
 
 ---
 

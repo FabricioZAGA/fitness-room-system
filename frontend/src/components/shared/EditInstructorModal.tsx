@@ -1,8 +1,12 @@
 /** Modal form for editing an existing instructor. */
 
 import { useState, useEffect } from "react";
+import { Plus } from "lucide-react";
 import { Dialog } from "./Dialog";
+import { PhoneInput } from "./PhoneInput";
 import { useUpdateInstructor } from "@/hooks/useInstructors";
+import { EMAIL_REGEX } from "@/lib/phone";
+import { SPECIALTIES } from "@/lib/specialties";
 import type { Instructor, UpdateInstructorRequest } from "@/types/instructor";
 
 interface EditInstructorModalProps {
@@ -11,28 +15,8 @@ interface EditInstructorModalProps {
   instructor: Instructor;
 }
 
-const PHONE_REGEX = /^\+52\d{10}$/;
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-function normalizePhone(raw: string): string {
-  const digits = raw.replace(/[\s\-().]/g, "");
-  if (/^\d{10}$/.test(digits)) return `+52${digits}`;
-  if (/^52\d{10}$/.test(digits)) return `+${digits}`;
-  return digits.startsWith("+") ? digits : raw;
-}
-
-function formatPhoneDisplay(raw: string): string {
-  const d = raw.replace(/\D/g, "");
-  if (d.length <= 2) return d;
-  if (d.length <= 4) return `${d.slice(0, 2)} ${d.slice(2)}`;
-  if (d.length <= 8) return `${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4)}`;
-  return `${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4, 8)} ${d.slice(8, 12)}`;
-}
-
-const SPECIALTIES = [
-  "Zumba", "Yoga", "Spinning", "CrossFit", "Funcional",
-  "Boxing", "Pilates", "HIIT", "Aerobics", "Danza",
-];
+const inputCls =
+  "w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none";
 
 export function EditInstructorModal({
   open,
@@ -47,6 +31,7 @@ export function EditInstructorModal({
     specialties: instructor.specialties,
     bio: instructor.bio ?? "",
   });
+  const [customSpecialty, setCustomSpecialty] = useState("");
 
   useEffect(() => {
     setForm({
@@ -76,27 +61,27 @@ export function EditInstructorModal({
     }));
   }
 
-  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>): void {
-    const raw = e.target.value.replace(/[^\d+\s\-().]/g, "");
-    setForm((prev) => ({ ...prev, phone: raw }));
+  function addCustomSpecialty(): void {
+    const trimmed = customSpecialty.trim();
+    if (!trimmed || form.specialties?.includes(trimmed)) return;
+    setForm((prev) => ({
+      ...prev,
+      specialties: [...(prev.specialties ?? []), trimmed],
+    }));
+    setCustomSpecialty("");
   }
 
-  const phoneNormalized = form.phone ? normalizePhone(form.phone) : "";
-  const phoneError = form.phone && !PHONE_REGEX.test(phoneNormalized)
-    ? "Formato: 10 d\u00edgitos (ej. 55 1234 5678)"
-    : "";
   const emailError = form.email && !EMAIL_REGEX.test(form.email)
     ? "Email inv\u00e1lido"
     : "";
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
-    if (phoneError || emailError) return;
-    const normalizedPhone = form.phone ? normalizePhone(form.phone) : undefined;
+    if (emailError) return;
     mutate(
       {
         ...form,
-        phone: normalizedPhone || undefined,
+        phone: form.phone || undefined,
         bio: form.bio || undefined,
       },
       { onSuccess: onClose }
@@ -148,26 +133,11 @@ export function EditInstructorModal({
           {emailError && <p className="mt-1 text-xs text-red-400">{emailError}</p>}
         </div>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-[--tx-primary]">
-            Teléfono <span className="text-[--tx-disabled]">(opcional)</span>
-          </label>
-          <input
-            name="phone"
-            inputMode="tel"
-            maxLength={18}
-            value={form.phone ?? ""}
-            onChange={handlePhoneChange}
-            placeholder="55 1234 5678"
-            className={`w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none ${phoneError ? "border-red-500 focus:border-red-500" : ""}`}
-          />
-          {phoneError
-            ? <p className="mt-1 text-xs text-red-400">{phoneError}</p>
-            : form.phone
-              ? <p className="mt-1 text-xs text-emerald-400">+52 {formatPhoneDisplay(form.phone.replace(/\D/g, "").replace(/^52/, ""))}</p>
-              : <p className="mt-1 text-xs text-[--tx-disabled]">Se agregará +52 automáticamente</p>
-          }
-        </div>
+        <PhoneInput
+          label="Teléfono"
+          value={form.phone ?? ""}
+          onChange={(e164) => setForm((prev) => ({ ...prev, phone: e164 }))}
+        />
 
         <div>
           <label className="mb-2 block text-sm font-medium text-[--tx-primary]">
@@ -191,6 +161,33 @@ export function EditInstructorModal({
                 </button>
               );
             })}
+            {form.specialties?.filter((s) => !SPECIALTIES.includes(s)).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => toggleSpecialty(s)}
+                className="rounded-lg border border-[--color-success-bd] bg-[--color-success-bg] px-3 py-1.5 text-xs font-medium text-[--color-success] transition-all"
+              >
+                {s} ×
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 flex gap-2">
+            <input
+              value={customSpecialty}
+              onChange={(e) => setCustomSpecialty(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomSpecialty(); } }}
+              placeholder="Agregar especialidad..."
+              className={`${inputCls} flex-1`}
+            />
+            <button
+              type="button"
+              onClick={addCustomSpecialty}
+              disabled={!customSpecialty.trim()}
+              className="shrink-0 rounded-xl border border-[--bd-subtle] px-3 py-2 text-sm text-[--tx-muted] transition-colors hover:border-[--gold] hover:text-[--gold] disabled:opacity-30"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
           </div>
         </div>
 

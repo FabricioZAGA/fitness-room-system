@@ -84,31 +84,44 @@ class ApiStack(cdk.Stack):
             cors=[
                 s3.CorsRule(
                     allowed_methods=[s3.HttpMethods.GET, s3.HttpMethods.PUT],
-                    allowed_origins=["*"],
-                    allowed_headers=["*"],
+                    allowed_origins=[
+                        "https://admin.fitnessroom.mx",
+                        "https://portal.fitnessroom.mx",
+                        *([
+                            "http://localhost:5173",
+                            "http://localhost:3001",
+                        ] if env_name != "prod" else []),
+                    ],
+                    allowed_headers=["Content-Type", "x-amz-acl"],
                     max_age=3600,
                 ),
             ],
         )
         self.media_bucket.grant_read_write(lambda_role)
 
-        # SES — allow the Lambda to send emails
+        # SES — allow the Lambda to send emails (scoped to domain identity)
+        ses_region = "us-west-2"
         lambda_role.add_to_policy(
             iam.PolicyStatement(
                 sid="AllowSESSendEmail",
                 effect=iam.Effect.ALLOW,
                 actions=["ses:SendEmail", "ses:SendRawEmail"],
-                resources=["*"],
+                resources=[
+                    f"arn:aws:ses:{ses_region}:{self.account}:identity/fitnessroom.mx",
+                    f"arn:aws:ses:{ses_region}:{self.account}:configuration-set/*",
+                ],
             )
         )
 
-        # SNS — allow the Lambda to send SMS
+        # SNS — allow the Lambda to send SMS (scoped to region)
         lambda_role.add_to_policy(
             iam.PolicyStatement(
                 sid="AllowSNSSendSMS",
                 effect=iam.Effect.ALLOW,
                 actions=["sns:Publish"],
-                resources=["*"],
+                resources=[
+                    f"arn:aws:sns:{self.region}:{self.account}:*",
+                ],
             )
         )
 
@@ -123,6 +136,12 @@ class ApiStack(cdk.Stack):
                     "cognito-idp:AdminCreateUser",
                     "cognito-idp:AdminAddUserToGroup",
                     "cognito-idp:AdminSetUserPassword",
+                    "cognito-idp:AdminGetUser",
+                    "cognito-idp:AdminDeleteUser",
+                    "cognito-idp:AdminDisableUser",
+                    "cognito-idp:AdminEnableUser",
+                    "cognito-idp:AdminRemoveUserFromGroup",
+                    "cognito-idp:AdminListGroupsForUser",
                 ],
                 resources=[user_pool.user_pool_arn],
             )
@@ -136,7 +155,7 @@ class ApiStack(cdk.Stack):
                 "../../backend",
                 bundling=cdk.BundlingOptions(
                     image=lambda_.Runtime.PYTHON_3_12.bundling_image,
-                    platform="linux/amd64",
+                    platform="linux/arm64",
                     command=[
                         "bash",
                         "-c",
@@ -148,7 +167,7 @@ class ApiStack(cdk.Stack):
                 ),
             ),
             compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
-            compatible_architectures=[lambda_.Architecture.X86_64],
+            compatible_architectures=[lambda_.Architecture.ARM_64],
             description="Fitness Room Python dependencies",
         )
 
@@ -170,11 +189,11 @@ class ApiStack(cdk.Stack):
                 ),
             ),
             handler="main.handler",
-            architecture=lambda_.Architecture.X86_64,
+            architecture=lambda_.Architecture.ARM_64,
             role=lambda_role,
             layers=[dependencies_layer],
             timeout=cdk.Duration.seconds(60),
-            memory_size=512,
+            memory_size=1024,
             environment={
                 "ENVIRONMENT": env_name,
                 "DYNAMODB_TABLE_NAME": table.table_name,
@@ -192,7 +211,7 @@ class ApiStack(cdk.Stack):
                 "SES_SENDER_EMAIL": sender_email,
                 "SES_SENDER_NAME": sender_name,
             },
-            tracing=lambda_.Tracing.ACTIVE,
+            tracing=lambda_.Tracing.PASS_THROUGH,
             log_retention=logs.RetentionDays.ONE_MONTH if env_name == "prod" else logs.RetentionDays.ONE_WEEK,
         )
 
@@ -320,7 +339,4 @@ class ApiStack(cdk.Stack):
             origins.append(self.frontend_url)
         if self.portal_url and self.portal_url.startswith("https"):
             origins.append(self.portal_url)
-        # Legacy CloudFront URLs (transition period)
-        origins.append("https://d3awxegxyh5p20.cloudfront.net")
-        origins.append("https://d36xs3aztdpnk5.cloudfront.net")
         return origins

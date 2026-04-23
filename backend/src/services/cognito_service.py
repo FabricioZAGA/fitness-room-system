@@ -2,6 +2,7 @@
 
 import secrets
 import string
+from typing import Any
 
 import boto3
 from aws_lambda_powertools import Logger
@@ -10,6 +11,9 @@ from botocore.exceptions import ClientError
 from src.config import get_settings
 
 logger = Logger()
+
+# Valid Cognito groups in order of precedence
+VALID_GROUPS = ("admin", "staff", "student")
 
 
 class CognitoService:
@@ -40,24 +44,33 @@ class CognitoService:
             if has_upper and has_lower and has_digit and has_special:
                 return pwd
 
-    def create_student_user(
+    # ──────────────────────────────────────────────────────────────────────────
+    # Create user for any role
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def create_user(
         self,
         email: str,
         name: str,
+        group: str,
     ) -> str:
-        """Create a Cognito user for a student and add to the 'student' group.
+        """Create a Cognito user and add to the specified group.
 
         Args:
-            email: Student email (used as username).
-            name: Student display name.
+            email: User email (used as username).
+            name: Display name.
+            group: Cognito group name (admin, staff, student).
 
         Returns:
             The temporary password assigned.
 
         Raises:
-            ClientError: If Cognito API call fails (other than
-            UsernameExistsException).
+            ValueError: If group is not valid.
+            ClientError: If Cognito API call fails.
         """
+        if group not in VALID_GROUPS:
+            raise ValueError(f"Invalid group '{group}'. Must be one of {VALID_GROUPS}")
+
         password = self.generate_password()
 
         try:
@@ -71,7 +84,7 @@ class CognitoService:
                 ],
                 MessageAction="SUPPRESS",
             )
-            logger.info("Cognito user created", extra={"email": email})
+            logger.info("Cognito user created", extra={"email": email, "group": group})
         except ClientError as exc:
             if exc.response["Error"]["Code"] == "UsernameExistsException":
                 logger.warning(
@@ -85,7 +98,6 @@ class CognitoService:
                 )
                 raise
 
-        # Set permanent password (user will get NEW_PASSWORD_REQUIRED on first login)
         self._cognito.admin_set_user_password(
             UserPoolId=self._pool_id,
             Username=email,
@@ -93,15 +105,131 @@ class CognitoService:
             Permanent=False,
         )
 
-        # Add to student group
         self._cognito.admin_add_user_to_group(
             UserPoolId=self._pool_id,
             Username=email,
-            GroupName="student",
+            GroupName=group,
         )
-        logger.info(
-            "Cognito user added to student group",
-            extra={"email": email},
-        )
+        logger.info("Cognito user added to group", extra={"email": email, "group": group})
 
         return password
+
+    def create_student_user(self, email: str, name: str) -> str:
+        """Create a Cognito user in the 'student' group."""
+        return self.create_user(email, name, "student")
+
+    def create_staff_user(self, email: str, name: str) -> str:
+        """Create a Cognito user in the 'staff' group (instructors/receptionists)."""
+        return self.create_user(email, name, "staff")
+
+    def create_admin_user(self, email: str, name: str) -> str:
+        """Create a Cognito user in the 'admin' group."""
+        return self.create_user(email, name, "admin")
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # List / Get / Delete users
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def list_users(self, limit: int = 60) -> list[dict[str, Any]]:
+        """List all Cognito users with their groups."""
+        users: list[dict[str, Any]] = []
+        params: dict[str, Any] = {"UserPoolId": self._pool_id, "Limit": min(limit, 60)}
+
+        while True:
+            resp = self._cognito.list_users(**params)
+            for u in resp.get("Users", []):
+                attrs = {a["Name"]: a["Value"] for a in u.get("Attributes", [])}
+                groups = self._get_user_groups(u["Username"])
+                users.append({
+                    "username": u["Username"],
+                    "email": attrs.get("email", ""),
+                    "name": attrs.get("name", ""),
+                    "status": u.get("UserStatus", ""),
+                    "enabled": u.get("Enabled", True),
+                    "groups": groups,
+                    "created_at": u.get("UserCreateDate", "").isoformat()
+                    if u.get("UserCreateDate") else "",
+                })
+            token = resp.get("PaginationToken")
+            if not token or len(users) >= limit:
+                break
+            params["PaginationToken"] = token
+
+        return users[:limit]
+
+    def _get_user_groups(self, username: str) -> list[str]:
+        """Get group names for a user."""
+        resp = self._cognito.admin_list_groups_for_user(
+            UserPoolId=self._pool_id,
+            Username=username,
+        )
+        return [g["GroupName"] for g in resp.get("Groups", [])]
+
+    def get_user(self, username: str) -> dict[str, Any]:
+        """Get a single Cognito user with groups."""
+        resp = self._cognito.admin_get_user(
+            UserPoolId=self._pool_id,
+            Username=username,
+        )
+        attrs = {a["Name"]: a["Value"] for a in resp.get("UserAttributes", [])}
+        groups = self._get_user_groups(username)
+        return {
+            "username": resp["Username"],
+            "email": attrs.get("email", ""),
+            "name": attrs.get("name", ""),
+            "status": resp.get("UserStatus", ""),
+            "enabled": resp.get("Enabled", True),
+            "groups": groups,
+            "created_at": resp.get("UserCreateDate", "").isoformat()
+            if resp.get("UserCreateDate") else "",
+        }
+
+    def delete_user(self, username: str) -> None:
+        """Delete a Cognito user."""
+        self._cognito.admin_delete_user(
+            UserPoolId=self._pool_id,
+            Username=username,
+        )
+        logger.info("Cognito user deleted", extra={"username": username})
+
+    def disable_user(self, username: str) -> None:
+        """Disable a Cognito user."""
+        self._cognito.admin_disable_user(
+            UserPoolId=self._pool_id,
+            Username=username,
+        )
+        logger.info("Cognito user disabled", extra={"username": username})
+
+    def enable_user(self, username: str) -> None:
+        """Enable a Cognito user."""
+        self._cognito.admin_enable_user(
+            UserPoolId=self._pool_id,
+            Username=username,
+        )
+        logger.info("Cognito user enabled", extra={"username": username})
+
+    def update_user_groups(self, username: str, groups: list[str]) -> None:
+        """Set the user's groups, removing from old ones and adding new."""
+        for g in groups:
+            if g not in VALID_GROUPS:
+                raise ValueError(f"Invalid group '{g}'")
+
+        current = self._get_user_groups(username)
+
+        for g in current:
+            if g not in groups:
+                self._cognito.admin_remove_user_from_group(
+                    UserPoolId=self._pool_id,
+                    Username=username,
+                    GroupName=g,
+                )
+
+        for g in groups:
+            if g not in current:
+                self._cognito.admin_add_user_to_group(
+                    UserPoolId=self._pool_id,
+                    Username=username,
+                    GroupName=g,
+                )
+
+        logger.info("User groups updated", extra={"username": username, "groups": groups})

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://platform.fitnessroom.mx/sitemap.xml
+
+# Block internal API paths
+Disallow: /api/
