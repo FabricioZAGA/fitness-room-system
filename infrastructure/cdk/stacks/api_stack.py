@@ -173,7 +173,7 @@ class ApiStack(cdk.Stack):
             architecture=lambda_.Architecture.X86_64,
             role=lambda_role,
             layers=[dependencies_layer],
-            timeout=cdk.Duration.seconds(30),
+            timeout=cdk.Duration.seconds(60),
             memory_size=512,
             environment={
                 "ENVIRONMENT": env_name,

@@ -2,16 +2,16 @@
 
 import base64
 import io
+import threading
 import uuid
 from typing import Any
 
 import boto3
 import qrcode
 import qrcode.image.svg
+from aws_lambda_powertools import Logger
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
-
-from aws_lambda_powertools import Logger
 
 from src.config import get_settings
 from src.models.checkin import CheckinResponse
@@ -53,49 +53,56 @@ def create_student(
 ) -> StudentResponse:
     """Create a new student."""
     result = service.create_student(data)
-    name = f"{result.first_name} {result.last_name}".strip()
-    notifier = EventNotifier()
-    # Send welcome email with carta responsiva PDF
-    try:
-        notifier.notify_welcome_carta_responsiva(
-            student_name=name,
-            student_email=result.email,
-            student_phone=result.phone,
-        )
-    except Exception:
-        pass
-    # Notify admins about the new student
-    try:
-        notif_svc = NotificationService()
-        admin_emails = notif_svc._get_admin_emails()  # noqa: SLF001
-        if admin_emails:
-            notifier.notify_admin_new_student(
+
+    # Run post-creation tasks (emails, Cognito) in background thread
+    # so the API responds fast and avoids API Gateway 30s timeout.
+    def _post_creation_tasks(student: StudentResponse) -> None:
+        name = f"{student.first_name} {student.last_name}".strip()
+        notifier = EventNotifier()
+        # Send welcome email with carta responsiva PDF
+        try:
+            notifier.notify_welcome_carta_responsiva(
                 student_name=name,
-                student_email=result.email,
-                admin_emails=admin_emails,
+                student_email=student.email,
+                student_phone=student.phone,
             )
-    except Exception:
-        pass
-    # Create Cognito user for portal access
-    settings = get_settings()
-    try:
-        cognito_svc = CognitoService()
-        password = cognito_svc.create_student_user(
-            email=result.email,
-            name=name,
-        )
-        # Send portal credentials email
-        notifier.notify_portal_credentials(
-            student_name=name,
-            student_email=result.email,
-            password=password,
-            portal_url=settings.portal_url,
-        )
-    except Exception as exc:
-        logger.error(
-            "Failed to create Cognito user for student",
-            extra={"student_id": result.student_id, "error": str(exc)},
-        )
+        except Exception:
+            logger.exception("Welcome email failed", extra={"student_id": student.student_id})
+        # Notify admins about the new student
+        try:
+            notif_svc = NotificationService()
+            admin_emails = notif_svc._get_admin_emails()  # noqa: SLF001
+            if admin_emails:
+                notifier.notify_admin_new_student(
+                    student_name=name,
+                    student_email=student.email,
+                    admin_emails=admin_emails,
+                )
+        except Exception:
+            logger.exception("Admin notification failed", extra={"student_id": student.student_id})
+        # Create Cognito user for portal access
+        settings = get_settings()
+        try:
+            cognito_svc = CognitoService()
+            password = cognito_svc.create_student_user(
+                email=student.email,
+                name=name,
+            )
+            notifier.notify_portal_credentials(
+                student_name=name,
+                student_email=student.email,
+                password=password,
+                portal_url=settings.portal_url,
+            )
+        except Exception:
+            logger.exception(
+                "Cognito user creation failed",
+                extra={"student_id": student.student_id},
+            )
+
+    thread = threading.Thread(target=_post_creation_tasks, args=(result,), daemon=True)
+    thread.start()
+
     return result
 
 
