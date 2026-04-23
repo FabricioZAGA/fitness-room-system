@@ -47,12 +47,12 @@ export function Dialog({
       <div
         ref={ref}
         className={cn(
-          "relative w-full rounded-2xl border border-[--bd-default] shadow-2xl",
+          "relative flex w-full max-h-[90vh] flex-col rounded-2xl border border-[--bd-default] shadow-2xl",
           widths[size]
         )}
         style={{ backgroundColor: "var(--bg-elevated)" }}
       >
-        <div className="flex items-start justify-between border-b border-[--bd-default] px-6 py-5">
+        <div className="flex shrink-0 items-start justify-between border-b border-[--bd-default] px-6 py-5">
           <div>
             <h2 className="text-lg font-semibold text-[--tx-primary]">{title}</h2>
             {description && (
@@ -66,7 +66,7 @@ export function Dialog({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="overflow-y-auto px-6 py-5">{children}</div>
       </div>
     </div>
   );
