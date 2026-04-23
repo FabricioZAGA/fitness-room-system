@@ -80,9 +80,7 @@ function StudentPanel({
     }
   }, [confirmed, isSuccess, isError, onReset]);
 
-  const isActive = student
-    ? student.status === "active" || student.status === "founder"
-    : false;
+  const isActive = student ? student.status === "active" : false;
   const hasActiveMembership = activeMembership?.status === "active";
   const daysUntilExpiry = activeMembership?.days_until_expiry ?? 0;
   const isExpiringSoon = daysUntilExpiry > 0 && daysUntilExpiry <= 7;

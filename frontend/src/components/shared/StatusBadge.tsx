@@ -6,15 +6,13 @@ import type { ReservationStatus } from "@/types/reservation";
 const STUDENT_STATUS_STYLES: Record<StudentStatus, string> = {
   active: "bg-[--color-success-bg] text-[--color-success] border-[--color-success-bd]",
   inactive: "bg-[--tx-disabled-bg] text-[--tx-disabled] border-[--tx-disabled-bd]",
-  founder: "bg-[--color-info-bg] text-[--color-info] border-[--color-info-bd]",
-  new: "bg-[--color-primary-bg] text-[--color-primary] border-[--color-primary-bd]",
+  suspended: "bg-[--color-warning-bg] text-[--color-warning] border-[--color-warning-bd]",
 };
 
 const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
   active: "Activo",
   inactive: "Inactivo",
-  founder: "Fundador",
-  new: "Nuevo",
+  suspended: "Suspendido",
 };
 
 const MEMBERSHIP_STATUS_STYLES: Record<MembershipStatus, string> = {

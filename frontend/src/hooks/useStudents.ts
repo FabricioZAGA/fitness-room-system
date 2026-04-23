@@ -99,16 +99,45 @@ export function useDeactivateStudent() {
     mutationFn: (studentId: string) => studentService.deactivate(studentId),
     onSuccess: (student) => {
       qc.invalidateQueries({ queryKey: [STUDENTS_KEY] });
+      qc.invalidateQueries({ queryKey: ["memberships"] });
       qc.setQueryData([STUDENTS_KEY, student.student_id], student);
-      toast.success("Alumno desactivado.");
+      toast.success("Miembro desactivado. Su membresía fue cancelada.");
+    },
+  });
+}
+
+export function useSuspendStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (studentId: string) => studentService.suspend(studentId),
+    onSuccess: (student) => {
+      qc.invalidateQueries({ queryKey: [STUDENTS_KEY] });
+      qc.invalidateQueries({ queryKey: ["memberships"] });
+      qc.setQueryData([STUDENTS_KEY, student.student_id], student);
+      toast.success("Miembro suspendido. Su membresía fue congelada.");
+    },
+  });
+}
+
+export function useUnsuspendStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (studentId: string) => studentService.unsuspend(studentId),
+    onSuccess: (student) => {
+      qc.invalidateQueries({ queryKey: [STUDENTS_KEY] });
+      qc.invalidateQueries({ queryKey: ["memberships"] });
+      qc.setQueryData([STUDENTS_KEY, student.student_id], student);
+      toast.success("Miembro reactivado. Su membresía fue descongelada.");
     },
   });
 }
 
 export function useCheckin() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (studentId: string) => studentService.checkin(studentId),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [STUDENTS_KEY] });
       toast.success("✓ Check-in registrado exitosamente.");
     },
     onError: () => {

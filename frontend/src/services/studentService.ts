@@ -46,6 +46,16 @@ export const studentService = {
     return response.data;
   },
 
+  async suspend(studentId: string): Promise<Student> {
+    const response = await apiClient.post<Student>(`/students/${studentId}/suspend`);
+    return response.data;
+  },
+
+  async unsuspend(studentId: string): Promise<Student> {
+    const response = await apiClient.post<Student>(`/students/${studentId}/unsuspend`);
+    return response.data;
+  },
+
   async delete(studentId: string): Promise<void> {
     await apiClient.delete(`/students/${studentId}`);
   },

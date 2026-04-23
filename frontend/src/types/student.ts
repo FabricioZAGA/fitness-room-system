@@ -1,6 +1,6 @@
 /** TypeScript types for the Student entity — mirrors backend Pydantic models. */
 
-export type StudentStatus = "active" | "inactive" | "founder" | "new";
+export type StudentStatus = "active" | "inactive" | "suspended";
 
 export interface EmergencyContact {
   name: string;

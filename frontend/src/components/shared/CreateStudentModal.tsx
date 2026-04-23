@@ -4,56 +4,49 @@ import { useState } from "react";
 import { Camera, User } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { CameraCapture } from "./CameraCapture";
+import { PhoneInput } from "./PhoneInput";
+import { AddressInput } from "./AddressInput";
 import { useCreateStudent } from "@/hooks/useStudents";
 import { studentService } from "@/services/studentService";
-import type { CreateStudentRequest, StudentStatus } from "@/types/student";
+import { EMAIL_REGEX } from "@/lib/phone";
+import { EMPTY_ADDRESS, formatAddress, type StructuredAddress } from "@/lib/address";
+import type { StudentStatus } from "@/types/student";
 
 interface CreateStudentModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-const INITIAL: CreateStudentRequest & {
+interface FormState {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_e164: string;
+  birth_date: string;
+  address: StructuredAddress;
   ec_name: string;
   ec_relationship: string;
-  ec_phone: string;
-} = {
+  ec_phone_e164: string;
+  status: StudentStatus;
+  notes: string;
+}
+
+const INITIAL: FormState = {
   first_name: "",
   last_name: "",
   email: "",
-  phone: "",
+  phone_e164: "",
   birth_date: "",
-  address: "",
-  city: "",
+  address: { ...EMPTY_ADDRESS },
   ec_name: "",
   ec_relationship: "",
-  ec_phone: "",
-  status: "new",
+  ec_phone_e164: "",
+  status: "active",
   notes: "",
 };
 
-const PHONE_REGEX = /^\+52\d{10}$/;
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-function normalizePhone(raw: string): string {
-  const digits = raw.replace(/[\s\-().]/g, "");
-  if (/^\d{10}$/.test(digits)) return `+52${digits}`;
-  if (/^52\d{10}$/.test(digits)) return `+${digits}`;
-  return digits.startsWith("+") ? digits : raw;
-}
-
-function formatPhoneDisplay(raw: string): string {
-  const d = raw.replace(/\D/g, "");
-  if (d.length <= 2) return d;
-  if (d.length <= 4) return `${d.slice(0, 2)} ${d.slice(2)}`;
-  if (d.length <= 8) return `${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4)}`;
-  return `${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4, 8)} ${d.slice(8, 12)}`;
-}
-
 const STATUS_OPTIONS: { value: StudentStatus; label: string }[] = [
-  { value: "new", label: "Nuevo" },
   { value: "active", label: "Activo" },
-  { value: "founder", label: "Fundador" },
   { value: "inactive", label: "Inactivo" },
 ];
 
@@ -61,7 +54,7 @@ export function CreateStudentModal({
   open,
   onClose,
 }: CreateStudentModalProps): React.JSX.Element {
-  const [form, setForm] = useState<typeof INITIAL>(INITIAL);
+  const [form, setForm] = useState<FormState>({ ...INITIAL, address: { ...EMPTY_ADDRESS } });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const { mutate, isPending } = useCreateStudent();
@@ -72,38 +65,29 @@ export function CreateStudentModal({
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  const phoneNormalized = form.phone ? normalizePhone(form.phone) : "";
-  const phoneError = form.phone && !PHONE_REGEX.test(phoneNormalized)
-    ? "Formato: 10 dígitos (ej. 55 1234 5678)"
-    : "";
   const emailError = form.email && !EMAIL_REGEX.test(form.email)
     ? "Email inválido"
     : "";
 
-  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>): void {
-    const raw = e.target.value.replace(/[^\d+\s\-().]/g, "");
-    setForm((prev) => ({ ...prev, phone: raw }));
-  }
-
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>): void {
     e.preventDefault();
-    if (phoneError || emailError) return;
-    const normalizedPhone = form.phone ? normalizePhone(form.phone) : undefined;
-    const hasEC = form.ec_name && form.ec_phone;
+    if (emailError) return;
+    const hasEC = form.ec_name && form.ec_phone_e164;
+    const addressStr = formatAddress(form.address);
     mutate(
       {
         first_name: form.first_name,
         last_name: form.last_name,
         email: form.email,
-        phone: normalizedPhone || undefined,
+        phone: form.phone_e164 || undefined,
         birth_date: form.birth_date || undefined,
-        address: form.address || undefined,
-        city: form.city || undefined,
+        address: addressStr || undefined,
+        city: form.address.city || undefined,
         emergency_contact: hasEC
           ? {
               name: form.ec_name,
               relationship: form.ec_relationship || "familiar",
-              phone: normalizePhone(form.ec_phone),
+              phone: form.ec_phone_e164,
             }
           : undefined,
         status: form.status,
@@ -114,7 +98,7 @@ export function CreateStudentModal({
           if (photoPreview) {
             studentService.uploadPhoto(student.student_id, photoPreview).catch(() => {});
           }
-          setForm(INITIAL);
+          setForm({ ...INITIAL, address: { ...EMPTY_ADDRESS } });
           setPhotoPreview(null);
           onClose();
         },
@@ -206,23 +190,13 @@ export function CreateStudentModal({
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Teléfono">
-            <input
-              name="phone"
-              value={form.phone ?? ""}
-              onChange={handlePhoneChange}
-              placeholder="55 1234 5678"
-              inputMode="tel"
-              maxLength={18}
-              className={`${inputCls} ${phoneError ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" : ""}`}
-            />
-            {phoneError
-              ? <p className="mt-1 text-xs text-red-400">{phoneError}</p>
-              : form.phone
-                ? <p className="mt-1 text-xs text-emerald-400">+52 {formatPhoneDisplay(form.phone.replace(/\D/g, "").replace(/^52/, ""))}</p>
-                : <p className="mt-1 text-xs text-[--tx-disabled]">Se agregará +52 automáticamente</p>
-            }
-          </Field>
+          <PhoneInput
+            label="Teléfono"
+            value={form.phone_e164}
+            onChange={(e164) => {
+              setForm((prev) => ({ ...prev, phone_e164: e164 }));
+            }}
+          />
           <Field label="Estado">
             <select
               name="status"
@@ -239,36 +213,24 @@ export function CreateStudentModal({
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Fecha de nacimiento">
-            <input
-              name="birth_date"
-              type="date"
-              value={form.birth_date ?? ""}
-              onChange={handleChange}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Ciudad">
-            <input
-              name="city"
-              value={form.city ?? ""}
-              onChange={handleChange}
-              placeholder="CDMX"
-              className={inputCls}
-            />
-          </Field>
-        </div>
-
-        <Field label="Domicilio">
+        <Field label="Fecha de nacimiento">
           <input
-            name="address"
-            value={form.address ?? ""}
+            name="birth_date"
+            type="date"
+            value={form.birth_date ?? ""}
             onChange={handleChange}
-            placeholder="Calle, número, colonia"
             className={inputCls}
           />
         </Field>
+
+        {/* Structured address */}
+        <div className="border-t border-[--bd-default] pt-3 mt-1">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">Domicilio</p>
+          <AddressInput
+            value={form.address}
+            onChange={(addr) => setForm((prev) => ({ ...prev, address: addr }))}
+          />
+        </div>
 
         {/* Emergency contact */}
         <div className="border-t border-[--bd-default] pt-3 mt-1">
@@ -294,17 +256,13 @@ export function CreateStudentModal({
             </Field>
           </div>
           <div className="mt-3">
-            <Field label="Teléfono de emergencia">
-              <input
-                name="ec_phone"
-                value={form.ec_phone}
-                onChange={handleChange}
-                placeholder="55 1234 5678"
-                inputMode="tel"
-                maxLength={18}
-                className={inputCls}
-              />
-            </Field>
+            <PhoneInput
+              label="Teléfono de emergencia"
+              value={form.ec_phone_e164}
+              onChange={(e164) => {
+                setForm((prev) => ({ ...prev, ec_phone_e164: e164 }));
+              }}
+            />
           </div>
         </div>
 

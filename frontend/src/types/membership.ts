@@ -1,6 +1,7 @@
 /** TypeScript types for the Membership entity — mirrors backend Pydantic models. */
 
 export type MembershipType =
+  | "founder_monthly"
   | "monthly"
   | "quarterly"
   | "semi_annual"
@@ -56,6 +57,7 @@ export interface UpdateMembershipRequest {
 }
 
 export const MEMBERSHIP_TYPE_LABELS: Record<MembershipType, string> = {
+  founder_monthly: "Fundador (Mensual)",
   monthly: "Mensual",
   quarterly: "Trimestral",
   semi_annual: "Semestral",

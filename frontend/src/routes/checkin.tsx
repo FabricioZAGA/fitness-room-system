@@ -138,12 +138,14 @@ function CheckinPage(): React.JSX.Element {
                       </div>
                       <span
                         className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                          student.status === "active" || student.status === "founder"
+                          student.status === "active"
                             ? "bg-[--color-success-bg] text-[--color-success]"
-                            : "bg-[--color-danger-bg] text-[--color-danger]"
+                            : student.status === "suspended"
+                              ? "bg-[--color-warning-bg] text-[--color-warning]"
+                              : "bg-[--color-danger-bg] text-[--color-danger]"
                         }`}
                       >
-                        {student.status === "founder" ? "Fundador" : student.status === "active" ? "Activo" : "Inactivo"}
+                        {student.status === "active" ? "Activo" : student.status === "suspended" ? "Suspendido" : "Inactivo"}
                       </span>
                     </div>
                   </button>
@@ -206,7 +208,7 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
     ])
   );
 
-  const isActive = student.status === "active" || student.status === "founder";
+  const isActive = student.status === "active";
   const hasMembership = !!membership;
   const daysUntilExpiry = membership?.days_until_expiry ?? 0;
   const isExpiringSoon = daysUntilExpiry > 0 && daysUntilExpiry <= 7;

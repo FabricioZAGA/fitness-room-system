@@ -12,19 +12,14 @@ describe("StudentStatusBadge", () => {
     expect(screen.getByText("Activo")).toBeInTheDocument();
   });
 
-  it("renders 'Nuevo' for new status", () => {
-    render(<StudentStatusBadge status="new" />);
-    expect(screen.getByText("Nuevo")).toBeInTheDocument();
-  });
-
   it("renders 'Inactivo' for inactive status", () => {
     render(<StudentStatusBadge status="inactive" />);
     expect(screen.getByText("Inactivo")).toBeInTheDocument();
   });
 
-  it("renders 'Fundador' for founder status", () => {
-    render(<StudentStatusBadge status="founder" />);
-    expect(screen.getByText("Fundador")).toBeInTheDocument();
+  it("renders 'Suspendido' for suspended status", () => {
+    render(<StudentStatusBadge status="suspended" />);
+    expect(screen.getByText("Suspendido")).toBeInTheDocument();
   });
 });
 

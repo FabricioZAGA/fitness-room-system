@@ -43,6 +43,7 @@ function addMonths(date: string, months: number): string {
 }
 
 const END_DATE_DEFAULTS: Partial<Record<MembershipType, string>> = {
+  founder_monthly: addMonths(todayStr(), 1),
   monthly: addMonths(todayStr(), 1),
   quarterly: addMonths(todayStr(), 3),
   semi_annual: addMonths(todayStr(), 6),

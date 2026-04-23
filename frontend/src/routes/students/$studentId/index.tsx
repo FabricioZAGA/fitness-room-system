@@ -2,10 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeft, CreditCard, Calendar, Plus, Power, PowerOff,
   Pencil, Mail, Phone, User, CheckCircle2, XCircle, Clock,
-  Snowflake, QrCode, Download,
+  Snowflake, QrCode, Download, ShieldBan, ShieldCheck,
 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useStudent, useActivateStudent, useDeactivateStudent, useStudentQr } from "@/hooks/useStudents";
+import { useStudent, useActivateStudent, useDeactivateStudent, useSuspendStudent, useUnsuspendStudent, useStudentQr } from "@/hooks/useStudents";
 import { useMembershipsForStudent, useFreezeMembership, useUnfreezeMembership } from "@/hooks/useMemberships";
 import { useReservationsForStudent } from "@/hooks/useReservations";
 import { useClasses } from "@/hooks/useClasses";
@@ -39,6 +39,7 @@ function StudentDetailPage(): React.JSX.Element {
   const [freezeDays, setFreezeDays] = useState(14);
   const [qrOpen, setQrOpen] = useState(false);
   const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
+  const [suspendConfirmOpen, setSuspendConfirmOpen] = useState(false);
 
   const { data: student, isLoading } = useStudent(studentId);
   const { data: membershipsData } = useMembershipsForStudent(studentId);
@@ -48,6 +49,8 @@ function StudentDetailPage(): React.JSX.Element {
   const { data: classesData } = useClasses({ limit: 200 });
   const { mutate: activate, isPending: activating } = useActivateStudent();
   const { mutate: deactivate, isPending: deactivating } = useDeactivateStudent();
+  const { mutate: suspend, isPending: suspending } = useSuspendStudent();
+  const { mutate: unsuspend, isPending: unsuspending } = useUnsuspendStudent();
   const { mutate: freeze, isPending: freezing } = useFreezeMembership();
   const { mutate: unfreeze, isPending: unfreezing } = useUnfreezeMembership();
   const { data: qrData } = useStudentQr(qrOpen ? studentId : "");
@@ -83,7 +86,9 @@ function StudentDetailPage(): React.JSX.Element {
     );
   }
 
-  const isActive = student.status === "active" || student.status === "founder";
+  const isActive = student.status === "active";
+  const isSuspended = student.status === "suspended";
+  const isInactive = student.status === "inactive";
   const activeMembership = memberships.find((m) => m.status === "active");
   const attendedCount = reservations.filter((r) => r.status === "attended").length;
 
@@ -162,20 +167,44 @@ function StudentDetailPage(): React.JSX.Element {
               <Pencil className="h-4 w-4" />
               Editar
             </button>
-            {isActive ? (
+
+            {isActive && (
+              <>
+                <button
+                  onClick={() => setSuspendConfirmOpen(true)}
+                  disabled={suspending}
+                  className="flex items-center gap-2 rounded-xl border border-[--color-warning-bd] bg-[--color-warning-bg] px-4 py-2.5 text-sm font-medium text-[--color-warning] transition-all disabled:opacity-50"
+                >
+                  <ShieldBan className="h-4 w-4" />
+                  Suspender
+                </button>
+                <button
+                  onClick={() => setDeactivateConfirmOpen(true)}
+                  disabled={deactivating}
+                  className="flex items-center gap-2 rounded-xl border border-[--color-danger-bd] bg-[--color-danger-bg] px-4 py-2.5 text-sm font-medium text-[--color-danger] transition-all disabled:opacity-50"
+                >
+                  <PowerOff className="h-4 w-4" />
+                  Desactivar
+                </button>
+              </>
+            )}
+
+            {isSuspended && (
               <button
-                onClick={() => setDeactivateConfirmOpen(true)}
-                disabled={deactivating}
-                className="flex items-center gap-2 rounded-xl border border-[--color-danger-bd] bg-[--color-danger-bg] px-4 py-2.5 text-sm font-medium text-[--color-danger] transition-all hover:bg-[--color-danger-bg] disabled:opacity-50"
+                onClick={() => unsuspend(studentId)}
+                disabled={unsuspending}
+                className="flex items-center gap-2 rounded-xl border border-[--color-success-bd] bg-[--color-success-bg] px-4 py-2.5 text-sm font-medium text-[--color-success] transition-all disabled:opacity-50"
               >
-                <PowerOff className="h-4 w-4" />
-                Desactivar
+                <ShieldCheck className="h-4 w-4" />
+                Reactivar
               </button>
-            ) : (
+            )}
+
+            {isInactive && (
               <button
                 onClick={() => activate(studentId)}
                 disabled={activating}
-                className="flex items-center gap-2 rounded-xl border border-[--color-success-bd] bg-[--color-success-bg] px-4 py-2.5 text-sm font-medium text-[--color-success] transition-all hover:bg-[--color-success-bg] disabled:opacity-50"
+                className="flex items-center gap-2 rounded-xl border border-[--color-success-bd] bg-[--color-success-bg] px-4 py-2.5 text-sm font-medium text-[--color-success] transition-all disabled:opacity-50"
               >
                 <Power className="h-4 w-4" />
                 Activar
@@ -429,10 +458,25 @@ function StudentDetailPage(): React.JSX.Element {
           setDeactivateConfirmOpen(false);
         }}
         title="Desactivar miembro"
-        description={`¿Estás seguro de desactivar a ${student.full_name}? No podrá reservar clases ni hacer check-in mientras esté inactivo.`}
+        description={`¿Desactivar a ${student.full_name}? Su membresía activa será cancelada automáticamente. Para volver, deberás activarlo y asignar una nueva membresía.`}
         confirmLabel="Desactivar"
         variant="danger"
         loading={deactivating}
+      />
+
+      {/* Suspend confirmation */}
+      <ConfirmDialog
+        open={suspendConfirmOpen}
+        onClose={() => setSuspendConfirmOpen(false)}
+        onConfirm={() => {
+          suspend(studentId);
+          setSuspendConfirmOpen(false);
+        }}
+        title="Suspender miembro"
+        description={`¿Suspender temporalmente a ${student.full_name}? Su membresía activa será congelada automáticamente. Cuando lo reactives, su membresía se descongelará.`}
+        confirmLabel="Suspender"
+        variant="warning"
+        loading={suspending}
       />
 
       {/* QR modal */}
