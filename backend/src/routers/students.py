@@ -53,55 +53,66 @@ def create_student(
 ) -> StudentResponse:
     """Create a new student."""
     result = service.create_student(data)
+    name = f"{result.first_name} {result.last_name}".strip()
+    settings = get_settings()
 
-    # Run post-creation tasks (emails, Cognito) in background thread
-    # so the API responds fast and avoids API Gateway 30s timeout.
-    def _post_creation_tasks(student: StudentResponse) -> None:
-        name = f"{student.first_name} {student.last_name}".strip()
-        notifier = EventNotifier()
-        # Send welcome email with carta responsiva PDF
+    # Run post-creation tasks in parallel threads to stay within
+    # API Gateway's 30 s hard timeout. Each task is independent.
+    # We must join() all threads — Lambda freezes the execution
+    # context after the response, killing any pending work.
+
+    cognito_password: list[str] = []
+
+    def _send_welcome(n: str, email: str, phone: str | None, sid: str) -> None:
         try:
-            notifier.notify_welcome_carta_responsiva(
-                student_name=name,
-                student_email=student.email,
-                student_phone=student.phone,
+            EventNotifier().notify_welcome_carta_responsiva(
+                student_name=n, student_email=email, student_phone=phone,
             )
         except Exception:
-            logger.exception("Welcome email failed", extra={"student_id": student.student_id})
-        # Notify admins about the new student
+            logger.exception("Welcome email failed", extra={"student_id": sid})
+
+    def _notify_admins(n: str, email: str, sid: str) -> None:
         try:
             notif_svc = NotificationService()
             admin_emails = notif_svc._get_admin_emails()  # noqa: SLF001
             if admin_emails:
-                notifier.notify_admin_new_student(
-                    student_name=name,
-                    student_email=student.email,
-                    admin_emails=admin_emails,
+                EventNotifier().notify_admin_new_student(
+                    student_name=n, student_email=email, admin_emails=admin_emails,
                 )
         except Exception:
-            logger.exception("Admin notification failed", extra={"student_id": student.student_id})
-        # Create Cognito user for portal access
-        settings = get_settings()
+            logger.exception("Admin notification failed", extra={"student_id": sid})
+
+    def _create_cognito(n: str, email: str, sid: str) -> None:
         try:
-            cognito_svc = CognitoService()
-            password = cognito_svc.create_student_user(
-                email=student.email,
-                name=name,
-            )
-            notifier.notify_portal_credentials(
+            pwd = CognitoService().create_student_user(email=email, name=n)
+            cognito_password.append(pwd)
+        except Exception:
+            logger.exception("Cognito user creation failed", extra={"student_id": sid})
+
+    threads = [
+        threading.Thread(target=_send_welcome, args=(name, result.email, result.phone, result.student_id)),
+        threading.Thread(target=_notify_admins, args=(name, result.email, result.student_id)),
+        threading.Thread(target=_create_cognito, args=(name, result.email, result.student_id)),
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=25)
+
+    # Send portal credentials after Cognito user is created
+    if cognito_password:
+        try:
+            EventNotifier().notify_portal_credentials(
                 student_name=name,
-                student_email=student.email,
-                password=password,
+                student_email=result.email,
+                password=cognito_password[0],
                 portal_url=settings.portal_url,
             )
         except Exception:
             logger.exception(
-                "Cognito user creation failed",
-                extra={"student_id": student.student_id},
+                "Portal credentials email failed",
+                extra={"student_id": result.student_id},
             )
-
-    thread = threading.Thread(target=_post_creation_tasks, args=(result,), daemon=True)
-    thread.start()
 
     return result
 
