@@ -28,6 +28,7 @@ from src.models.common import TimestampedModel, new_id, utc_now
 class MembershipType(StrEnum):
     """Available membership plan types."""
 
+    FOUNDER_MONTHLY = "founder_monthly"
     MONTHLY = "monthly"
     QUARTERLY = "quarterly"
     SEMI_ANNUAL = "semi_annual"

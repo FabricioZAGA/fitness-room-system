@@ -72,7 +72,7 @@ def rankings(
     "/inactive",
     summary="Inactive Students",
     description=(
-        "List active/founder students who haven't checked in successfully "
+        "List active students who haven't checked in successfully "
         "in the last N days. Useful for follow-up outreach."
     ),
 )

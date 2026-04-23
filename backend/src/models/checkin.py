@@ -20,6 +20,7 @@ class CheckinReason(StrEnum):
     ALL_GOOD = "all_good"
     EXPIRING_SOON = "expiring_soon"
     INACTIVE = "inactive"
+    SUSPENDED = "suspended"
     NO_MEMBERSHIP = "no_membership"
     EXPIRED = "expired"
 

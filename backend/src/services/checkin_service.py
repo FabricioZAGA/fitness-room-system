@@ -43,17 +43,25 @@ class CheckinService:
         # Step 1: Verify student exists (raises ResourceNotFoundException → 404 if not)
         student = self._student_repo.get_by_id(student_id)
 
-        # Step 2: Check student status
-        if student.status not in (StudentStatus.ACTIVE, StudentStatus.FOUNDER):
-            item = CheckinDynamoItem.create(student_id, False, CheckinReason.INACTIVE)
+        # Step 2: Check student status — only active students can enter
+        if student.status != StudentStatus.ACTIVE.value:
+            reason = (
+                CheckinReason.SUSPENDED
+                if student.status == StudentStatus.SUSPENDED.value
+                else CheckinReason.INACTIVE
+            )
+            item = CheckinDynamoItem.create(student_id, False, reason)
             self._student_repo.put_checkin(item)
-            logger.warning("Check-in denied: inactive student", extra={"student_id": student_id})
+            logger.warning(
+                "Check-in denied: student not active",
+                extra={"student_id": student_id, "status": student.status},
+            )
             return CheckinResponse(
                 checkin_id=item.checkin_id,
                 student_id=student_id,
                 checked_in_at=item.checked_in_at,
                 can_enter=False,
-                reason=CheckinReason.INACTIVE,
+                reason=reason,
             )
 
         # Step 3: Check active membership

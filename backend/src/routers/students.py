@@ -199,15 +199,54 @@ def activate_student(
     "/{student_id}/deactivate",
     response_model=StudentResponse,
     summary="Deactivate Student",
-    description="Set the student's status to 'inactive'.",
+    description=(
+        "Set the student's status to 'inactive'. "
+        "Cascade: any active/frozen membership is automatically cancelled."
+    ),
 )
 def deactivate_student(
     student_id: str,
     _current_user: dict[str, Any] = Depends(get_current_user),
     service: StudentService = Depends(get_service),
 ) -> StudentResponse:
-    """Deactivate a student."""
+    """Deactivate a student (cancels active membership)."""
     return service.deactivate_student(student_id)
+
+
+@router.post(
+    "/{student_id}/suspend",
+    response_model=StudentResponse,
+    summary="Suspend Student",
+    description=(
+        "Temporarily suspend a student (conduct, debt). "
+        "Cascade: any active membership is automatically frozen."
+    ),
+)
+def suspend_student(
+    student_id: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: StudentService = Depends(get_service),
+) -> StudentResponse:
+    """Suspend a student (freezes active membership)."""
+    return service.suspend_student(student_id)
+
+
+@router.post(
+    "/{student_id}/unsuspend",
+    response_model=StudentResponse,
+    summary="Unsuspend Student",
+    description=(
+        "Reactivate a suspended student. "
+        "Cascade: any frozen membership is automatically unfrozen."
+    ),
+)
+def unsuspend_student(
+    student_id: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: StudentService = Depends(get_service),
+) -> StudentResponse:
+    """Unsuspend a student (unfreezes membership)."""
+    return service.unsuspend_student(student_id)
 
 
 @router.delete(

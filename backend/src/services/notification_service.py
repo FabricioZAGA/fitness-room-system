@@ -152,7 +152,7 @@ class NotificationService:
         cutoff = (date.today() - timedelta(days=inactive_days)).isoformat()
 
         students, _ = self._student_repo.list_all(limit=500)
-        active_students = [s for s in students if s.status in ("active", "founder")]
+        active_students = [s for s in students if s.status == "active"]
 
         for student in active_students:
             sid = student.student_id

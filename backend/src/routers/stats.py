@@ -60,11 +60,7 @@ def get_dashboard_stats(
     active_students_items, _ = student_repo.list_all(
         status=StudentStatus.ACTIVE, limit=500
     )
-    # Also count founders
-    founder_items, _ = student_repo.list_all(
-        status=StudentStatus.FOUNDER, limit=200
-    )
-    active_students = len(active_students_items) + len(founder_items)
+    active_students = len(active_students_items)
 
     # Today's classes count
     today_classes_items, _ = class_repo.list_by_date(class_date=today, limit=50)

@@ -16,48 +16,40 @@ GSI2 (filter by status):
 from datetime import date, datetime
 from enum import StrEnum
 
-import re
-
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from src.models.common import TimestampedModel, new_id, utc_now
-
-# Mexican phone: +52 followed by 10 digits (optional spaces/dashes allowed in input)
-_PHONE_RE = re.compile(r"^\+52\d{10}$")
+from src.utils.phone import validate_phone_optional, validate_phone_required
 
 
 class StudentStatus(StrEnum):
-    """Student membership/activity status."""
+    """Student lifecycle status.
+
+    - active: can check-in and use the gym
+    - inactive: deactivated (voluntary or involuntary), membership cancelled
+    - suspended: temporarily blocked (conduct, debt), membership frozen
+    """
 
     ACTIVE = "active"
     INACTIVE = "inactive"
-    FOUNDER = "founder"
-    NEW = "new"
+    SUSPENDED = "suspended"
 
 
 class EmergencyContact(BaseModel):
     """Nested schema for emergency contact information."""
 
     name: str = Field(..., min_length=1, max_length=100, description="Contact full name")
-    relationship: str = Field(..., min_length=1, max_length=50, description="Relationship (e.g. madre, padre, hermano)")
+    relationship: str = Field(
+        ..., min_length=1, max_length=50,
+        description="Relationship (e.g. madre, padre, hermano)",
+    )
     phone: str = Field(..., max_length=20, description="Contact phone number")
 
     @field_validator("phone")
     @classmethod
     def validate_phone(cls, v: str) -> str:
-        """Normalize and validate Mexican phone number (+52XXXXXXXXXX)."""
-        if not v or v.strip() == "":
-            return v
-        cleaned = re.sub(r"[\s\-\(\).]", "", v.strip())
-        if re.match(r"^\d{10}$", cleaned):
-            cleaned = f"+52{cleaned}"
-        if re.match(r"^52\d{10}$", cleaned):
-            cleaned = f"+{cleaned}"
-        if not _PHONE_RE.match(cleaned):
-            raise ValueError(
-                "Teléfono inválido. Formato requerido: +52 seguido de 10 dígitos (ej. +525512345678)"
-            )
-        return cleaned
+        """Normalize and validate phone number in E.164 format."""
+        return validate_phone_required(v)
 
 
 class StudentCreate(BaseModel):
@@ -76,28 +68,14 @@ class StudentCreate(BaseModel):
         default=None, description="Emergency contact information"
     )
     photo_url: str | None = Field(default=None, max_length=500, description="Profile photo S3 URL")
-    status: StudentStatus = Field(default=StudentStatus.NEW, description="Student status")
+    status: StudentStatus = Field(default=StudentStatus.ACTIVE, description="Student status")
     notes: str | None = Field(default=None, max_length=1000, description="Internal notes")
 
     @field_validator("phone")
     @classmethod
     def validate_phone(cls, v: str | None) -> str | None:
-        """Normalize and validate Mexican phone number (+52XXXXXXXXXX)."""
-        if v is None or v.strip() == "":
-            return None
-        # Strip spaces, dashes, parentheses
-        cleaned = re.sub(r"[\s\-\(\).]", "", v.strip())
-        # Auto-prefix +52 if they only gave 10 digits
-        if re.match(r"^\d{10}$", cleaned):
-            cleaned = f"+52{cleaned}"
-        # Accept 52XXXXXXXXXX without + prefix
-        if re.match(r"^52\d{10}$", cleaned):
-            cleaned = f"+{cleaned}"
-        if not _PHONE_RE.match(cleaned):
-            raise ValueError(
-                "Teléfono inválido. Formato requerido: +52 seguido de 10 dígitos (ej. +525512345678)"
-            )
-        return cleaned
+        """Normalize and validate phone number in E.164 format."""
+        return validate_phone_optional(v)
 
 
 class StudentUpdate(BaseModel):
@@ -118,19 +96,8 @@ class StudentUpdate(BaseModel):
     @field_validator("phone")
     @classmethod
     def validate_phone(cls, v: str | None) -> str | None:
-        """Normalize and validate Mexican phone number (+52XXXXXXXXXX)."""
-        if v is None or v.strip() == "":
-            return None
-        cleaned = re.sub(r"[\s\-\(\).]", "", v.strip())
-        if re.match(r"^\d{10}$", cleaned):
-            cleaned = f"+52{cleaned}"
-        if re.match(r"^52\d{10}$", cleaned):
-            cleaned = f"+{cleaned}"
-        if not _PHONE_RE.match(cleaned):
-            raise ValueError(
-                "Teléfono inválido. Formato requerido: +52 seguido de 10 dígitos (ej. +525512345678)"
-            )
-        return cleaned
+        """Normalize and validate phone number in E.164 format."""
+        return validate_phone_optional(v)
 
 
 class StudentResponse(TimestampedModel):
@@ -209,7 +176,11 @@ class StudentDynamoItem(BaseModel):
             birth_date=data.birth_date.isoformat() if data.birth_date else None,
             address=data.address,
             city=data.city,
-            emergency_contact=data.emergency_contact.model_dump() if data.emergency_contact else None,
+            emergency_contact=(
+                data.emergency_contact.model_dump()
+                if data.emergency_contact
+                else None
+            ),
             photo_url=data.photo_url,
             status=status,
             notes=data.notes,

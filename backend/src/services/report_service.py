@@ -144,14 +144,14 @@ class ReportService:
     ) -> list[dict[str, Any]]:
         """Return the top N students ranked by check-in count in the last N days.
 
-        For each active/founder student, queries their checkins and counts those
+        For each active student, queries their checkins and counts those
         within the time window. Acceptable for small gym (< 500 students).
         """
         since = (date.today() - timedelta(days=days)).isoformat()
 
         students, _ = self._students.list_all(limit=500)
         active_students = [
-            s for s in students if s.status in ("active", "founder")
+            s for s in students if s.status == "active"
         ]
 
         ranked: list[dict[str, Any]] = []
@@ -187,13 +187,13 @@ class ReportService:
     def inactive_students(self, inactive_days: int = 14) -> list[dict[str, Any]]:
         """Return active students who haven't checked in (successfully) for N days.
 
-        Fetches all active/founder students and checks their recent checkins.
+        Fetches all active students and checks their recent checkins.
         """
         cutoff = (date.today() - timedelta(days=inactive_days)).isoformat()
 
         students, _ = self._students.list_all(limit=500)
         active_students = [
-            s for s in students if s.status in ("active", "founder")
+            s for s in students if s.status == "active"
         ]
 
         inactive: list[dict[str, Any]] = []
