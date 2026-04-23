@@ -114,6 +114,23 @@
     border-color: var(--bd-default);
   }
 
+  button,
+  [role="button"],
+  a,
+  label[for],
+  select,
+  summary,
+  [tabindex]:not([tabindex="-1"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  textarea:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+
   html {
     font-family: var(--font-family);
     scroll-behavior: smooth;

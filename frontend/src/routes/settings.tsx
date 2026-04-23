@@ -2,7 +2,22 @@
 
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Building2, Bell, ShieldCheck, Info, Moon, Sun, Save, Eye, EyeOff } from "lucide-react";
+import {
+  Building2,
+  Bell,
+  ShieldCheck,
+  Info,
+  Moon,
+  Sun,
+  Save,
+  Eye,
+  EyeOff,
+  Send,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Globe,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { updatePassword } from "aws-amplify/auth";
@@ -30,11 +45,80 @@ const goldActiveStyle = {
   border: "1px solid transparent",
 } as const;
 
+const APP_VERSION = "1.5.0";
+const CHANGELOG: { version: string; date: string; changes: string[] }[] = [
+  {
+    version: "1.5.0",
+    date: "2026-04-23",
+    changes: [
+      "Cursor pointer en todos los elementos interactivos",
+      "Pantalla de configuración 100% funcional",
+      "Info del sistema con versión y cambios reales",
+      "Gestión de WAF y costos AWS optimizados",
+    ],
+  },
+  {
+    version: "1.4.0",
+    date: "2026-04",
+    changes: [
+      "Rediseño UI de miembros y membresías",
+      "Modelo de estados de membresía con lógica en cascada",
+      "Teléfono E.164, dirección estructurada",
+      "Gestión de usuarios con RBAC",
+    ],
+  },
+  {
+    version: "1.3.0",
+    date: "2026-03",
+    changes: [
+      "Fotos de perfil de alumnos",
+      "Modo de clase (presencial/virtual)",
+      "Control de acceso por roles (admin/staff)",
+    ],
+  },
+  {
+    version: "1.2.0",
+    date: "2026-02",
+    changes: [
+      "Portal de alumnos e instructores",
+      "Código QR personal para check-in",
+      "Congelamiento de membresías",
+      "Exportación de reportes a PDF y Excel",
+    ],
+  },
+  {
+    version: "1.1.0",
+    date: "2026-01",
+    changes: [
+      "Notificaciones por email (SES)",
+      "Reportes financieros y de asistencia",
+      "Módulo de caja e inventario",
+    ],
+  },
+  {
+    version: "1.0.0",
+    date: "2025-12",
+    changes: [
+      "Lanzamiento inicial — Alumnos, Membresías, Clases",
+      "Reservaciones, Instructores, Check-in, Dashboard",
+    ],
+  },
+];
+
+function getEnvironmentLabel(): { label: string; color: string } {
+  const env = import.meta.env.VITE_ENV ?? import.meta.env.MODE ?? "development";
+  if (env === "production" || env === "prod")
+    return { label: "Producción", color: "var(--color-success)" };
+  if (env === "staging") return { label: "Staging", color: "var(--color-info)" };
+  return { label: "Desarrollo / Local", color: "var(--color-warning)" };
+}
+
 function SettingsPage(): React.JSX.Element {
   const { t } = useTranslation();
   const { theme, setTheme } = useThemeStore();
   const { i18n } = useTranslation();
   const gym = useGymStore();
+  const [showChangelog, setShowChangelog] = useState(false);
 
   // ── Gym info form ──────────────────────────────────────────────────
   const [gymForm, setGymForm] = useState<GymInfo>({
@@ -64,7 +148,7 @@ function SettingsPage(): React.JSX.Element {
 
   const expiryMutation = useSendExpiryReminders();
   const inactivityMutation = useSendInactivityAlerts();
-  const { data: recentNotifs = [] } = useRecentNotifications(20);
+  const { data: recentNotifs = [], isLoading: notifsLoading } = useRecentNotifications(20);
 
   // ── Password change form ───────────────────────────────────────────
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
@@ -77,7 +161,7 @@ function SettingsPage(): React.JSX.Element {
 
   const handlePasswordChange = async (): Promise<void> => {
     if (!pwReady) return;
-    if (import.meta.env.VITE_APP_ENV === "local") {
+    if (import.meta.env.VITE_ENV === "local" || import.meta.env.MODE === "development") {
       toast.info("Cambio de contraseña no disponible en modo desarrollo local");
       return;
     }
@@ -95,8 +179,10 @@ function SettingsPage(): React.JSX.Element {
   };
 
   const handleLanguageChange = (lang: string): void => {
-    i18n.changeLanguage(lang);
+    void i18n.changeLanguage(lang);
   };
+
+  const envInfo = getEnvironmentLabel();
 
   return (
     <div className="min-h-screen bg-[--bg-base] p-6">
@@ -128,28 +214,36 @@ function SettingsPage(): React.JSX.Element {
               onClick={() => setTheme({ mode: "dark" })}
             />
           </div>
+          <p className="mt-2 text-xs text-[--tx-disabled]">
+            Guardado automáticamente en tu navegador
+          </p>
         </SettingSection>
 
         {/* Language */}
         <SettingSection
-          icon={Info}
+          icon={Globe}
           title={t("settings.language")}
           description={t("settings.languageDesc")}
         >
           <div className="flex flex-wrap gap-2">
             <LanguageButton
               lang="es"
+              flag="🇲🇽"
               label={t("settings.spanish")}
               current={i18n.language}
               onClick={() => handleLanguageChange("es")}
             />
             <LanguageButton
               lang="en"
+              flag="🇺🇸"
               label={t("settings.english")}
               current={i18n.language}
               onClick={() => handleLanguageChange("en")}
             />
           </div>
+          <p className="mt-2 text-xs text-[--tx-disabled]">
+            Guardado automáticamente en tu navegador
+          </p>
         </SettingSection>
 
         {/* Gym Info */}
@@ -302,7 +396,7 @@ function SettingsPage(): React.JSX.Element {
             {/* Manual send triggers */}
             <div className="border-t border-[--bd-default] pt-4">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">
-                Envío manual
+                Envío manual de notificaciones
               </p>
               <div className="flex flex-wrap gap-3">
                 <button
@@ -313,8 +407,9 @@ function SettingsPage(): React.JSX.Element {
                     })
                   }
                   disabled={expiryMutation.isPending}
-                  className="flex items-center gap-2 rounded-xl border border-[--bd-default] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold] disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold] disabled:opacity-50"
                 >
+                  <Send className="h-3.5 w-3.5" />
                   {expiryMutation.isPending ? "Enviando..." : "Recordatorios de vencimiento"}
                 </button>
                 <button
@@ -322,35 +417,51 @@ function SettingsPage(): React.JSX.Element {
                     inactivityMutation.mutate({ inactive_days: notifForm.inactiveDays })
                   }
                   disabled={inactivityMutation.isPending}
-                  className="flex items-center gap-2 rounded-xl border border-[--bd-default] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold] disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold] disabled:opacity-50"
                 >
+                  <Send className="h-3.5 w-3.5" />
                   {inactivityMutation.isPending ? "Enviando..." : "Alertas de inactividad"}
                 </button>
               </div>
             </div>
 
             {/* Recent notifications log */}
-            {recentNotifs.length > 0 && (
-              <div className="border-t border-[--bd-default] pt-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">
-                  Últimas notificaciones enviadas
-                </p>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="border-t border-[--bd-default] pt-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">
+                Últimas notificaciones enviadas
+              </p>
+              {notifsLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="h-10 animate-pulse rounded-xl bg-[--bg-muted]"
+                    />
+                  ))}
+                </div>
+              ) : recentNotifs.length === 0 ? (
+                <div className="flex items-center gap-2 rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3">
+                  <Bell className="h-4 w-4 text-[--tx-disabled]" />
+                  <p className="text-sm text-[--tx-disabled]">
+                    No hay notificaciones recientes. Usa los botones de arriba para enviar.
+                  </p>
+                </div>
+              ) : (
+                <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
                   {recentNotifs.map((n: NotificationResponse) => (
                     <div
                       key={n.notification_id}
                       className="flex items-center gap-3 rounded-xl bg-[--bg-muted] px-3 py-2.5"
                     >
-                      <div
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{
-                          backgroundColor:
-                            n.status === "sent" ? "var(--color-success)" : "var(--color-danger)",
-                        }}
-                      />
+                      {n.status === "sent" ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[--color-success]" />
+                      ) : (
+                        <XCircle className="h-3.5 w-3.5 shrink-0 text-[--color-danger]" />
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-xs font-medium text-[--tx-primary]">
-                          {n.student_name ?? "—"} · {NOTIFICATION_TYPE_LABELS[n.notification_type]}
+                          {n.student_name ?? "—"} ·{" "}
+                          {NOTIFICATION_TYPE_LABELS[n.notification_type] ?? n.notification_type}
                         </p>
                         <p className="text-xs text-[--tx-disabled]">
                           {new Date(n.sent_at).toLocaleString("es-MX", {
@@ -359,11 +470,19 @@ function SettingsPage(): React.JSX.Element {
                           })}
                         </p>
                       </div>
+                      {n.status === "failed" && n.error_message && (
+                        <span
+                          className="shrink-0 rounded-full bg-[--color-danger-bg] px-2 py-0.5 text-[10px] text-[--color-danger]"
+                          title={n.error_message}
+                        >
+                          Error
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </SettingSection>
 
@@ -453,7 +572,7 @@ function SettingsPage(): React.JSX.Element {
         </SettingSection>
 
         {/* System info */}
-        <div className="mt-10 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
+        <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
           <div className="flex items-center gap-3 mb-4">
             <Info className="h-5 w-5 text-[--tx-disabled]" />
             <h2 className="text-base font-semibold text-[--tx-primary]">{t("settings.sysInfo")}</h2>
@@ -461,19 +580,66 @@ function SettingsPage(): React.JSX.Element {
           <dl className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
               <dt className="text-[--tx-disabled]">{t("settings.version")}</dt>
-              <dd className="font-mono text-[--tx-primary]">1.0.0-beta</dd>
+              <dd className="font-mono text-[--tx-primary]">v{APP_VERSION}</dd>
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-[--tx-disabled]">{t("settings.environment")}</dt>
-              <dd className="rounded-full bg-[--color-warning-bg] px-2.5 py-0.5 text-xs font-medium text-[--color-warning]">
-                Local / Desarrollo
+              <dd
+                className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                style={{
+                  backgroundColor: envInfo.color + "1a",
+                  color: envInfo.color,
+                }}
+              >
+                {envInfo.label}
               </dd>
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-[--tx-disabled]">{t("settings.phase")}</dt>
-              <dd className="text-[--tx-primary]">Fase 1 — Core</dd>
+              <dd className="text-[--tx-primary]">Fase 2.5 — Portal &amp; QR</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-[--tx-disabled]">Última actualización</dt>
+              <dd className="flex items-center gap-1.5 text-[--tx-muted]">
+                <Clock className="h-3 w-3" />
+                23 abr 2026
+              </dd>
             </div>
           </dl>
+
+          {/* Changelog toggle */}
+          <div className="mt-4 border-t border-[--bd-subtle] pt-4">
+            <button
+              onClick={() => setShowChangelog((v) => !v)}
+              className="flex items-center gap-2 text-xs font-medium text-[--tx-muted] hover:text-[--gold] transition-colors"
+            >
+              <Clock className="h-3.5 w-3.5" />
+              {showChangelog ? "Ocultar" : "Ver"} historial de versiones
+            </button>
+
+            {showChangelog && (
+              <div className="mt-3 space-y-3 max-h-64 overflow-y-auto pr-1">
+                {CHANGELOG.map((entry) => (
+                  <div key={entry.version} className="rounded-xl bg-[--bg-muted] p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="font-mono text-xs font-semibold text-[--gold]">
+                        v{entry.version}
+                      </span>
+                      <span className="text-xs text-[--tx-disabled]">{entry.date}</span>
+                    </div>
+                    <ul className="space-y-0.5">
+                      {entry.changes.map((c, i) => (
+                        <li key={i} className="flex items-start gap-1.5 text-xs text-[--tx-muted]">
+                          <span className="mt-0.5 text-[--gold] shrink-0">·</span>
+                          {c}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -543,20 +709,22 @@ function ThemeButton({
 
 function LanguageButton({
   lang,
+  flag,
   label,
   current,
   onClick,
 }: {
   lang: string;
+  flag: string;
   label: string;
   current: string;
   onClick: () => void;
 }): React.JSX.Element {
-  const isActive = current === lang;
+  const isActive = current === lang || current.startsWith(lang);
   return (
     <button
       onClick={onClick}
-      className="rounded-xl px-5 py-3 text-sm font-medium transition-all"
+      className="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all"
       style={
         isActive
           ? goldActiveStyle
@@ -567,6 +735,7 @@ function LanguageButton({
             }
       }
     >
+      <span className="text-base leading-none">{flag}</span>
       {label}
     </button>
   );
