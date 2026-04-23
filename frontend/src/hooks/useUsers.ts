@@ -13,6 +13,7 @@ import {
   type CognitoUser,
   type CreateUserRequest,
 } from "@/services/userService";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 export const USERS_KEY = "cognito-users";
 
@@ -23,7 +24,7 @@ export function useUsers(): UseQueryResult<CognitoUser[]> {
   });
 }
 
-export function useCreateUser(): UseMutationResult<CognitoUser, Error, CreateUserRequest> {
+export function useCreateUser(): UseMutationResult<CognitoUser, unknown, CreateUserRequest> {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateUserRequest) => userService.create(data),
@@ -31,8 +32,8 @@ export function useCreateUser(): UseMutationResult<CognitoUser, Error, CreateUse
       qc.invalidateQueries({ queryKey: [USERS_KEY] });
       toast.success("Usuario creado exitosamente");
     },
-    onError: (err) => {
-      toast.error(`Error al crear usuario: ${err.message}`);
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Error al crear usuario"));
     },
   });
 }

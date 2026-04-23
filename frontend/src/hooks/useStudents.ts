@@ -16,6 +16,7 @@ import type {
 } from "@/types/student";
 import { studentService } from "@/services/studentService";
 import { reservationService } from "@/services/reservationService";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 export const STUDENTS_KEY = "students";
 
@@ -45,8 +46,8 @@ export function useCreateStudent() {
       qc.invalidateQueries({ queryKey: [STUDENTS_KEY] });
       toast.success(`Alumno ${student.full_name} registrado exitosamente.`);
     },
-    onError: () => {
-      toast.error("Error al registrar el alumno. Intenta de nuevo.");
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Error al registrar el alumno. Intenta de nuevo."));
     },
   });
 }
@@ -61,8 +62,8 @@ export function useUpdateStudent(studentId: string) {
       qc.setQueryData([STUDENTS_KEY, studentId], student);
       toast.success("Perfil actualizado.");
     },
-    onError: () => {
-      toast.error("Error al actualizar el alumno.");
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Error al actualizar el alumno."));
     },
   });
 }

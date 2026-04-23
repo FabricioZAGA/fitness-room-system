@@ -9,7 +9,7 @@ from src.models.instructor import (
     InstructorUpdate,
 )
 from src.repositories.dynamo_repository import DynamoRepository
-from src.utils.exceptions import ResourceNotFoundException
+from src.utils.exceptions import ResourceAlreadyExistsException, ResourceNotFoundException
 
 
 class InstructorRepository(DynamoRepository):
@@ -104,3 +104,38 @@ class InstructorRepository(DynamoRepository):
         """Delete an instructor."""
         existing = self.get_by_id(instructor_id)
         self.delete_item(existing.PK, existing.SK)
+
+    def find_by_email(self, email: str) -> dict[str, Any] | None:
+        """Find an instructor by email address.
+
+        Note: Scans GSI1 with limit. For production at scale, maintain a separate
+        email index item: PK=EMAIL#email, SK=INSTRUCTOR_REF.
+        """
+        normalized = email.strip().lower()
+        items, _ = self.query_gsi(
+            index_name="GSI1",
+            pk_name="GSI1PK",
+            pk_value="INSTRUCTOR",
+            limit=500,
+        )
+        for item in items:
+            if item.get("email", "").strip().lower() == normalized:
+                return item
+        return None
+
+    def find_by_phone(self, phone: str) -> dict[str, Any] | None:
+        """Find an instructor by phone number.
+
+        Note: Scans GSI1 with limit. For production at scale, maintain a separate
+        phone index item: PK=PHONE#phone, SK=INSTRUCTOR_REF.
+        """
+        items, _ = self.query_gsi(
+            index_name="GSI1",
+            pk_name="GSI1PK",
+            pk_value="INSTRUCTOR",
+            limit=500,
+        )
+        for item in items:
+            if item.get("phone") and item["phone"] == phone:
+                return item
+        return None

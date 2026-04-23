@@ -11,6 +11,7 @@ from src.models.instructor import (
     InstructorUpdate,
 )
 from src.repositories.instructor_repository import InstructorRepository
+from src.services.uniqueness_service import UniquenessService
 
 logger = Logger(child=True)
 
@@ -20,9 +21,18 @@ class InstructorService:
 
     def __init__(self) -> None:
         self._repo = InstructorRepository()
+        self._uniqueness = UniquenessService(
+            instructor_repo=self._repo,
+        )
 
     def create_instructor(self, data: InstructorCreate) -> InstructorResponse:
-        """Create a new instructor."""
+        """Create a new instructor, ensuring email/phone uniqueness across entities.
+
+        Raises:
+            HTTP 409 if the email or phone is already registered.
+        """
+        self._uniqueness.validate_create_instructor(data.email, data.phone)
+
         item = self._repo.create(data)
         logger.info("Instructor created", extra={"instructor_id": item.instructor_id})
         return item.to_response()
@@ -52,7 +62,15 @@ class InstructorService:
     def update_instructor(
         self, instructor_id: str, data: InstructorUpdate
     ) -> InstructorResponse:
-        """Update an instructor's profile."""
+        """Update an instructor's profile.
+
+        Raises:
+            HTTP 409 if the new email or phone is already taken.
+        """
+        self._uniqueness.validate_update_instructor(
+            instructor_id, data.email, data.phone
+        )
+
         item = self._repo.update(instructor_id, data)
         logger.info("Instructor updated", extra={"instructor_id": instructor_id})
         return item.to_response()

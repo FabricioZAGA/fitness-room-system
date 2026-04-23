@@ -86,6 +86,16 @@ def create_user(
             detail=f"Invalid group '{data.group}'. Must be one of {VALID_GROUPS}",
         )
 
+    # Cross-entity email uniqueness check
+    from src.services.uniqueness_service import UniquenessService
+
+    uniqueness = UniquenessService()
+    email_error = uniqueness.check_email_available(data.email)
+    if email_error:
+        from src.utils.exceptions import raise_conflict
+
+        raise_conflict(email_error)
+
     svc = CognitoService()
     settings = get_settings()
     password = svc.create_user(email=data.email, name=data.name, group=data.group)

@@ -12,9 +12,20 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.4.0";
+export const APP_VERSION = "1.5.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.5.0",
+    date: "2026-04-23",
+    title: "Unicidad de datos y configuración",
+    items: [
+      { icon: "🔒", text: "Validación de unicidad — no se pueden duplicar emails ni teléfonos entre alumnos, instructores y usuarios" },
+      { icon: "🔀", text: "Verificación cruzada — al crear o editar, se valida contra todas las entidades del sistema" },
+      { icon: "⚠️", text: "Mensajes claros — el admin ve exactamente qué entidad ya tiene el dato duplicado" },
+      { icon: "⚙️", text: "Pantalla de configuración — tema, idioma, info del studio, alertas y seguridad" },
+    ],
+  },
   {
     version: "1.4.0",
     date: "2026-04-23",

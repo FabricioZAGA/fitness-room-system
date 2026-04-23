@@ -15,6 +15,7 @@ from src.models.membership import MembershipStatus, MembershipUpdate
 from src.models.student import StudentCreate, StudentResponse, StudentStatus, StudentUpdate
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.student_repository import StudentRepository
+from src.services.uniqueness_service import UniquenessService
 from src.utils.exceptions import ResourceAlreadyExistsException, raise_bad_request, raise_conflict
 
 logger = Logger()
@@ -30,9 +31,12 @@ class StudentService:
     ) -> None:
         self._repo = repository or StudentRepository()
         self._membership_repo = membership_repo or MembershipRepository()
+        self._uniqueness = UniquenessService(
+            student_repo=self._repo,
+        )
 
     def create_student(self, data: StudentCreate) -> StudentResponse:
-        """Create a new student, ensuring email uniqueness.
+        """Create a new student, ensuring email/phone uniqueness across entities.
 
         Args:
             data: Validated student creation payload.
@@ -41,9 +45,12 @@ class StudentService:
             The created student response.
 
         Raises:
-            HTTP 409 if the email is already registered.
+            HTTP 409 if the email or phone is already registered.
         """
         logger.info("Creating student", extra={"email": data.email})
+
+        self._uniqueness.validate_create_student(data.email, data.phone)
+
         try:
             item = self._repo.create(data)
         except ResourceAlreadyExistsException as e:
@@ -102,8 +109,14 @@ class StudentService:
 
         Raises:
             HTTP 404 if student is not found.
+            HTTP 409 if the new email or phone is already taken.
         """
         logger.info("Updating student", extra={"student_id": student_id})
+
+        self._uniqueness.validate_update_student(
+            student_id, data.email, data.phone
+        )
+
         item = self._repo.update(student_id, data)
         return item.to_response()
 

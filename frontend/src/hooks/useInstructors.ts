@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { instructorService } from "@/services/instructorService";
+import { getApiErrorMessage } from "@/lib/apiError";
 import type {
   CreateInstructorRequest,
   UpdateInstructorRequest,
@@ -38,8 +39,8 @@ export function useCreateInstructor() {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success("Instructor registrado correctamente");
     },
-    onError: () => {
-      toast.error("Error al registrar instructor");
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Error al registrar instructor"));
     },
   });
 }
@@ -53,8 +54,8 @@ export function useUpdateInstructor(instructorId: string) {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success("Instructor actualizado correctamente");
     },
-    onError: () => {
-      toast.error("Error al actualizar instructor");
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Error al actualizar instructor"));
     },
   });
 }

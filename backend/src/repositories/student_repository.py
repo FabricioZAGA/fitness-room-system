@@ -131,11 +131,29 @@ class StudentRepository(DynamoRepository):
         """
         self.delete_item(f"STUDENT#{student_id}", "PROFILE")
 
-    def check_email_exists(self, email: str) -> bool:
-        """Check if an email is already registered (scan via filter — use sparingly).
+    def find_by_email(self, email: str) -> dict[str, Any] | None:
+        """Find a student by email address.
 
-        Note: This is a scan operation. For production at scale, maintain a separate
+        Note: Scans GSI1 with limit. For production at scale, maintain a separate
         email index item: PK=EMAIL#email, SK=STUDENT_REF.
+        """
+        normalized = email.strip().lower()
+        items, _ = self.query_gsi(
+            index_name="GSI1",
+            pk_name="GSI1PK",
+            pk_value="STUDENTS",
+            limit=1000,
+        )
+        for item in items:
+            if item.get("email", "").strip().lower() == normalized:
+                return item
+        return None
+
+    def find_by_phone(self, phone: str) -> dict[str, Any] | None:
+        """Find a student by phone number.
+
+        Note: Scans GSI1 with limit. For production at scale, maintain a separate
+        phone index item: PK=PHONE#phone, SK=STUDENT_REF.
         """
         items, _ = self.query_gsi(
             index_name="GSI1",
@@ -143,7 +161,10 @@ class StudentRepository(DynamoRepository):
             pk_value="STUDENTS",
             limit=1000,
         )
-        return any(i.get("email") == email for i in items)
+        for item in items:
+            if item.get("phone") and item["phone"] == phone:
+                return item
+        return None
 
     def put_checkin(self, item: "CheckinDynamoItem") -> None:
         """Store a check-in record in DynamoDB.
