@@ -23,9 +23,9 @@ from botocore.exceptions import ClientError
 AWS_REGION = "us-west-2"
 USER_POOL_ID = "us-west-2_nErXzvgfc"
 ADMIN_GROUP = "admin"
-SENDER_EMAIL = "devzaga@gmail.com"
+SENDER_EMAIL = "noreply@fitnessroom.mx"
 SENDER_NAME = "Fitness Room"
-ADMIN_FRONTEND_URL = "https://d3awxegxyh5p20.cloudfront.net"
+ADMIN_FRONTEND_URL = "https://admin.fitnessroom.mx"
 
 
 def generate_password(length: int = 14) -> str:
