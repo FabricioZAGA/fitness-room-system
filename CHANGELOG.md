@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.5.2] — 2026-04-23
+
+### Fixed
+- Audit completo de traducciones ES/EN en el admin
+- Agregada key `nav.users` faltante en `es.json` ("Usuarios") y `en.json` ("Users")
+- Eliminado fallback hardcodeado `"Usuarios"` en `Sidebar.tsx` — ahora usa el archivo de locale
+- Portal validado: todos los strings están en español (idioma único del portal, sin switch de idioma)
+
+---
+
 ## [1.5.1] — 2026-04-23
 
 ### Fixed
