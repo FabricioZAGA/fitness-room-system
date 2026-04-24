@@ -13,7 +13,7 @@ from src.config import get_settings
 logger = Logger()
 
 # Valid Cognito groups in order of precedence
-VALID_GROUPS = ("admin", "staff", "student")
+VALID_GROUPS = ("admin", "receptionist", "staff", "student")
 
 
 class CognitoService:

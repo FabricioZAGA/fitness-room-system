@@ -19,7 +19,7 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps): React.
   const [form, setForm] = useState<CreateUserRequest>({
     email: "",
     name: "",
-    group: "staff",
+    group: "admin",
   });
   const { mutate, isPending } = useCreateUser();
 
@@ -30,7 +30,7 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps): React.
     if (emailError) return;
     mutate(form, {
       onSuccess: () => {
-        setForm({ email: "", name: "", group: "staff" });
+        setForm({ email: "", name: "", group: "admin" });
         onClose();
       },
     });
@@ -77,7 +77,7 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps): React.
             ))}
           </select>
           <p className="mt-1.5 text-xs text-[--tx-disabled]">
-            Se enviará un correo con las credenciales temporales al usuario.
+            Los usuarios de alumno e instructor se crean automáticamente al registrarlos en sus respectivas páginas.
           </p>
         </div>
 

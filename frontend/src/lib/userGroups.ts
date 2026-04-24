@@ -39,9 +39,10 @@ export const USER_GROUP_FILTER_OPTIONS: UserGroupFilterOption[] = [
   { label: "Alumno", value: "student" },
 ];
 
+// Only admin and receptionist are created manually from the Users page.
+// Staff users are auto-created when registering an instructor.
+// Student users are auto-created when registering a student.
 export const CREATE_USER_GROUP_OPTIONS: { value: UserGroup; label: string }[] = [
-  { value: "admin", label: "Administrador — acceso completo" },
+  { value: "admin", label: "Administrador — acceso completo al panel" },
   { value: "receptionist", label: "Recepcionista — acceso limitado al panel" },
-  { value: "staff", label: "Staff / Instructor — portal de instructor" },
-  { value: "student", label: "Alumno — solo portal de alumno" },
 ];
