@@ -933,14 +933,17 @@ class EventNotifier:
             logger.info("LOCAL — skip SES", recipient=recipient, subject=subject)
             return
         self._check_not_suppressed(recipient)
-        self._ses.send_email(
-            Source=f"{self._settings.ses_sender_name} <{self._settings.ses_sender_email}>",
-            Destination={"ToAddresses": [recipient]},
-            Message={
+        send_kwargs: dict[str, Any] = {
+            "Source": f"{self._settings.ses_sender_name} <{self._settings.ses_sender_email}>",
+            "Destination": {"ToAddresses": [recipient]},
+            "Message": {
                 "Subject": {"Data": subject, "Charset": "UTF-8"},
                 "Body": {"Html": {"Data": html_body, "Charset": "UTF-8"}},
             },
-        )
+        }
+        if self._settings.ses_configuration_set:
+            send_kwargs["ConfigurationSetName"] = self._settings.ses_configuration_set
+        self._ses.send_email(**send_kwargs)
         logger.info("Email sent", recipient=recipient, subject=subject)
 
     def _send_email_with_attachment(
@@ -968,6 +971,9 @@ class EventNotifier:
         msg["Subject"] = subject
         msg["From"] = f"{self._settings.ses_sender_name} <{self._settings.ses_sender_email}>"
         msg["To"] = recipient
+        if self._settings.ses_configuration_set:
+            # SES inspects this header on send_raw_email to route feedback events.
+            msg["X-SES-CONFIGURATION-SET"] = self._settings.ses_configuration_set
 
         # HTML body part
         body_part = MIMEText(html_body, "html", "utf-8")

@@ -21,6 +21,8 @@ from aws_cdk import (
     aws_logs as logs,
     aws_s3 as s3,
     aws_ses as ses,
+    aws_sns as sns,
+    aws_sns_subscriptions as sns_subs,
 )
 from constructs import Construct
 
@@ -40,6 +42,7 @@ class ApiStack(cdk.Stack):
         portal_url: str = "http://localhost:3001",
         sender_email: str = "noreply@fitness-room.mx",
         sender_name: str = "Fitness Room",
+        alert_email: str = "devzaga@gmail.com",
         **kwargs: object,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -226,6 +229,7 @@ class ApiStack(cdk.Stack):
                 "S3_MEDIA_BUCKET": self.media_bucket.bucket_name,
                 "SES_SENDER_EMAIL": sender_email,
                 "SES_SENDER_NAME": sender_name,
+                "SES_CONFIGURATION_SET": f"fitness-room-{env_name}",
             },
             tracing=lambda_.Tracing.PASS_THROUGH,
             log_retention=logs.RetentionDays.ONE_MONTH if env_name == "prod" else logs.RetentionDays.ONE_WEEK,
@@ -311,6 +315,79 @@ class ApiStack(cdk.Stack):
             self,
             "SenderEmailIdentity",
             email_identity=sender_email,
+        )
+
+        # ── SES Configuration Set + bounce/complaint alerting ──────────────────
+        # Every outbound email carries `ConfigurationSetName` so SES routes
+        # feedback (bounce/complaint/reject/delivery-delay/rendering-failure)
+        # events to an SNS topic. The topic is email-subscribed to `alert_email`
+        # so a real person is paged the moment delivery breaks — instead of
+        # discovering it days later when a user reports "no me llegó el correo".
+        self.email_alerts_topic = sns.Topic(
+            self,
+            "EmailDeliveryAlertsTopic",
+            topic_name=f"fitness-room-email-events-{env_name}",
+            display_name=f"Fitness Room ({env_name}) email delivery events",
+        )
+        self.email_alerts_topic.add_subscription(
+            sns_subs.EmailSubscription(alert_email),
+        )
+
+        # Allow SES (in this account) to publish feedback events to the topic.
+        self.email_alerts_topic.add_to_resource_policy(
+            iam.PolicyStatement(
+                sid="AllowSESPublish",
+                effect=iam.Effect.ALLOW,
+                principals=[iam.ServicePrincipal("ses.amazonaws.com")],
+                actions=["SNS:Publish"],
+                resources=[self.email_alerts_topic.topic_arn],
+                conditions={"StringEquals": {"AWS:SourceAccount": self.account}},
+            )
+        )
+
+        config_set_name = f"fitness-room-{env_name}"
+        config_set = ses.CfnConfigurationSet(
+            self,
+            "EmailConfigSet",
+            name=config_set_name,
+            reputation_options=ses.CfnConfigurationSet.ReputationOptionsProperty(
+                reputation_metrics_enabled=True,
+            ),
+            sending_options=ses.CfnConfigurationSet.SendingOptionsProperty(
+                sending_enabled=True,
+            ),
+            suppression_options=ses.CfnConfigurationSet.SuppressionOptionsProperty(
+                # Continue auto-suppressing hard bounces and complaints account-wide.
+                suppressed_reasons=["BOUNCE", "COMPLAINT"],
+            ),
+        )
+
+        event_dest = ses.CfnConfigurationSetEventDestination(
+            self,
+            "EmailConfigSetEventDest",
+            configuration_set_name=config_set_name,
+            event_destination=ses.CfnConfigurationSetEventDestination.EventDestinationProperty(
+                enabled=True,
+                matching_event_types=[
+                    "bounce",
+                    "complaint",
+                    "reject",
+                    "renderingFailure",
+                    "deliveryDelay",
+                ],
+                sns_destination=ses.CfnConfigurationSetEventDestination.SnsDestinationProperty(
+                    topic_arn=self.email_alerts_topic.topic_arn,
+                ),
+            ),
+        )
+        # Event destination must be created after the config set it references.
+        event_dest.add_dependency(config_set)
+
+        cdk.CfnOutput(
+            self,
+            "EmailAlertsTopicArn",
+            value=self.email_alerts_topic.topic_arn,
+            export_name=f"FitnessRoomEmailAlertsTopicArn-{env_name}",
         )
 
         # ── EventBridge daily notification schedule ────────────────────────────

@@ -57,6 +57,15 @@ class Settings(BaseSettings):
         default="Fitness Room",
         description="Display name in the From field of notification emails",
     )
+    ses_configuration_set: str = Field(
+        default="",
+        description=(
+            "SES Configuration Set name. When set, every outbound email "
+            "carries ConfigurationSetName so SES routes bounce/complaint/"
+            "reject/delivery-delay events to the associated SNS topic. "
+            "Leave empty in local dev to skip."
+        ),
+    )
     gym_phone: str = Field(
         default="",
         description="Gym phone number shown in email footers",
