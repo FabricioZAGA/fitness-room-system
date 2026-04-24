@@ -73,6 +73,10 @@ class CognitoService:
 
         password = self.generate_password()
 
+        parts = name.strip().split(" ", 1)
+        given_name = parts[0]
+        family_name = parts[1] if len(parts) > 1 else parts[0]
+
         try:
             self._cognito.admin_create_user(
                 UserPoolId=self._pool_id,
@@ -81,6 +85,8 @@ class CognitoService:
                     {"Name": "email", "Value": email},
                     {"Name": "email_verified", "Value": "true"},
                     {"Name": "name", "Value": name},
+                    {"Name": "given_name", "Value": given_name},
+                    {"Name": "family_name", "Value": family_name},
                 ],
                 MessageAction="SUPPRESS",
             )
