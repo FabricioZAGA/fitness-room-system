@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import {
   Calendar,
   List,
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/classes/")({
 type ViewMode = "calendar" | "list";
 
 function ClassesPage(): React.JSX.Element {
+  const { t } = useTranslation();
   const [createOpen, setCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   const [selectedClass, setSelectedClass] = useState<FitnessClass | null>(null);
@@ -51,7 +53,7 @@ function ClassesPage(): React.JSX.Element {
       {/* Header */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[--tx-primary]">Clases</h1>
+          <h1 className="text-3xl font-bold text-[--tx-primary]">{t("classes.title")}</h1>
           <p className="mt-1 text-lg text-[--tx-muted]">
             {data?.total ?? 0} clase{data?.total !== 1 ? "s" : ""} registrada{data?.total !== 1 ? "s" : ""}
           </p>
@@ -76,7 +78,7 @@ function ClassesPage(): React.JSX.Element {
               }
             >
               <Calendar className="h-4 w-4" />
-              Calendario
+              {t("classes.calendar")}
             </button>
             <button
               onClick={() => setViewMode("list")}
@@ -95,7 +97,7 @@ function ClassesPage(): React.JSX.Element {
               }
             >
               <List className="h-4 w-4" />
-              Lista
+              {t("classes.list")}
             </button>
           </div>
           <button
@@ -110,7 +112,7 @@ function ClassesPage(): React.JSX.Element {
             onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
           >
             <Plus className="h-5 w-5" />
-            Nueva Clase
+            {t("classes.newClass")}
           </button>
         </div>
       </div>

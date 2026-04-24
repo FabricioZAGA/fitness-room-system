@@ -2,6 +2,7 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, Mail, Phone, Award, Pencil, Power, PowerOff, Trash2 } from "lucide-react";
 import {
   useInstructors, useActivateInstructor, useDeactivateInstructor, useDeleteInstructor,
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/instructors/")({
 });
 
 function InstructorsPage(): React.JSX.Element {
+  const { t } = useTranslation();
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Instructor | null>(null);
   const { data, isLoading } = useInstructors({ limit: 50 });
@@ -32,7 +34,7 @@ function InstructorsPage(): React.JSX.Element {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[--tx-primary]">Instructores</h1>
+          <h1 className="text-3xl font-bold text-[--tx-primary]">{t("instructors.title")}</h1>
           <p className="mt-1 text-lg text-[--tx-muted]">
             {activeCount} activos · {instructors.length} total
           </p>
@@ -49,7 +51,7 @@ function InstructorsPage(): React.JSX.Element {
           onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
         >
           <Plus className="h-5 w-5" />
-          Nuevo Instructor
+          {t("instructors.newInstructor")}
         </button>
       </div>
 
@@ -65,8 +67,8 @@ function InstructorsPage(): React.JSX.Element {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[--bg-muted]">
             <Award className="h-8 w-8 text-[--tx-disabled]" />
           </div>
-          <p className="text-xl text-[--tx-muted]">No hay instructores registrados</p>
-          <p className="mt-2 text-[--tx-disabled]">Agrega instructores para asignarlos a las clases</p>
+          <p className="text-xl text-[--tx-muted]">{t("instructors.noInstructors")}</p>
+          <p className="mt-2 text-[--tx-disabled]">{t("instructors.noInstructorsDesc")}</p>
           <button
             onClick={() => setCreateOpen(true)}
             className="mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold"
@@ -76,7 +78,7 @@ function InstructorsPage(): React.JSX.Element {
             }}
           >
             <Plus className="h-4 w-4" />
-            Agregar primer instructor
+            {t("instructors.addFirst")}
           </button>
         </div>
       ) : (
@@ -121,7 +123,7 @@ function InstructorsPage(): React.JSX.Element {
                     <button
                       onClick={() => deactivate(instructor.instructor_id)}
                       className="rounded-lg p-2 text-[--tx-disabled] transition-colors hover:bg-[--color-warning-bg] hover:text-[--color-warning]"
-                      title="Desactivar"
+                      title={t("instructors.deactivate")}
                     >
                       <PowerOff className="h-4 w-4" />
                     </button>
@@ -129,7 +131,7 @@ function InstructorsPage(): React.JSX.Element {
                     <button
                       onClick={() => activate(instructor.instructor_id)}
                       className="rounded-lg p-2 text-[--tx-disabled] transition-colors hover:bg-[--color-success-bg] hover:text-[--color-success]"
-                      title="Activar"
+                      title={t("instructors.activate")}
                     >
                       <Power className="h-4 w-4" />
                     </button>
@@ -189,11 +191,11 @@ function InstructorsPage(): React.JSX.Element {
               <div className="grid grid-cols-2 gap-3 border-t border-[--bd-default] pt-4">
                 <div className="rounded-xl bg-[--bg-muted]/50 p-3 text-center">
                   <p className="text-2xl font-bold text-[--color-success]">{instructor.classes_this_week}</p>
-                  <p className="text-xs text-[--tx-disabled]">Esta semana</p>
+                  <p className="text-xs text-[--tx-disabled]">{t("instructors.thisWeek")}</p>
                 </div>
                 <div className="rounded-xl bg-[--bg-muted]/50 p-3 text-center">
                   <p className="text-2xl font-bold text-[--tx-primary]">{instructor.total_classes_taught}</p>
-                  <p className="text-xs text-[--tx-disabled]">Total clases</p>
+                  <p className="text-xs text-[--tx-disabled]">{t("instructors.totalClasses")}</p>
                 </div>
               </div>
             </div>

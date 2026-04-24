@@ -7,6 +7,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth, type AuthStep } from "@/contexts/AuthContext";
 import { Dumbbell, Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, KeyRound, ShieldCheck, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -70,6 +71,7 @@ function PasswordInput({ id, value, onChange, placeholder, show, onToggle }: {
 }
 
 function LoginPage(): React.JSX.Element {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     login, isAuthenticated, authStep,
@@ -126,7 +128,7 @@ function LoginPage(): React.JSX.Element {
   async function handleNewPassword(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     if (!givenName.trim() || !familyName.trim()) { setError("Ingresa tu nombre y apellido"); return; }
-    if (newPw !== confirmPw) { setError("Las contraseñas no coinciden"); return; }
+    if (newPw !== confirmPw) { setError(t("login.passwordMismatch")); return; }
     if (newPw.length < 8) { setError("La contraseña debe tener al menos 8 caracteres"); return; }
     setError(null);
     setIsLoading(true);
@@ -158,7 +160,7 @@ function LoginPage(): React.JSX.Element {
 
   async function handleConfirmReset(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    if (newPw !== confirmPw) { setError("Las contraseñas no coinciden"); return; }
+    if (newPw !== confirmPw) { setError(t("login.passwordMismatch")); return; }
     if (newPw.length < 8) { setError("La contraseña debe tener al menos 8 caracteres"); return; }
     setError(null);
     setIsLoading(true);
@@ -181,10 +183,10 @@ function LoginPage(): React.JSX.Element {
   }
 
   const titles: Record<string, { heading: string; sub: string }> = {
-    login: { heading: "¡Bienvenido!", sub: "Ingresa tus datos para acceder al sistema" },
-    newPasswordRequired: { heading: "Cambiar contraseña", sub: "Por seguridad, elige una nueva contraseña para tu cuenta" },
-    forgotPassword: { heading: "Recuperar contraseña", sub: "Ingresa tu correo y te enviaremos un código de verificación" },
-    confirmReset: { heading: "Restaurar contraseña", sub: "Ingresa el código que recibiste y tu nueva contraseña" },
+    login: { heading: t("login.welcome"), sub: t("login.subtitle") },
+    newPasswordRequired: { heading: t("login.changePassword"), sub: t("login.changePasswordSubtitle") },
+    forgotPassword: { heading: t("login.recoverPassword"), sub: t("login.recoverSubtitle") },
+    confirmReset: { heading: t("login.restorePassword"), sub: t("login.restoreSubtitle") },
   };
 
   const { heading, sub } = titles[step] ?? titles.login;
@@ -209,21 +211,19 @@ function LoginPage(): React.JSX.Element {
             </div>
           </div>
           <h1 className="mb-4 text-4xl font-bold text-[--tx-primary]">Fitness Room</h1>
-          <p className="text-xl text-[--tx-muted]">
-            Sistema de gestión para tu Studio. Simple, rápido y fácil de usar.
-          </p>
+          <p className="text-xl text-[--tx-muted]">{t("login.tagline")}</p>
           <div className="mt-12 grid grid-cols-3 gap-6 text-center">
             <div>
               <div className="text-3xl font-bold text-[--gold]">500+</div>
-              <div className="text-sm text-[--tx-muted]">Miembros</div>
+              <div className="text-sm text-[--tx-muted]">{t("login.members")}</div>
             </div>
             <div>
               <div className="text-3xl font-bold text-[--gold]">50+</div>
-              <div className="text-sm text-[--tx-muted]">Clases/semana</div>
+              <div className="text-sm text-[--tx-muted]">{t("login.classesPerWeek")}</div>
             </div>
             <div>
               <div className="text-3xl font-bold text-[--gold]">10+</div>
-              <div className="text-sm text-[--tx-muted]">Instructores</div>
+              <div className="text-sm text-[--tx-muted]">{t("nav.instructors")}</div>
             </div>
           </div>
         </div>
@@ -249,7 +249,7 @@ function LoginPage(): React.JSX.Element {
           {step !== "login" && (
             <button onClick={goBack} className="mb-6 flex items-center gap-2 text-[--tx-muted] hover:text-[--gold] transition-colors">
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm">Volver al inicio de sesión</span>
+              <span className="text-sm">{t("login.backToLogin")}</span>
             </button>
           )}
 
@@ -291,7 +291,7 @@ function LoginPage(): React.JSX.Element {
               <form onSubmit={handleLogin} className="space-y-6">
                 <div>
                   <label htmlFor="email" className="mb-2 block text-sm font-medium text-[--tx-primary]">
-                    Correo electrónico
+                    {t("login.email")}
                   </label>
                   <div className="relative">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
@@ -303,10 +303,10 @@ function LoginPage(): React.JSX.Element {
                 </div>
                 <div>
                   <div className="mb-2 flex items-center justify-between">
-                    <label htmlFor="password" className="block text-sm font-medium text-[--tx-primary]">Contraseña</label>
+                    <label htmlFor="password" className="block text-sm font-medium text-[--tx-primary]">{t("login.password")}</label>
                     <button type="button" onClick={() => { clearState(); setLocalStep("forgotPassword"); }}
                       className="text-sm text-[--gold] hover:text-[--gold-hover] transition-colors">
-                      ¿Olvidaste tu contraseña?
+                      {t("login.forgotPassword")}
                     </button>
                   </div>
                   <PasswordInput id="password" value={password} onChange={setPassword}
@@ -315,14 +315,14 @@ function LoginPage(): React.JSX.Element {
                 <GoldButton type="submit" disabled={isLoading}>
                   {isLoading ? (
                     <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-5 w-5 animate-spin" /> Ingresando...
+                      <Loader2 className="h-5 w-5 animate-spin" /> {t("login.loading")}
                     </span>
-                  ) : "Ingresar"}
+                  ) : t("login.login")}
                 </GoldButton>
               </form>
               {import.meta.env.VITE_APP_ENV === "local" && (
                 <div className="mt-6 rounded-lg bg-[--color-warning-bg] border border-[--color-warning-bd] p-3 text-center">
-                  <p className="text-xs text-[--color-warning]">Modo desarrollo — Login automático activado</p>
+                  <p className="text-xs text-[--color-warning]">{t("login.devMode")}</p>
                 </div>
               )}
             </>
@@ -333,50 +333,48 @@ function LoginPage(): React.JSX.Element {
             <form onSubmit={handleNewPassword} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="givenName" className="mb-2 block text-sm font-medium text-[--tx-primary]">Nombre</label>
+                  <label htmlFor="givenName" className="mb-2 block text-sm font-medium text-[--tx-primary]">{t("login.firstName")}</label>
                   <div className="relative">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                       <User className="h-5 w-5 text-[--tx-disabled]" />
                     </div>
                     <input id="givenName" type="text" value={givenName} onChange={(e) => setGivenName(e.target.value)}
-                      placeholder="Nombre" required className={inputClass} />
+                      placeholder={t("login.firstName")} required className={inputClass} />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="familyName" className="mb-2 block text-sm font-medium text-[--tx-primary]">Apellido</label>
+                  <label htmlFor="familyName" className="mb-2 block text-sm font-medium text-[--tx-primary]">{t("login.lastName")}</label>
                   <div className="relative">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                       <User className="h-5 w-5 text-[--tx-disabled]" />
                     </div>
                     <input id="familyName" type="text" value={familyName} onChange={(e) => setFamilyName(e.target.value)}
-                      placeholder="Apellido" required className={inputClass} />
+                      placeholder={t("login.lastName")} required className={inputClass} />
                   </div>
                 </div>
               </div>
               <div>
-                <label htmlFor="newPw" className="mb-2 block text-sm font-medium text-[--tx-primary]">Nueva contraseña</label>
+                <label htmlFor="newPw" className="mb-2 block text-sm font-medium text-[--tx-primary]">{t("login.newPassword")}</label>
                 <PasswordInput id="newPw" value={newPw} onChange={setNewPw}
-                  placeholder="Mínimo 8 caracteres" show={showNewPw} onToggle={() => setShowNewPw(!showNewPw)} />
+                  placeholder={t("login.minCharsPlaceholder")} show={showNewPw} onToggle={() => setShowNewPw(!showNewPw)} />
               </div>
               <div>
-                <label htmlFor="confirmPw" className="mb-2 block text-sm font-medium text-[--tx-primary]">Confirmar contraseña</label>
+                <label htmlFor="confirmPw" className="mb-2 block text-sm font-medium text-[--tx-primary]">{t("login.confirmPassword")}</label>
                 <PasswordInput id="confirmPw" value={confirmPw} onChange={setConfirmPw}
-                  placeholder="Repite tu nueva contraseña" show={showNewPw} onToggle={() => setShowNewPw(!showNewPw)} />
+                  placeholder={t("login.repeatPasswordPlaceholder")} show={showNewPw} onToggle={() => setShowNewPw(!showNewPw)} />
                 {confirmPw.length > 0 && newPw !== confirmPw && (
-                  <p className="mt-2 text-sm text-[--color-danger]">Las contraseñas no coinciden</p>
+                  <p className="mt-2 text-sm text-[--color-danger]">{t("login.passwordMismatch")}</p>
                 )}
               </div>
               <div className="rounded-xl p-4" style={{ background: "var(--gold-bg)" }}>
-                <p className="text-xs text-[--tx-muted]">
-                  La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números.
-                </p>
+                <p className="text-xs text-[--tx-muted]">{t("login.passwordRequirements")}</p>
               </div>
               <GoldButton type="submit" disabled={isLoading || !givenName.trim() || !familyName.trim() || newPw.length < 8 || newPw !== confirmPw}>
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin" /> Cambiando...
+                    <Loader2 className="h-5 w-5 animate-spin" /> {t("login.changing")}
                   </span>
-                ) : "Cambiar contraseña"}
+                ) : t("login.changePassword")}
               </GoldButton>
             </form>
           )}
@@ -386,7 +384,7 @@ function LoginPage(): React.JSX.Element {
             <form onSubmit={handleForgotPassword} className="space-y-6">
               <div>
                 <label htmlFor="resetEmail" className="mb-2 block text-sm font-medium text-[--tx-primary]">
-                  Correo electrónico
+                  {t("login.email")}
                 </label>
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
@@ -399,9 +397,9 @@ function LoginPage(): React.JSX.Element {
               <GoldButton type="submit" disabled={isLoading || !email}>
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin" /> Enviando código...
+                    <Loader2 className="h-5 w-5 animate-spin" /> {t("login.sendingCode")}
                   </span>
-                ) : "Enviar código de verificación"}
+                ) : t("login.sendCode")}
               </GoldButton>
             </form>
           )}
@@ -410,7 +408,7 @@ function LoginPage(): React.JSX.Element {
           {step === "confirmReset" && (
             <form onSubmit={handleConfirmReset} className="space-y-6">
               <div>
-                <label htmlFor="code" className="mb-2 block text-sm font-medium text-[--tx-primary]">Código de verificación</label>
+                <label htmlFor="code" className="mb-2 block text-sm font-medium text-[--tx-primary]">{t("login.verificationCode")}</label>
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                     <ShieldCheck className="h-5 w-5 text-[--tx-disabled]" />
@@ -421,24 +419,24 @@ function LoginPage(): React.JSX.Element {
                 </div>
               </div>
               <div>
-                <label htmlFor="resetNewPw" className="mb-2 block text-sm font-medium text-[--tx-primary]">Nueva contraseña</label>
+                <label htmlFor="resetNewPw" className="mb-2 block text-sm font-medium text-[--tx-primary]">{t("login.newPassword")}</label>
                 <PasswordInput id="resetNewPw" value={newPw} onChange={setNewPw}
-                  placeholder="Mínimo 8 caracteres" show={showNewPw} onToggle={() => setShowNewPw(!showNewPw)} />
+                  placeholder={t("login.minCharsPlaceholder")} show={showNewPw} onToggle={() => setShowNewPw(!showNewPw)} />
               </div>
               <div>
-                <label htmlFor="resetConfirmPw" className="mb-2 block text-sm font-medium text-[--tx-primary]">Confirmar contraseña</label>
+                <label htmlFor="resetConfirmPw" className="mb-2 block text-sm font-medium text-[--tx-primary]">{t("login.confirmPassword")}</label>
                 <PasswordInput id="resetConfirmPw" value={confirmPw} onChange={setConfirmPw}
-                  placeholder="Repite tu nueva contraseña" show={showNewPw} onToggle={() => setShowNewPw(!showNewPw)} />
+                  placeholder={t("login.repeatPasswordPlaceholder")} show={showNewPw} onToggle={() => setShowNewPw(!showNewPw)} />
                 {confirmPw.length > 0 && newPw !== confirmPw && (
-                  <p className="mt-2 text-sm text-[--color-danger]">Las contraseñas no coinciden</p>
+                  <p className="mt-2 text-sm text-[--color-danger]">{t("login.passwordMismatch")}</p>
                 )}
               </div>
               <GoldButton type="submit" disabled={isLoading || !resetCode || newPw.length < 8 || newPw !== confirmPw}>
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin" /> Restaurando...
+                    <Loader2 className="h-5 w-5 animate-spin" /> {t("login.restoring")}
                   </span>
-                ) : "Restaurar contraseña"}
+                ) : t("login.restorePassword")}
               </GoldButton>
             </form>
           )}

@@ -17,6 +17,7 @@ import { useTodaySummary } from "@/hooks/useTransactions";
 import { CLASS_TYPE_LABELS } from "@/types/class";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/")({
   component: DashboardPage,
@@ -61,6 +62,7 @@ function ListSkeleton({ rows = 3 }: { rows?: number }): React.JSX.Element {
 }
 
 function DashboardPage(): React.JSX.Element {
+  const { t } = useTranslation();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: rankings = [], isLoading: rankingsLoading } = useRankings({ limit: 5, days: 30 });
   const { data: todaySummary, isLoading: summaryLoading } = useTodaySummary();
@@ -76,8 +78,8 @@ function DashboardPage(): React.JSX.Element {
     <div className="min-h-screen bg-[--bg-base] p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[--tx-primary]">¡Bienvenido!</h1>
-        <p className="mt-1 text-[--tx-muted]">Resumen de hoy en Fitness Room</p>
+        <h1 className="text-3xl font-bold text-[--tx-primary]">{t("dashboard.welcome")}</h1>
+        <p className="mt-1 text-[--tx-muted]">{t("dashboard.subtitle")}</p>
       </div>
 
       {/* Quick Actions */}
@@ -86,26 +88,26 @@ function DashboardPage(): React.JSX.Element {
           to="/checkin"
           icon={QrCode}
           label="Check-in"
-          description="Registrar entrada"
+          description={t("dashboard.checkinDesc")}
           primary
         />
         <QuickAction
           to="/students"
           icon={Users}
-          label="Nuevo Miembro"
-          description="Registrar alumno"
+          label={t("dashboard.newMember")}
+          description={t("dashboard.newMemberDesc")}
         />
         <QuickAction
           to="/classes"
           icon={Calendar}
-          label="Nueva Clase"
-          description="Programar clase"
+          label={t("dashboard.newClass")}
+          description={t("dashboard.newClassDesc")}
         />
         <QuickAction
           to="/memberships"
           icon={CreditCard}
-          label="Membresía"
-          description="Asignar plan"
+          label={t("dashboard.membership")}
+          description={t("dashboard.membershipDesc")}
         />
       </div>
 
@@ -121,10 +123,10 @@ function DashboardPage(): React.JSX.Element {
             </div>
             <div>
               <p className="text-lg font-semibold text-[--color-warning]">
-                {expiring} membresía{expiring !== 1 ? "s" : ""} por vencer
+                {t("dashboard.expiringAlert", { count: expiring })}
               </p>
               <p className="text-sm text-[--color-warning]/70">
-                Contactar miembros para renovación
+                {t("dashboard.contactForRenewal")}
               </p>
             </div>
           </div>
@@ -143,10 +145,10 @@ function DashboardPage(): React.JSX.Element {
           </>
         ) : (
           <>
-            <StatCard label="Miembros Activos" value={activeStudents} icon={Users} href="/students" />
-            <StatCard label="Clases Hoy" value={todayClasses} icon={Calendar} href="/classes" />
-            <StatCard label="Instructores" value={activeInstructors} icon={UserCog} href="/instructors" />
-            <StatCard label="Por Vencer" value={expiring} icon={CreditCard} warning href="/memberships" />
+            <StatCard label={t("dashboard.activeMembers")} value={activeStudents} icon={Users} href="/students" />
+            <StatCard label={t("dashboard.classesToday")} value={todayClasses} icon={Calendar} href="/classes" />
+            <StatCard label={t("dashboard.instructors")} value={activeInstructors} icon={UserCog} href="/instructors" />
+            <StatCard label={t("dashboard.expiringSoon")} value={expiring} icon={CreditCard} warning href="/memberships" />
           </>
         )}
       </div>
@@ -156,12 +158,12 @@ function DashboardPage(): React.JSX.Element {
         {/* Upcoming Classes */}
         <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[--tx-primary]">Próximas Clases</h2>
+            <h2 className="text-lg font-semibold text-[--tx-primary]">{t("dashboard.upcomingClasses")}</h2>
             <Link
               to="/classes"
               className="text-sm text-[--gold] transition-colors hover:text-[--gold-hover]"
             >
-              Ver todas →
+              {t("common.viewAll")}
             </Link>
           </div>
           {statsLoading ? (
@@ -188,7 +190,7 @@ function DashboardPage(): React.JSX.Element {
                     <p className="text-base font-bold text-[--gold]">
                       {cls.reservations_count}/{cls.capacity}
                     </p>
-                    <p className="text-xs text-[--tx-disabled]">reservados</p>
+                    <p className="text-xs text-[--tx-disabled]">{t("dashboard.reserved")}</p>
                   </div>
                 </div>
               ))}
@@ -196,7 +198,7 @@ function DashboardPage(): React.JSX.Element {
           ) : (
             <div className="rounded-xl bg-[--bg-muted]/30 py-12 text-center">
               <Calendar className="mx-auto mb-3 h-10 w-10 text-[--tx-disabled]" />
-              <p className="text-[--tx-disabled]">No hay clases programadas</p>
+              <p className="text-[--tx-disabled]">{t("dashboard.noClasses")}</p>
             </div>
           )}
         </div>
@@ -204,12 +206,12 @@ function DashboardPage(): React.JSX.Element {
         {/* Expiring Soon List */}
         <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[--tx-primary]">Membresías por Vencer</h2>
+            <h2 className="text-lg font-semibold text-[--tx-primary]">{t("dashboard.expiringSoonList")}</h2>
             <Link
               to="/memberships"
               className="text-sm text-[--gold] transition-colors hover:text-[--gold-hover]"
             >
-              Ver todas →
+              {t("common.viewAll")}
             </Link>
           </div>
           {statsLoading ? (
@@ -248,7 +250,7 @@ function DashboardPage(): React.JSX.Element {
           ) : (
             <div className="rounded-xl bg-[--bg-muted]/30 py-12 text-center">
               <CreditCard className="mx-auto mb-3 h-10 w-10 text-[--tx-disabled]" />
-              <p className="text-[--tx-disabled]">No hay membresías por vencer</p>
+              <p className="text-[--tx-disabled]">{t("dashboard.noExpiring")}</p>
             </div>
           )}
         </div>
@@ -261,13 +263,13 @@ function DashboardPage(): React.JSX.Element {
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-[--gold]" />
-              <h2 className="text-lg font-semibold text-[--tx-primary]">Top Alumnos</h2>
+              <h2 className="text-lg font-semibold text-[--tx-primary]">{t("dashboard.topStudents")}</h2>
             </div>
             <Link
               to="/reportes"
               className="text-sm text-[--gold] transition-colors hover:text-[--gold-hover]"
             >
-              Ver reporte →
+              {t("dashboard.viewReport")}
             </Link>
           </div>
           {rankingsLoading ? (
@@ -275,7 +277,7 @@ function DashboardPage(): React.JSX.Element {
           ) : rankings.length === 0 ? (
             <div className="rounded-xl bg-[--bg-muted]/30 py-10 text-center">
               <Trophy className="mx-auto mb-3 h-10 w-10 text-[--tx-disabled]" />
-              <p className="text-sm text-[--tx-disabled]">Sin check-ins este mes</p>
+              <p className="text-sm text-[--tx-disabled]">{t("dashboard.noCheckins")}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -320,13 +322,13 @@ function DashboardPage(): React.JSX.Element {
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-[--gold]" />
-              <h2 className="text-lg font-semibold text-[--tx-primary]">Ingresos de Hoy</h2>
+              <h2 className="text-lg font-semibold text-[--tx-primary]">{t("dashboard.todayIncome")}</h2>
             </div>
             <Link
               to="/caja"
               className="text-sm text-[--gold] transition-colors hover:text-[--gold-hover]"
             >
-              Ver caja →
+              {t("dashboard.viewCaja")}
             </Link>
           </div>
           {summaryLoading ? (
@@ -341,12 +343,12 @@ function DashboardPage(): React.JSX.Element {
           ) : !todaySummary ? (
             <div className="rounded-xl bg-[--bg-muted]/30 py-10 text-center">
               <DollarSign className="mx-auto mb-3 h-10 w-10 text-[--tx-disabled]" />
-              <p className="text-sm text-[--tx-disabled]">Sin movimientos hoy</p>
+              <p className="text-sm text-[--tx-disabled]">{t("dashboard.noMovements")}</p>
             </div>
           ) : (
             <div className="space-y-3">
               <div className="rounded-xl border border-[--gold-bd] bg-[--gold-bg] px-5 py-4">
-                <p className="text-sm text-[--tx-muted]">Total del día</p>
+                <p className="text-sm text-[--tx-muted]">{t("dashboard.totalDay")}</p>
                 <p className="text-3xl font-bold text-[--gold]">
                   {formatCurrency(todaySummary.grand_total)}
                 </p>
@@ -357,9 +359,9 @@ function DashboardPage(): React.JSX.Element {
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { label: "Efectivo", value: todaySummary.total_cash },
-                  { label: "Tarjeta", value: todaySummary.total_card },
-                  { label: "Transfer.", value: todaySummary.total_transfer },
+                  { label: t("dashboard.cash"), value: todaySummary.total_cash },
+                  { label: t("dashboard.card"), value: todaySummary.total_card },
+                  { label: t("dashboard.transfer"), value: todaySummary.total_transfer },
                 ].map(({ label, value }) => (
                   <div
                     key={label}

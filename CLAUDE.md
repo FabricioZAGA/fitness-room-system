@@ -552,4 +552,4 @@ cdk deploy PortalHostingStack --profile salle-cajas
 
 ---
 
-*Actualizado: 2026-04-20 | Fase 2.5 completada — QR check-in, freeze membresía, exportar reportes, portal alumnos*
+*Actualizado: 2026-04-23 | v1.5.2 | Fase 2.5 completada — Guía detallada para AI en `.claude/CLAUDE.md`*

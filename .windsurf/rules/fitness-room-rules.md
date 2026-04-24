@@ -4,59 +4,53 @@ trigger: always_on
 
 # Fitness Room System — Windsurf AI Rules
 
+> Full project documentation: `.claude/CLAUDE.md` — READ IT for architecture, design system, and deployment details.
+
 ## Project Identity
 - **Project**: Fitness Room Management System
-- **AWS Account**: 948999370306
-- **AWS Profile**: `salle-cajas` — ALWAYS use this profile for ALL AWS commands
+- **AWS Account**: `948999370306`
+- **AWS Profile**: `salle-cajas` — ALWAYS use for ALL AWS/CDK commands
+- **AWS Region**: `us-west-2` (primary), `us-east-1` (CloudFront certs only)
 - **GitHub**: FabricioZAGA (personal — NEVER touch Realtor/work repos)
-- **Region**: us-east-1
+
+## Version Sync — CRITICAL (5 files must match)
+When bumping version, update ALL of these in a single commit:
+1. `VERSION` (root) — plain text
+2. `frontend/package.json` — `"version"` field
+3. `frontend/src/lib/changelog.ts` — `APP_VERSION` constant + new entry at TOP of `changelog[]`
+4. `backend/src/routers/health.py` — `version=` in HealthResponse
+5. `CHANGELOG.md` (root) — new section at TOP (Keep a Changelog format)
+
+## Deploy Targets (production only)
+- **Backend Lambda**: `AWS_PROFILE=salle-cajas npx aws-cdk deploy FitnessRoomApiStack-prod --require-approval never` (from `infrastructure/cdk/`)
+- **Frontend Admin**: S3 `fitness-room-frontend-prod-948999370306` → CloudFront `E1B51EPZN5PP0I` → `admin.fitnessroom.mx`
+- **Student Portal**: S3 `fitness-room-portal-prod-948999370306` → CloudFront `E1VDFNEUSV0C0D` → `portal.fitnessroom.mx`
+- **API Health**: `curl -s https://api.fitnessroom.mx/health`
+- Use `/release` workflow for the full step-by-step process
 
 ## Git Conventions
-- Branch prefix: `fzacarias/fire-XXXX/short-description`
-- Commit style: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`)
-- Never push without personal review (`git push` requires explicit user approval)
+- Branch: `fzacarias/fire-XXXX/short-description`
+- Commits: Conventional (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`)
+- **NEVER push without personal review** — `git push` requires explicit user approval
 
-## Code Quality Standards
-- **Backend**: Type hints on ALL functions; Pydantic v2 models for ALL I/O; docstrings on all public functions/classes; 100% typed
-- **Frontend**: Strict TypeScript (`strict: true`); NO `any` type allowed; explicit return types on all functions
-- **Testing**: Write tests before major features; never delete/weaken tests
-- **Linting**: Ruff (Python), ESLint + Prettier (TypeScript) — must pass before commit
+## Code Quality
+- **Python**: Type hints on ALL functions; Pydantic v2 for I/O; docstrings everywhere; `ruff` lint; `mypy` types
+- **TypeScript**: `strict: true`; NO `any`; explicit return types; `tsc --noEmit` must pass
+- **i18n**: Every user-visible string must have keys in BOTH `es.json` AND `en.json`
+- **Errors**: Use `getApiErrorMessage(error, fallback)` in frontend mutation `onError` handlers
 
-## Architecture Rules
-- ALL infrastructure is AWS CDK v2 (Python) — NO manual console changes
-- ALL API endpoints require Cognito JWT authentication (except `/health`)
-- ALL DynamoDB access goes through the repository layer — NO direct boto3 calls from services
-- ALL Lambda functions use AWS Lambda Powertools for logging, tracing, metrics
-- Secrets go in AWS Secrets Manager or Parameter Store — NEVER hardcoded
-- Environment config via `config.py` reading from environment variables
+## Architecture (MANDATORY)
+- Backend: `routers → services → repositories` — NO direct boto3 from services
+- Frontend: `routes → components → hooks → services → types` — TanStack Router + Query
+- DynamoDB: single-table, access via repository layer only
+- Auth: Cognito JWT on all endpoints except `/health`
+- Design: CSS variables (Black & Gold) — NEVER use Tailwind color utilities directly
+- CDK: one stack per domain, `FitnessRoom{Module}Stack-{env}` naming
 
-## File Structure Rules
-- Backend: follow `routers → services → repositories` layered pattern
-- Frontend: follow `routes → components → hooks → services → store` pattern
-- New modules must include: router/page, model/type, service, test file, and docs update
-- shadcn/ui components go in `frontend/src/components/ui/`
-- Business components go in `frontend/src/components/shared/`
+## Naming
+- Python: `snake_case` functions/vars, `PascalCase` classes
+- TypeScript: `camelCase` functions/vars, `PascalCase` types/components
+- DynamoDB: `SCREAMING_SNAKE#id` (e.g., `STUDENT#abc123`)
 
-## Documentation Rules
-- ALWAYS update relevant docs when adding/changing features
-- Every API endpoint must have OpenAPI docstring (FastAPI auto-generates Swagger)
-- Every new DynamoDB access pattern must be added to `docs/architecture/database-design.md`
-- README must stay current with new environment variables or commands
-
-## Development Phases — DO NOT implement future phases without explicit instruction
-- **Phase 1** (CURRENT): Students, Memberships, Reservations
-- **Phase 2**: Communication (WhatsApp/Email), Reports
-- **Phase 3**: Cash Register, Inventory
-- **Phase 4**: Rankings, Automation, Extras
-
-## Naming Conventions
-- Python: `snake_case` for variables/functions, `PascalCase` for classes
-- TypeScript: `camelCase` for variables/functions, `PascalCase` for types/interfaces/components
-- DynamoDB keys: `SCREAMING_SNAKE#id` pattern (e.g., `STUDENT#abc123`)
-- CDK stacks: `FitnessRoom{Module}Stack-{env}` (e.g., `FitnessRoomApiStack-dev`)
-
-## AWS CDK Rules
-- One stack per logical domain (auth, database, api, hosting)
-- ALL stacks receive `env_name` as a prop for multi-environment support
-- Use removal policy `RETAIN` for databases in prod, `DESTROY` in dev
-- Tag ALL resources with `Project: fitness-room`, `Environment: {env}`, `ManagedBy: cdk`
+## Phases — DO NOT implement future phases without explicit instruction
+- Phase 1 ✅ | Phase 2 ✅ | Phase 2.5 ✅ | Phase 3 🔜 | Phase 4 🔜

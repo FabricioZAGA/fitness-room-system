@@ -5,6 +5,7 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStudents, useCheckinWithAttendance } from "@/hooks/useStudents";
 import { useActiveMembership, useMembershipsForStudent } from "@/hooks/useMemberships";
 import { useReservationsForStudent } from "@/hooks/useReservations";
@@ -31,6 +32,7 @@ export const Route = createFileRoute("/checkin")({
 });
 
 function CheckinPage(): React.JSX.Element {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
@@ -56,9 +58,9 @@ function CheckinPage(): React.JSX.Element {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[--tx-primary]">Check-in</h1>
+          <h1 className="text-3xl font-bold text-[--tx-primary]">{t("checkin.title")}</h1>
           <p className="mt-1 text-[--tx-muted]">
-            Selecciona o busca al miembro, luego elige su clase
+            {t("checkin.subtitle")}
           </p>
         </div>
         <Link
@@ -66,7 +68,7 @@ function CheckinPage(): React.JSX.Element {
           className="flex items-center gap-2 rounded-xl border-2 border-[--gold-bd] bg-[--gold-bg] px-5 py-3 font-semibold text-[--gold] transition-all hover:bg-[--gold] hover:text-[--gold-fg]"
         >
           <ScanLine className="h-5 w-5" />
-          Kiosco QR
+          {t("checkin.kioskQR")}
         </Link>
       </div>
 
@@ -80,7 +82,7 @@ function CheckinPage(): React.JSX.Element {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por nombre o correo..."
+              placeholder={t("checkin.searchByCriteria")}
               autoFocus
               className="w-full rounded-xl border-2 border-[--bd-subtle] bg-[--bg-muted] py-3.5 pl-12 pr-4 text-base text-[--tx-primary] placeholder-[--tx-disabled] transition-colors focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]"
             />
@@ -99,7 +101,7 @@ function CheckinPage(): React.JSX.Element {
             <div className="max-h-[calc(100vh-260px)] overflow-y-auto">
               {filteredStudents.length === 0 ? (
                 <p className="py-12 text-center text-[--tx-disabled]">
-                  No se encontraron miembros
+                  {t("checkin.noMembersFound")}
                 </p>
               ) : (
                 filteredStudents.map((student) => (
@@ -145,7 +147,7 @@ function CheckinPage(): React.JSX.Element {
                               : "bg-[--color-danger-bg] text-[--color-danger]"
                         }`}
                       >
-                        {student.status === "active" ? "Activo" : student.status === "suspended" ? "Suspendido" : "Inactivo"}
+                        {student.status === "active" ? t("common.active") : student.status === "suspended" ? t("common.suspended") : t("common.inactive")}
                       </span>
                     </div>
                   </button>
@@ -168,7 +170,7 @@ function CheckinPage(): React.JSX.Element {
                 <User className="h-12 w-12 text-[--tx-disabled]" />
               </div>
               <p className="text-lg text-[--tx-disabled]">
-                Selecciona un miembro de la lista
+                {t("checkin.selectMemberList")}
               </p>
             </div>
           )}
@@ -181,6 +183,7 @@ function CheckinPage(): React.JSX.Element {
 // ─── Member status + class selector ──────────────────────────────────────────
 
 function MemberStatusCard({ student }: { student: Student }): React.JSX.Element {
+  const { t } = useTranslation();
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
   const { mutate: doCheckin, isPending, isSuccess } = useCheckinWithAttendance();
@@ -257,20 +260,20 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
             >
               {canEnter
                 ? isExpiringSoon
-                  ? "⚠️ Acceso Permitido"
-                  : "✅ Acceso Permitido"
-                : "❌ Acceso Denegado"}
+                  ? t("checkin.accessWarning")
+                  : t("checkin.accessGranted")
+                : t("checkin.accessDenied")}
             </p>
             <p className="text-sm text-[--tx-muted]">
               {!isActive
-                ? "El miembro está inactivo"
+                ? t("checkin.memberInactive")
                 : !hasMembership
-                  ? "No tiene membresía activa"
+                  ? t("checkin.noActiveMembership")
                   : daysUntilExpiry <= 0
-                    ? "La membresía ha expirado"
+                    ? t("checkin.membershipExpired")
                     : isExpiringSoon
-                      ? `Vence en ${daysUntilExpiry} días`
-                      : "Todo en orden"}
+                      ? t("checkin.expiresIn", { days: daysUntilExpiry })
+                      : t("checkin.allGood")}
             </p>
           </div>
         </div>
@@ -299,7 +302,7 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
         <div className="grid gap-3 sm:grid-cols-3">
           <InfoCard
             icon={CreditCard}
-            label="Membresía"
+            label={t("checkin.membership")}
             value={
               MEMBERSHIP_TYPE_LABELS[
                 membership.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS
@@ -309,14 +312,14 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
           />
           <InfoCard
             icon={Calendar}
-            label="Vence"
+            label={t("checkin.expires")}
             value={formatDate(membership.end_date)}
             color={isExpiringSoon ? "amber" : "slate"}
           />
           {classesRemaining !== null && classesRemaining !== undefined && (
             <InfoCard
               icon={Clock}
-              label="Clases restantes"
+              label={t("checkin.classesRemaining")}
               value={classesRemaining.toString()}
               color={classesRemaining <= 2 ? "amber" : "emerald"}
             />
@@ -330,19 +333,19 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
           <div className="mb-3 flex items-center gap-2">
             <CalendarCheck className="h-4 w-4 text-[--gold]" />
             <p className="text-sm font-semibold text-[--tx-primary]">
-              Selecciona la clase de hoy
+              {t("checkin.selectClass")}
             </p>
           </div>
 
           {reservationsLoading ? (
-            <p className="text-sm text-[--tx-disabled]">Cargando clases...</p>
+            <p className="text-sm text-[--tx-disabled]">{t("checkin.loadingClasses")}</p>
           ) : !hasClassToday ? (
             <div className="rounded-xl border border-[--color-warning-bd] bg-[--color-warning-bg] px-4 py-3">
               <p className="text-sm font-medium text-[--color-warning]">
-                ⚠️ Sin clases programadas hoy
+                ⚠️ {t("checkin.noClassesToday")}
               </p>
               <p className="mt-0.5 text-xs text-[--tx-muted]">
-                El alumno no tiene reservaciones para hoy. No se puede registrar check-in.
+                {t("checkin.noReservationWarning")}
               </p>
             </div>
           ) : (
@@ -379,7 +382,7 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
                               : "bg-[--color-warning-bg] text-[--color-warning]"
                           }`}
                         >
-                          {r.status === "confirmed" ? "Confirmada" : "En espera"}
+                          {r.status === "confirmed" ? t("checkin.confirmed") : t("checkin.waiting")}
                         </span>
                         {isSelected && (
                           <div
@@ -405,7 +408,7 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
       {isSuccess && (
         <div className="rounded-xl border-2 border-[--color-success-bd] bg-[--color-success-bg] p-4 text-center">
           <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-[--color-success]" />
-          <p className="font-semibold text-[--color-success]">✓ Check-in registrado</p>
+          <p className="font-semibold text-[--color-success]">{t("checkin.checkinRegistered")}</p>
           <p className="text-xs text-[--tx-muted]">
             {selectedClassId && classMap[selectedClassId]
               ? `${classMap[selectedClassId].type} · ${classMap[selectedClassId].time}`
@@ -426,14 +429,14 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
               color: canCheckin ? "var(--gold-fg)" : "var(--tx-disabled)",
             }}
           >
-            {isPending ? "Registrando..." : "✓ Registrar Check-in"}
+            {isPending ? t("checkin.registering") : t("checkin.registerCheckin")}
           </button>
           <Link
             to="/students/$studentId"
             params={{ studentId: student.student_id }}
             className="rounded-xl border-2 border-[--bd-subtle] py-4 text-center text-base font-semibold text-[--tx-primary] transition-colors hover:border-[--bd-default] hover:bg-[--bg-muted]"
           >
-            Ver Perfil Completo
+            {t("checkin.viewProfile")}
           </Link>
         </div>
       )}

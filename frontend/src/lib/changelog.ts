@@ -12,9 +12,21 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.5.0";
+export const APP_VERSION = "1.5.2";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.5.2",
+    date: "2026-04-23",
+    title: "Internacionalización completa y mejoras",
+    items: [
+      { icon: "🌍", text: "i18n completo — todas las pantallas traducidas ES/EN con react-i18next" },
+      { icon: "🔒", text: "Validación de unicidad — no se pueden duplicar emails/teléfonos entre alumnos e instructores" },
+      { icon: "🎨", text: "Sidebar rediseñado con traducciones dinámicas y secciones organizadas" },
+      { icon: "✅", text: "Badges de estado visual para usuarios Cognito (confirmado, pendiente, etc.)" },
+      { icon: "📋", text: "Configuración AI — archivos de reglas para Windsurf, Claude y cualquier asistente AI" },
+    ],
+  },
   {
     version: "1.5.0",
     date: "2026-04-23",
