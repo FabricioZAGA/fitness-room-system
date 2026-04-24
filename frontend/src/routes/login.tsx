@@ -6,7 +6,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth, type AuthStep } from "@/contexts/AuthContext";
-import { Dumbbell, Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, KeyRound, ShieldCheck, User } from "lucide-react";
+import { Dumbbell, Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, KeyRound, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/login")({
@@ -82,8 +82,6 @@ function LoginPage(): React.JSX.Element {
   const [password, setPassword] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
-  const [givenName, setGivenName] = useState("");
-  const [familyName, setFamilyName] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
@@ -105,8 +103,6 @@ function LoginPage(): React.JSX.Element {
     setSuccessMsg(null);
     setNewPw("");
     setConfirmPw("");
-    setGivenName("");
-    setFamilyName("");
     setResetCode("");
     setShowNewPw(false);
   }
@@ -127,13 +123,12 @@ function LoginPage(): React.JSX.Element {
 
   async function handleNewPassword(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    if (!givenName.trim() || !familyName.trim()) { setError("Ingresa tu nombre y apellido"); return; }
     if (newPw !== confirmPw) { setError(t("login.passwordMismatch")); return; }
     if (newPw.length < 8) { setError("La contraseña debe tener al menos 8 caracteres"); return; }
     setError(null);
     setIsLoading(true);
     try {
-      await completeNewPassword(newPw, givenName.trim(), familyName.trim());
+      await completeNewPassword(newPw);
       navigate({ to: "/" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al cambiar contraseña");
@@ -331,28 +326,6 @@ function LoginPage(): React.JSX.Element {
           {/* ── NEW PASSWORD REQUIRED ── */}
           {step === "newPasswordRequired" && (
             <form onSubmit={handleNewPassword} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="givenName" className="mb-2 block text-sm font-medium text-[--tx-primary]">{t("login.firstName")}</label>
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                      <User className="h-5 w-5 text-[--tx-disabled]" />
-                    </div>
-                    <input id="givenName" type="text" value={givenName} onChange={(e) => setGivenName(e.target.value)}
-                      placeholder={t("login.firstName")} required className={inputClass} />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="familyName" className="mb-2 block text-sm font-medium text-[--tx-primary]">{t("login.lastName")}</label>
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                      <User className="h-5 w-5 text-[--tx-disabled]" />
-                    </div>
-                    <input id="familyName" type="text" value={familyName} onChange={(e) => setFamilyName(e.target.value)}
-                      placeholder={t("login.lastName")} required className={inputClass} />
-                  </div>
-                </div>
-              </div>
               <div>
                 <label htmlFor="newPw" className="mb-2 block text-sm font-medium text-[--tx-primary]">{t("login.newPassword")}</label>
                 <PasswordInput id="newPw" value={newPw} onChange={setNewPw}
@@ -369,7 +342,7 @@ function LoginPage(): React.JSX.Element {
               <div className="rounded-xl p-4" style={{ background: "var(--gold-bg)" }}>
                 <p className="text-xs text-[--tx-muted]">{t("login.passwordRequirements")}</p>
               </div>
-              <GoldButton type="submit" disabled={isLoading || !givenName.trim() || !familyName.trim() || newPw.length < 8 || newPw !== confirmPw}>
+              <GoldButton type="submit" disabled={isLoading || newPw.length < 8 || newPw !== confirmPw}>
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin" /> {t("login.changing")}

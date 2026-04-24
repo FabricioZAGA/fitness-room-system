@@ -44,7 +44,7 @@ interface AuthContextType {
   isAdmin: boolean;
   authStep: AuthStep;
   login: (email: string, password: string) => Promise<void>;
-  completeNewPassword: (newPassword: string, givenName: string, familyName: string) => Promise<void>;
+  completeNewPassword: (newPassword: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   confirmForgotPassword: (email: string, code: string, newPassword: string) => Promise<void>;
   resetAuthStep: () => void;
@@ -130,20 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
     await checkUser();
   };
 
-  const completeNewPassword = async (
-    newPassword: string,
-    givenName: string,
-    familyName: string,
-  ): Promise<void> => {
-    await confirmSignIn({
-      challengeResponse: newPassword,
-      options: {
-        userAttributes: {
-          given_name: givenName,
-          family_name: familyName,
-        },
-      },
-    });
+  const completeNewPassword = async (newPassword: string): Promise<void> => {
+    await confirmSignIn({ challengeResponse: newPassword });
 
     const session = await fetchAuthSession();
     const groups = (session.tokens?.accessToken?.payload?.["cognito:groups"] as string[]) ?? [];
