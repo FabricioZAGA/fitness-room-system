@@ -26,6 +26,7 @@ from typing import Any
 
 import boto3
 from aws_lambda_powertools import Logger
+from botocore.exceptions import ClientError
 
 from src.config import get_settings
 from src.models.notification import (
@@ -59,6 +60,23 @@ from src.services.email_templates import (
 )
 
 logger = Logger()
+
+
+class SuppressedRecipientError(Exception):
+    """Raised when attempting to send to a recipient on the SES suppression list.
+
+    SES silently drops messages to suppressed addresses (a 200 OK is returned
+    but the message is never delivered). Detecting this pre-send lets us log a
+    real FAILED status and surface the problem to admins.
+    """
+
+    def __init__(self, recipient: str, reason: str):
+        self.recipient = recipient
+        self.reason = reason
+        super().__init__(
+            f"Recipient {recipient} is on the SES suppression list (reason: {reason}). "
+            f"Remove via `aws sesv2 delete-suppressed-destination` and resend."
+        )
 
 MEMBERSHIP_TYPE_LABELS: dict[str, str] = {
     "monthly": "Mensual",
@@ -111,6 +129,9 @@ class EventNotifier:
         self._notif_repo = notification_repo or NotificationRepository()
         self._instructor_repo = instructor_repo or InstructorRepository()
         self._ses = boto3.client("ses", region_name=self._settings.aws_region)
+        # sesv2 is needed to query the account-level suppression list before sending;
+        # classic SES `SendEmail` silently drops suppressed addresses.
+        self._sesv2 = boto3.client("sesv2", region_name=self._settings.aws_region)
         self._sns = boto3.client("sns", region_name=self._settings.aws_region)
         self._gym = self._settings.ses_sender_name
 
@@ -474,8 +495,12 @@ class EventNotifier:
         student_email: str,
         password: str,
         portal_url: str = "https://portal.fitnessroom.mx",
-    ) -> None:
-        """Send portal access credentials to a newly registered student."""
+    ) -> dict[str, str]:
+        """Send portal access credentials to a newly registered user.
+
+        Returns a delivery status dict so callers can surface failures to the UI:
+            {"status": "sent" | "suppressed" | "failed", "detail": str}
+        """
         html = portal_credentials_html(
             student_name=student_name,
             email=student_email,
@@ -487,15 +512,63 @@ class EventNotifier:
             f"{self._gym}: Tu acceso al portal de alumnos — "
             f"Entra a {portal_url} con {student_email} / {password}"
         )
-        self._dispatch(
+        subject = f"🔐 Acceso al Portal de Alumnos — {self._gym}"
+
+        if self._settings.is_local:
+            self._dispatch(
+                notification_type=NotificationType.CUSTOM,
+                subject=subject,
+                html_body=html,
+                sms_body=sms,
+                recipient_email=student_email,
+                recipient_role="student",
+                student_name=student_name,
+            )
+            return {"status": "sent", "detail": "local — logged only"}
+
+        try:
+            self._send_email(student_email, subject, html)
+        except SuppressedRecipientError as exc:
+            logger.warning(
+                "Credentials email not delivered — recipient suppressed",
+                recipient=student_email,
+                reason=exc.reason,
+            )
+            self._log(
+                notification_type=NotificationType.CUSTOM,
+                channel=NotificationChannel.EMAIL,
+                status=NotificationStatus.FAILED,
+                subject=subject,
+                recipient_email=student_email,
+                recipient_role="student",
+                student_name=student_name,
+                error_message=f"suppressed: {exc.reason}",
+            )
+            return {"status": "suppressed", "detail": exc.reason}
+        except Exception as exc:
+            logger.exception("Credentials email failed", recipient=student_email)
+            self._log(
+                notification_type=NotificationType.CUSTOM,
+                channel=NotificationChannel.EMAIL,
+                status=NotificationStatus.FAILED,
+                subject=subject,
+                recipient_email=student_email,
+                recipient_role="student",
+                student_name=student_name,
+                error_message=str(exc),
+            )
+            return {"status": "failed", "detail": str(exc)}
+
+        self._log(
             notification_type=NotificationType.CUSTOM,
-            subject=f"🔐 Acceso al Portal de Alumnos — {self._gym}",
-            html_body=html,
-            sms_body=sms,
+            channel=NotificationChannel.EMAIL,
+            status=NotificationStatus.SENT,
+            subject=subject,
             recipient_email=student_email,
             recipient_role="student",
             student_name=student_name,
         )
+        return {"status": "sent", "detail": ""}
 
     # ──────────────────────────────────────────────────────────────────────────
     # Instructor events
@@ -833,11 +906,33 @@ class EventNotifier:
                     error_message=str(exc),
                 )
 
+    def _check_not_suppressed(self, recipient: str) -> None:
+        """Raise SuppressedRecipientError if the address is on SES's suppression list.
+
+        SES ``SendEmail`` returns 200 OK for suppressed addresses but never
+        delivers — checking first makes failures observable.
+        """
+        try:
+            resp = self._sesv2.get_suppressed_destination(EmailAddress=recipient)
+        except ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") == "NotFoundException":
+                return
+            # Never block a real send on a suppression-lookup error; just warn.
+            logger.warning(
+                "Suppression check failed; proceeding with send",
+                recipient=recipient,
+                error=str(exc),
+            )
+            return
+        reason = resp.get("SuppressedDestination", {}).get("Reason", "UNKNOWN")
+        raise SuppressedRecipientError(recipient, reason)
+
     def _send_email(self, recipient: str, subject: str, html_body: str) -> None:
         """Send email via SES (skipped in local mode)."""
         if self._settings.is_local:
             logger.info("LOCAL — skip SES", recipient=recipient, subject=subject)
             return
+        self._check_not_suppressed(recipient)
         self._ses.send_email(
             Source=f"{self._settings.ses_sender_name} <{self._settings.ses_sender_email}>",
             Destination={"ToAddresses": [recipient]},
@@ -867,6 +962,7 @@ class EventNotifier:
                 attachment_size=len(attachment_bytes),
             )
             return
+        self._check_not_suppressed(recipient)
 
         msg = MIMEMultipart("mixed")
         msg["Subject"] = subject

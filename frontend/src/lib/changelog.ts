@@ -12,9 +12,22 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.5.5";
+export const APP_VERSION = "1.5.6";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.5.6",
+    date: "2026-04-24",
+    title: "Entrega de correos, reinvitación y rendimiento",
+    items: [
+      { icon: "📧", text: "Detección pre-envío de direcciones en lista de supresión de SES: ya no se pierden correos silenciosamente" },
+      { icon: "🔁", text: "Botón \"Reenviar invitación\" en gestión de usuarios — regenera contraseña temporal y reenvía el correo" },
+      { icon: "🔔", text: "Toast con estado de entrega al crear usuario (enviado, suprimido o fallido)" },
+      { icon: "🛡️", text: "Rate limiting en API Gateway (20 rps sostenido, 50 burst) — protege contra abuso" },
+      { icon: "⚡", text: "Bundle principal del admin reducido 69% (1.6MB → 521kB) con lazy-loading por ruta y exports diferidos" },
+      { icon: "🔧", text: "postcss actualizado a 8.5.10 (CVE XSS parcheado) en admin y portal" },
+    ],
+  },
   {
     version: "1.5.5",
     date: "2026-04-24",

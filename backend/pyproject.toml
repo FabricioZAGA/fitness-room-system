@@ -1,6 +1,6 @@
 [project]
 name = "fitness-room-backend"
-version = "1.5.5"
+version = "1.5.6"
 description = "Fitness Room System — Serverless FastAPI Backend"
 readme = "README.md"
 requires-python = ">=3.12"

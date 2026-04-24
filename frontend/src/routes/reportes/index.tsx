@@ -23,14 +23,9 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import type { IncomeDay } from "@/types/report";
 import { useGymStore } from "@/store/useGymStore";
 import { useSendCustomNotification } from "@/hooks/useNotifications";
-import {
-  exportIncomeExcel,
-  exportIncomePDF,
-  exportRankingsExcel,
-  exportRankingsPDF,
-  exportInactiveExcel,
-  exportInactivePDF,
-} from "@/lib/exportReports";
+// exportReports is loaded lazily so xlsx/jspdf/html2canvas stay out of the main chunk
+const loadExportReports = (): Promise<typeof import("@/lib/exportReports")> =>
+  import("@/lib/exportReports");
 
 export const Route = createFileRoute("/reportes/")({
   component: ReportesPage,
@@ -190,14 +185,20 @@ function ReportesPage(): React.JSX.Element {
             {income && (
               <div className="ml-auto flex gap-2">
                 <button
-                  onClick={() => exportIncomeExcel(income, `${startDate} al ${endDate}`, gymName)}
+                  onClick={async () => {
+                    const m = await loadExportReports();
+                    m.exportIncomeExcel(income, `${startDate} al ${endDate}`, gymName);
+                  }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   Excel
                 </button>
                 <button
-                  onClick={() => exportIncomePDF(income, `${startDate} al ${endDate}`, gymName)}
+                  onClick={async () => {
+                    const m = await loadExportReports();
+                    m.exportIncomePDF(income, `${startDate} al ${endDate}`, gymName);
+                  }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
                 >
                   <FileText className="h-4 w-4" />
@@ -332,14 +333,20 @@ function ReportesPage(): React.JSX.Element {
             {rankings.length > 0 && (
               <div className="ml-auto flex gap-2">
                 <button
-                  onClick={() => exportRankingsExcel(rankings, rankingDays, gymName)}
+                  onClick={async () => {
+                    const m = await loadExportReports();
+                    m.exportRankingsExcel(rankings, rankingDays, gymName);
+                  }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   Excel
                 </button>
                 <button
-                  onClick={() => exportRankingsPDF(rankings, rankingDays, gymName)}
+                  onClick={async () => {
+                    const m = await loadExportReports();
+                    m.exportRankingsPDF(rankings, rankingDays, gymName);
+                  }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
                 >
                   <FileText className="h-4 w-4" />
@@ -423,14 +430,20 @@ function ReportesPage(): React.JSX.Element {
             {inactive.length > 0 && (
               <div className="ml-auto flex gap-2">
                 <button
-                  onClick={() => exportInactiveExcel(inactive, inactiveDays, gymName)}
+                  onClick={async () => {
+                    const m = await loadExportReports();
+                    m.exportInactiveExcel(inactive, inactiveDays, gymName);
+                  }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   Excel
                 </button>
                 <button
-                  onClick={() => exportInactivePDF(inactive, inactiveDays, gymName)}
+                  onClick={async () => {
+                    const m = await loadExportReports();
+                    m.exportInactivePDF(inactive, inactiveDays, gymName);
+                  }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
                 >
                   <FileText className="h-4 w-4" />

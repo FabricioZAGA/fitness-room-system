@@ -28,9 +28,27 @@ export function useCreateUser(): UseMutationResult<CognitoUser, unknown, CreateU
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateUserRequest) => userService.create(data),
-    onSuccess: () => {
+    onSuccess: (user) => {
       qc.invalidateQueries({ queryKey: [USERS_KEY] });
-      toast.success("Usuario creado exitosamente");
+      const status = user.email_delivery_status;
+      if (status === "sent") {
+        toast.success(`Usuario creado — correo enviado a ${user.email}`);
+      } else if (status === "suppressed") {
+        toast.warning(
+          `Usuario creado pero el correo no se pudo entregar: la dirección ${user.email} ` +
+            `está en la lista de supresión de SES por un rebote previo. ` +
+            `Verifica la dirección o usa "Reenviar invitación" tras corregirla.`,
+          { duration: 12000 },
+        );
+      } else if (status === "failed") {
+        toast.warning(
+          `Usuario creado pero el correo falló: ${user.email_delivery_detail ?? "error desconocido"}. ` +
+            `Usa el botón "Reenviar invitación" para reintentar.`,
+          { duration: 12000 },
+        );
+      } else {
+        toast.success("Usuario creado exitosamente");
+      }
     },
     onError: (err: unknown) => {
       toast.error(getApiErrorMessage(err, "Error al crear usuario"));
@@ -90,6 +108,34 @@ export function useDeleteUser(): UseMutationResult<void, Error, string> {
     },
     onError: (err) => {
       toast.error(`Error: ${err.message}`);
+    },
+  });
+}
+
+export function useResendInvite(): UseMutationResult<CognitoUser, unknown, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (username: string) => userService.resendInvite(username),
+    onSuccess: (user) => {
+      qc.invalidateQueries({ queryKey: [USERS_KEY] });
+      const status = user.email_delivery_status;
+      if (status === "sent") {
+        toast.success(`Nueva contraseña enviada a ${user.email}`);
+      } else if (status === "suppressed") {
+        toast.error(
+          `El correo de ${user.email} está en la lista de supresión de SES (rebote previo). ` +
+            `Verifica que la dirección sea correcta o contacta al usuario por otro medio.`,
+          { duration: 10000 },
+        );
+      } else {
+        toast.error(
+          `Usuario reinvitado pero el correo falló: ${user.email_delivery_detail ?? "error desconocido"}`,
+          { duration: 10000 },
+        );
+      }
+    },
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Error al reenviar invitación"));
     },
   });
 }

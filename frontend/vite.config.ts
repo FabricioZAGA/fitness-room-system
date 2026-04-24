@@ -12,8 +12,9 @@ const appVersion = fs.existsSync(versionFile)
 
 export default defineConfig({
   plugins: [
+    // Router plugin must come before @vitejs/plugin-react when autoCodeSplitting is enabled
+    TanStackRouterVite({ autoCodeSplitting: true }),
     react(),
-    TanStackRouterVite(),
     tailwindcss(),
   ],
   define: {
@@ -41,7 +42,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ["react", "react-dom"],
+          // Keep heavy shared libs in dedicated chunks so they cache independently
+          // from app code that changes more often.
           router: ["@tanstack/react-router"],
           query: ["@tanstack/react-query"],
         },

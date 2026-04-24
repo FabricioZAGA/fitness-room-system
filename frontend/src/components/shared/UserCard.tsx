@@ -15,6 +15,8 @@ import {
   HelpCircle,
   RefreshCw,
   Link2,
+  Send,
+  Loader2,
 } from "lucide-react";
 import type { CognitoUser } from "@/services/userService";
 import { USER_GROUP_LABELS, USER_GROUP_COLORS, type UserGroup } from "@/lib/userGroups";
@@ -103,6 +105,8 @@ interface UserCardProps {
   onDisable: () => void;
   onEnable: () => void;
   onDelete: () => void;
+  onResend?: () => void;
+  resending?: boolean;
 }
 
 const GROUP_ICONS: Record<UserGroup, typeof Shield> = {
@@ -117,6 +121,8 @@ export function UserCard({
   onDisable,
   onEnable,
   onDelete,
+  onResend,
+  resending,
 }: UserCardProps): React.JSX.Element {
   const isDisabled = !user.enabled;
   const primaryGroup = (user.groups[0] ?? "student") as UserGroup;
@@ -166,6 +172,20 @@ export function UserCard({
 
       {/* Actions */}
       <div className="flex items-center gap-1">
+        {onResend && !isDisabled && (
+          <button
+            onClick={onResend}
+            disabled={resending}
+            title="Reenviar invitación (resetea contraseña temporal)"
+            className="rounded-lg p-2 text-[--gold] hover:bg-[--gold-bg] transition-colors disabled:opacity-50"
+          >
+            {resending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </button>
+        )}
         {isDisabled ? (
           <button
             onClick={onEnable}

@@ -18,6 +18,7 @@ import {
   useDisableUser,
   useEnableUser,
   useDeleteUser,
+  useResendInvite,
 } from "@/hooks/useUsers";
 import {
   USER_GROUP_FILTER_OPTIONS,
@@ -44,7 +45,7 @@ function UsersPage(): React.JSX.Element {
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState<GroupFilterValue>("all");
   const [confirmAction, setConfirmAction] = useState<{
-    type: "disable" | "delete";
+    type: "disable" | "delete" | "resend";
     user: CognitoUser;
   } | null>(null);
 
@@ -52,6 +53,8 @@ function UsersPage(): React.JSX.Element {
   const { mutate: disableUser } = useDisableUser();
   const { mutate: enableUser } = useEnableUser();
   const { mutate: deleteUser } = useDeleteUser();
+  const { mutate: resendInvite, isPending: isResending, variables: resendingFor } =
+    useResendInvite();
 
   const filtered = (users ?? []).filter((u) => {
     const q = search.toLowerCase();
@@ -118,6 +121,8 @@ function UsersPage(): React.JSX.Element {
               onDisable={() => setConfirmAction({ type: "disable", user })}
               onEnable={() => enableUser(user.username)}
               onDelete={() => setConfirmAction({ type: "delete", user })}
+              onResend={() => setConfirmAction({ type: "resend", user })}
+              resending={isResending && resendingFor === user.username}
             />
           ))}
         </div>
@@ -151,6 +156,24 @@ function UsersPage(): React.JSX.Element {
         description={t("users.deleteDesc", { name: confirmUserName })}
         confirmLabel={t("common.delete")}
         variant="danger"
+      />
+
+      {/* Confirm resend invite */}
+      <ConfirmDialog
+        open={confirmAction?.type === "resend"}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={() => {
+          if (confirmAction?.user) resendInvite(confirmAction.user.username);
+          setConfirmAction(null);
+        }}
+        title="Reenviar invitación"
+        description={
+          `Se generará una nueva contraseña temporal para ${confirmUserName} ` +
+          `y se enviará al correo ${confirmAction?.user.email}. ` +
+          `La contraseña anterior dejará de funcionar inmediatamente.`
+        }
+        confirmLabel="Reenviar"
+        variant="warning"
       />
     </PageWrapper>
   );

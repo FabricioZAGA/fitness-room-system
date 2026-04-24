@@ -10,6 +10,9 @@ export interface CognitoUser {
   enabled: boolean;
   groups: string[];
   created_at: string;
+  /** Present only on create / resend-invite. "sent" | "suppressed" | "failed". */
+  email_delivery_status?: string | null;
+  email_delivery_detail?: string | null;
 }
 
 export interface CreateUserRequest {
@@ -57,5 +60,12 @@ export const userService = {
 
   async delete(username: string): Promise<void> {
     await apiClient.delete(`/users/${encodeURIComponent(username)}`);
+  },
+
+  async resendInvite(username: string): Promise<CognitoUser> {
+    const response = await apiClient.post<CognitoUser>(
+      `/users/${encodeURIComponent(username)}/resend-invite`,
+    );
+    return response.data;
   },
 };

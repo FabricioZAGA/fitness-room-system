@@ -112,6 +112,22 @@ class ApiStack(cdk.Stack):
                 ],
             )
         )
+        # SES — suppression list management (account-level actions).
+        # Needed so the API can pre-check for suppressed recipients and surface
+        # real delivery failures to admins instead of silently dropping messages.
+        lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="AllowSESSuppressionList",
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "ses:GetSuppressedDestination",
+                    "ses:ListSuppressedDestinations",
+                    "ses:PutSuppressedDestination",
+                    "ses:DeleteSuppressedDestination",
+                ],
+                resources=["*"],
+            )
+        )
 
         # SNS — allow the Lambda to send SMS (scoped to region)
         lambda_role.add_to_policy(
@@ -253,6 +269,25 @@ class ApiStack(cdk.Stack):
             methods=[apigwv2.HttpMethod.GET],
             integration=lambda_integration,
         )
+
+        # ── Throttling on the auto-created $default stage ─────────────────────
+        # Without this, the API has no protection against DoS/abuse. Limits are
+        # conservative: 20 req/sec sustained (~1.7M/day) with 50 burst headroom
+        # for normal UI bursts (dashboard load fires ~8 parallel queries).
+        # Raise if real traffic requires more.
+        #
+        # ApiGatewayManagedOverrides only works for quick-create APIs, so we
+        # instead add a CFN property override on the L2-auto-created stage's
+        # underlying CfnStage.
+        if self.http_api.default_stage is not None:
+            cfn_stage = self.http_api.default_stage.node.default_child
+            cfn_stage.add_property_override(  # type: ignore[attr-defined]
+                "DefaultRouteSettings",
+                {
+                    "ThrottlingBurstLimit": 50,
+                    "ThrottlingRateLimit": 20,
+                },
+            )
 
         for method in [
             apigwv2.HttpMethod.GET,

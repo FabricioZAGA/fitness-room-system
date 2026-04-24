@@ -5,6 +5,27 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.5.6] — 2026-04-24
+
+### Added
+- Pre-send SES suppression-list check en `EventNotifier._check_not_suppressed` — destinatarios suprimidos ahora lanzan `SuppressedRecipientError` en vez de descartarse silenciosamente
+- `POST /api/v1/users/{username}/resend-invite` — regenera la contraseña temporal y reenvía el correo de credenciales sin recrear al usuario
+- Campos `email_delivery_status` / `email_delivery_detail` en `CognitoUserResponse` — la UI distingue entregado vs suprimido vs fallido
+- Botón "Reenviar invitación" en la página admin `/users` con diálogo de confirmación
+- Rate limiting en el stage `$default` de API Gateway (20 rps sostenido, 50 rps burst) vía `CfnApiGatewayManagedOverrides`
+- IAM: el rol de ejecución Lambda ahora tiene `ses:{Get,List,Put,Delete}SuppressedDestination` para consultar/gestionar la lista de supresión
+
+### Changed
+- Bundle principal del admin reducido 69% (1,661 kB → 521 kB; gzip 506 kB → 158 kB) con `autoCodeSplitting: true` en TanStack Router + imports dinámicos de `exportReports` (xlsx/jspdf/html2canvas) y `jsqr` del kiosco
+- `notify_portal_credentials` ahora devuelve un dict con el estado de entrega para que el caller lo exponga en la UI
+- Deps portal: `axios` → 1.15.2, `postcss` → 8.5.10 (parchea CVE GHSA-qx2v-qp2m-jg93)
+- Deps admin: `postcss` forzado a ≥8.5.10 vía `pnpm.overrides`
+
+### Fixed
+- Los fallos silenciosos de entrega de SES ahora se loggean en DynamoDB con estado `FAILED` y se muestran al admin como toast, en vez de aparentar envío exitoso
+
+---
+
 ## [1.5.5] — 2026-04-24
 
 ### Fixed

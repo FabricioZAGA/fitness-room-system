@@ -45,6 +45,10 @@ class CognitoUserResponse(BaseModel):
     enabled: bool
     groups: list[str]
     created_at: str
+    # Delivery status of the welcome/credentials email, set only on create / resend.
+    # One of: "sent", "suppressed", "failed", or None when not applicable.
+    email_delivery_status: str | None = None
+    email_delivery_detail: str | None = None
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -102,20 +106,74 @@ def create_user(
     full_name = f"{data.first_name.strip()} {data.last_name.strip()}"
     password = svc.create_user(email=data.email, name=full_name, group=data.group)
 
-    # Send credentials email
+    # Send credentials email and capture delivery status for the UI.
+    delivery: dict[str, str] = {"status": "failed", "detail": "unknown"}
     try:
         portal_url = settings.portal_url if data.group != "admin" else settings.frontend_url
-        EventNotifier().notify_portal_credentials(
+        delivery = EventNotifier().notify_portal_credentials(
             student_name=full_name,
             student_email=data.email,
             password=password,
             portal_url=portal_url,
         )
-    except Exception:
+    except Exception as exc:  # defensive — notifier already catches internal errors
         logger.exception("Failed to send credentials email", extra={"email": data.email})
+        delivery = {"status": "failed", "detail": str(exc)}
 
     user = svc.get_user(data.email)
-    return CognitoUserResponse(**user)
+    return CognitoUserResponse(
+        **user,
+        email_delivery_status=delivery.get("status"),
+        email_delivery_detail=delivery.get("detail") or None,
+    )
+
+
+@router.post(
+    "/{username}/resend-invite",
+    response_model=CognitoUserResponse,
+    summary="Resend Invite",
+    description=(
+        "Reset the user's temporary password and resend the credentials email. "
+        "Use when the original welcome email bounced, was suppressed, or expired."
+    ),
+    dependencies=[Depends(require_admin_only())],
+)
+def resend_invite(
+    username: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+) -> CognitoUserResponse:
+    """Reset temp password and resend the welcome email."""
+    svc = CognitoService()
+    settings = get_settings()
+
+    user = svc.get_user(username)  # 404 handled by boto if missing
+    groups = user.get("groups", [])
+    group = groups[0] if groups else "student"
+
+    # Generate a fresh password and set it (non-permanent → user must change on login).
+    password = svc.generate_password()
+    svc._cognito.admin_set_user_password(  # noqa: SLF001 — intentional, same service boundary
+        UserPoolId=svc._pool_id,
+        Username=username,
+        Password=password,
+        Permanent=False,
+    )
+    logger.info("Reset temporary password for resend-invite", extra={"username": username})
+
+    portal_url = settings.portal_url if group != "admin" else settings.frontend_url
+    delivery = EventNotifier().notify_portal_credentials(
+        student_name=user.get("name") or username,
+        student_email=user.get("email") or username,
+        password=password,
+        portal_url=portal_url,
+    )
+
+    fresh = svc.get_user(username)
+    return CognitoUserResponse(
+        **fresh,
+        email_delivery_status=delivery.get("status"),
+        email_delivery_detail=delivery.get("detail") or None,
+    )
 
 
 @router.get(
