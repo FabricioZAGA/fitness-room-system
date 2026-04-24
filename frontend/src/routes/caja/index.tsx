@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import {
   Banknote,
   CreditCard,
@@ -47,6 +48,7 @@ interface ProductSaleForm {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function CajaPage(): React.JSX.Element {
+  const { t } = useTranslation();
   const today = new Date().toISOString().split("T")[0];
   const [showRegister, setShowRegister] = useState(false);
   const [showCutConfirm, setShowCutConfirm] = useState(false);
@@ -123,8 +125,8 @@ function CajaPage(): React.JSX.Element {
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[--tx-primary]">Caja</h1>
-          <p className="mt-1 text-[--tx-muted]">Registro de pagos y corte de caja</p>
+          <h1 className="text-3xl font-bold text-[--tx-primary]">{t("nav.caja")}</h1>
+          <p className="mt-1 text-[--tx-muted]">{t("caja.subtitle")}</p>
         </div>
         <div className="flex gap-3">
           <button
@@ -132,7 +134,7 @@ function CajaPage(): React.JSX.Element {
             className="flex items-center gap-2 rounded-xl border border-[--bd-default] bg-[--bg-surface] px-4 py-2.5 text-sm font-semibold text-[--tx-primary] transition-all hover:border-[--gold-bd]"
           >
             <Plus className="h-4 w-4" />
-            Registrar Pago
+            {t("caja.registerPayment")}
           </button>
           <button
             onClick={() => setShowCutConfirm(true)}
@@ -143,23 +145,23 @@ function CajaPage(): React.JSX.Element {
             }}
           >
             <Receipt className="h-4 w-4" />
-            Corte de Caja
+            {t("caja.cashCut")}
           </button>
         </div>
       </div>
 
       {/* Today's summary cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard icon={DollarSign} label="Total del Día" value={formatCurrency(summary?.grand_total ?? 0)} accent />
-        <SummaryCard icon={Banknote} label="Efectivo" value={formatCurrency(summary?.total_cash ?? 0)} />
-        <SummaryCard icon={CreditCard} label="Tarjeta" value={formatCurrency(summary?.total_card ?? 0)} />
-        <SummaryCard icon={ArrowRightLeft} label="Transferencia" value={formatCurrency(summary?.total_transfer ?? 0)} />
+        <SummaryCard icon={DollarSign} label={t("caja.totalDay")} value={formatCurrency(summary?.grand_total ?? 0)} accent />
+        <SummaryCard icon={Banknote} label={t("dashboard.cash")} value={formatCurrency(summary?.total_cash ?? 0)} />
+        <SummaryCard icon={CreditCard} label={t("dashboard.card")} value={formatCurrency(summary?.total_card ?? 0)} />
+        <SummaryCard icon={ArrowRightLeft} label={t("caja.transfer")} value={formatCurrency(summary?.total_transfer ?? 0)} />
       </div>
 
       {/* By type breakdown */}
       {summary?.by_type && Object.keys(summary.by_type).length > 0 && (
         <div className="mb-8 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
-          <h2 className="mb-4 text-lg font-semibold text-[--tx-primary]">Por Categoría</h2>
+          <h2 className="mb-4 text-lg font-semibold text-[--tx-primary]">{t("caja.byCategory")}</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {Object.entries(summary.by_type).map(([type, amount]) => (
               <div key={type} className="flex items-center justify-between rounded-xl bg-[--bg-muted] px-4 py-3">
@@ -179,11 +181,11 @@ function CajaPage(): React.JSX.Element {
       <div className="mb-8 rounded-2xl border border-[--bd-default] bg-[--bg-surface]">
         <div className="flex items-center justify-between border-b border-[--bd-default] px-6 py-4">
           <h2 className="text-lg font-semibold text-[--tx-primary]">
-            Movimientos de Hoy ({todayTransactions.length})
+            {t("caja.todayMovements", { count: todayTransactions.length })}
           </h2>
         </div>
         {todayTransactions.length === 0 ? (
-          <p className="px-6 py-10 text-center text-[--tx-muted]">No hay pagos registrados hoy</p>
+          <p className="px-6 py-10 text-center text-[--tx-muted]">{t("caja.noPayments")}</p>
         ) : (
           <div className="divide-y divide-[--bd-default]">
             {todayTransactions.map((tx) => (
@@ -211,7 +213,7 @@ function CajaPage(): React.JSX.Element {
       {cashCuts.length > 0 && (
         <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface]">
           <div className="border-b border-[--bd-default] px-6 py-4">
-            <h2 className="text-lg font-semibold text-[--tx-primary]">Cortes Recientes</h2>
+            <h2 className="text-lg font-semibold text-[--tx-primary]">{t("caja.recentCuts")}</h2>
           </div>
           <div className="divide-y divide-[--bd-default]">
             {cashCuts.slice(0, 5).map((cut) => (
@@ -220,9 +222,9 @@ function CajaPage(): React.JSX.Element {
                   <Receipt className="h-5 w-5 text-[--gold]" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-[--tx-primary]">Corte del {formatDate(cut.cut_date)}</p>
+                  <p className="text-sm font-medium text-[--tx-primary]">{t("caja.cutOf")} {formatDate(cut.cut_date)}</p>
                   <p className="text-xs text-[--tx-muted]">
-                    {cut.transaction_count} movimiento{cut.transaction_count !== 1 ? "s" : ""}
+                    {t("caja.movements", { count: cut.transaction_count })}
                   </p>
                 </div>
                 <span className="font-semibold text-[--tx-primary]">{formatCurrency(cut.grand_total)}</span>
@@ -239,7 +241,7 @@ function CajaPage(): React.JSX.Element {
             className="w-full max-w-md rounded-2xl border border-[--gold-bd] p-6 shadow-2xl"
             style={{ backgroundColor: "var(--bg-elevated)" }}
           >
-            <h2 className="mb-4 text-xl font-bold text-[--tx-primary]">Registrar Pago</h2>
+            <h2 className="mb-4 text-xl font-bold text-[--tx-primary]">{t("caja.registerPayment")}</h2>
 
             {/* Type selector tabs */}
             <div className="mb-5 flex rounded-xl border border-[--bd-default] bg-[--bg-muted] p-1">
@@ -280,7 +282,7 @@ function CajaPage(): React.JSX.Element {
               <div className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                    Monto (MXN) *
+                    {t("caja.amount")} *
                   </label>
                   <input
                     type="number"
@@ -294,7 +296,7 @@ function CajaPage(): React.JSX.Element {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                    Método de pago *
+                    {t("caja.paymentMethod")} *
                   </label>
                   <select
                     className={selectCls}
@@ -308,11 +310,11 @@ function CajaPage(): React.JSX.Element {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                    Notas (opcional)
+                    {t("caja.notesOptional")}
                   </label>
                   <input
                     className={inputCls}
-                    placeholder="Descripción del pago..."
+                    placeholder={t("caja.paymentNotesPlaceholder")}
                     value={form.notes ?? ""}
                     onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   />
@@ -330,7 +332,7 @@ function CajaPage(): React.JSX.Element {
                 }}
                 className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] transition-all hover:bg-[--bg-muted]"
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 onClick={() =>
@@ -350,10 +352,10 @@ function CajaPage(): React.JSX.Element {
                 }}
               >
                 {(registerType === "product" ? sellMutation.isPending : recordMutation.isPending)
-                  ? "Guardando..."
+                  ? t("common.saving")
                   : registerType === "product"
-                    ? `Vender ${formatCurrency(productTotal)}`
-                    : "Registrar"}
+                    ? `${t("caja.sell")} ${formatCurrency(productTotal)}`
+                    : t("caja.register")}
               </button>
             </div>
           </div>
@@ -370,22 +372,21 @@ function CajaPage(): React.JSX.Element {
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[--gold-bg]">
               <Receipt className="h-7 w-7 text-[--gold]" />
             </div>
-            <h2 className="mb-2 text-xl font-bold text-[--tx-primary]">Corte de Caja</h2>
+            <h2 className="mb-2 text-xl font-bold text-[--tx-primary]">{t("caja.cashCut")}</h2>
             <p className="mb-4 text-sm text-[--tx-muted]">
-              Se generará un resumen de todos los movimientos del día de hoy ({formatDate(today)}).
-              Total acumulado:{" "}
+              {t("caja.cutDesc", { date: formatDate(today) })}{" "}
               <span className="font-semibold text-[--tx-primary]">
                 {formatCurrency(summary?.grand_total ?? 0)}
               </span>
             </p>
             <div className="mb-6">
               <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                Notas del corte (opcional)
+                {t("caja.cutNotes")}
               </label>
               <textarea
                 rows={2}
                 className={inputCls}
-                placeholder="Observaciones del cierre..."
+                placeholder={t("caja.cutNotesPlaceholder")}
                 value={cutNotes}
                 onChange={(e) => setCutNotes(e.target.value)}
               />
@@ -395,7 +396,7 @@ function CajaPage(): React.JSX.Element {
                 onClick={() => setShowCutConfirm(false)}
                 className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] transition-all hover:bg-[--bg-muted]"
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 onClick={() => void handleCashCut()}
@@ -406,7 +407,7 @@ function CajaPage(): React.JSX.Element {
                   color: "var(--gold-fg)",
                 }}
               >
-                {cutMutation.isPending ? "Generando..." : "Confirmar Corte"}
+                {cutMutation.isPending ? t("caja.generating") : t("caja.confirmCut")}
               </button>
             </div>
           </div>
@@ -431,19 +432,20 @@ function ProductSaleFields({
   total: number;
   onChange: (patch: Partial<ProductSaleForm>) => void;
 }): React.JSX.Element {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       {/* Product selector */}
       <div>
         <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-          Producto *
+          {t("caja.product")} *
         </label>
         <select
           className={selectCls}
           value={form.product_id}
           onChange={(e) => onChange({ product_id: e.target.value })}
         >
-          <option value="">— Selecciona un producto —</option>
+          <option value="">{t("caja.selectProduct")}</option>
           {products.map((p) => (
             <option key={p.product_id} value={p.product_id} disabled={p.stock === 0}>
               {p.name} — {formatCurrency(p.price)} ({p.stock} en stock)
@@ -458,14 +460,14 @@ function ProductSaleFields({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-[--tx-primary]">{selectedProduct.name}</p>
-              <p className="text-xs text-[--tx-muted]">Stock disponible: {selectedProduct.stock}</p>
+              <p className="text-xs text-[--tx-muted]">{t("caja.availableStock", { count: selectedProduct.stock })}</p>
             </div>
             <p className="text-base font-bold text-[--gold]">{formatCurrency(selectedProduct.price)} / ud</p>
           </div>
           {selectedProduct.stock <= selectedProduct.low_stock_threshold && (
             <div className="mt-2 flex items-center gap-1.5 text-xs text-[--color-warning]">
               <AlertTriangle className="h-3.5 w-3.5" />
-              Stock bajo — quedan {selectedProduct.stock} unidades
+              {t("caja.lowStockWarning", { count: selectedProduct.stock })}
             </div>
           )}
         </div>
@@ -475,7 +477,7 @@ function ProductSaleFields({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-            Cantidad *
+            {t("caja.quantity")} *
           </label>
           <input
             type="number"
@@ -488,7 +490,7 @@ function ProductSaleFields({
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-            Total
+            {t("caja.total")}
           </label>
           <div className="flex items-center rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3">
             <span className="text-sm font-bold text-[--gold]">{formatCurrency(total)}</span>
@@ -499,7 +501,7 @@ function ProductSaleFields({
       {/* Payment method */}
       <div>
         <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-          Método de pago *
+          {t("caja.paymentMethod")} *
         </label>
         <select
           className={selectCls}

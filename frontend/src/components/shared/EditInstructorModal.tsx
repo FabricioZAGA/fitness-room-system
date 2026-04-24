@@ -1,6 +1,7 @@
 /** Modal form for editing an existing instructor. */
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { PhoneInput } from "./PhoneInput";
@@ -23,6 +24,7 @@ export function EditInstructorModal({
   onClose,
   instructor,
 }: EditInstructorModalProps): React.JSX.Element {
+  const { t } = useTranslation();
   const [form, setForm] = useState<UpdateInstructorRequest>({
     first_name: instructor.first_name,
     last_name: instructor.last_name,
@@ -89,12 +91,12 @@ export function EditInstructorModal({
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title="Editar instructor">
+    <Dialog open={open} onClose={onClose} title={t("instructors.editTitle")}>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[--tx-primary]">
-              Nombre
+              {t("common.name")}
             </label>
             <input
               name="first_name"
@@ -106,7 +108,7 @@ export function EditInstructorModal({
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[--tx-primary]">
-              Apellido
+              {t("common.lastName")}
             </label>
             <input
               name="last_name"
@@ -120,7 +122,7 @@ export function EditInstructorModal({
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-[--tx-primary]">
-            Correo electrónico
+            {t("common.email")}
           </label>
           <input
             name="email"
@@ -130,18 +132,18 @@ export function EditInstructorModal({
             required
             className={`w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none ${emailError ? "border-red-500 focus:border-red-500" : ""}`}
           />
-          {emailError && <p className="mt-1 text-xs text-red-400">{emailError}</p>}
+          {emailError && <p className="mt-1 text-xs text-red-400">{t("common.invalidEmail")}</p>}
         </div>
 
         <PhoneInput
-          label="Teléfono"
+          label={t("common.phone")}
           value={form.phone ?? ""}
           onChange={(e164) => setForm((prev) => ({ ...prev, phone: e164 }))}
         />
 
         <div>
           <label className="mb-2 block text-sm font-medium text-[--tx-primary]">
-            Especialidades
+            {t("instructors.specialties")}
           </label>
           <div className="flex flex-wrap gap-2">
             {SPECIALTIES.map((s) => {
@@ -177,7 +179,7 @@ export function EditInstructorModal({
               value={customSpecialty}
               onChange={(e) => setCustomSpecialty(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomSpecialty(); } }}
-              placeholder="Agregar especialidad..."
+              placeholder={t("instructors.addSpecialty")}
               className={`${inputCls} flex-1`}
             />
             <button
@@ -193,7 +195,7 @@ export function EditInstructorModal({
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-[--tx-primary]">
-            Biografía <span className="text-[--tx-disabled]">(opcional)</span>
+            {t("instructors.bio")}
           </label>
           <textarea
             name="bio"
@@ -210,7 +212,7 @@ export function EditInstructorModal({
             onClick={onClose}
             className="rounded-xl border border-[--bd-subtle] px-5 py-2.5 text-sm font-medium text-[--tx-muted] hover:text-[--tx-primary] transition-colors"
           >
-            Cancelar
+            {t("common.cancel")}
           </button>
           <button
             type="submit"
@@ -223,7 +225,7 @@ export function EditInstructorModal({
             onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
           >
-            {isPending ? "Guardando…" : "Guardar cambios"}
+            {isPending ? t("common.saving") : t("instructors.saveChanges")}
           </button>
         </div>
       </form>

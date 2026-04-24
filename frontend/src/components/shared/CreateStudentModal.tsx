@@ -1,6 +1,7 @@
 /** Modal form for creating a new student. */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Camera, User } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { CameraCapture } from "./CameraCapture";
@@ -54,6 +55,7 @@ export function CreateStudentModal({
   open,
   onClose,
 }: CreateStudentModalProps): React.JSX.Element {
+  const { t } = useTranslation();
   const [form, setForm] = useState<FormState>({ ...INITIAL, address: { ...EMPTY_ADDRESS } });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -110,8 +112,8 @@ export function CreateStudentModal({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Nuevo Alumno"
-      description="Registra un nuevo alumno en el sistema"
+      title={t("students.newStudentTitle")}
+      description={t("students.newStudentDesc")}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Profile Photo */}
@@ -138,7 +140,7 @@ export function CreateStudentModal({
                 className="flex items-center gap-2 rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-3 py-2 text-xs font-medium text-[--tx-muted] transition-all hover:border-[--gold] hover:text-[--gold]"
               >
                 <Camera className="h-3.5 w-3.5" />
-                {photoPreview ? "Cambiar foto" : "Tomar foto"}
+                {photoPreview ? t("students.changePhoto") : t("students.takePhoto")}
               </button>
               {photoPreview && (
                 <button
@@ -146,7 +148,7 @@ export function CreateStudentModal({
                   onClick={() => setPhotoPreview(null)}
                   className="text-xs text-[--tx-disabled] hover:text-[--color-danger] transition-colors"
                 >
-                  Quitar foto
+                  {t("students.removePhoto")}
                 </button>
               )}
             </div>
@@ -154,7 +156,7 @@ export function CreateStudentModal({
         )}
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Nombre *">
+          <Field label={t("students.firstName")}>
             <input
               name="first_name"
               value={form.first_name}
@@ -164,7 +166,7 @@ export function CreateStudentModal({
               className={inputCls}
             />
           </Field>
-          <Field label="Apellido *">
+          <Field label={t("students.lastName")}>
             <input
               name="last_name"
               value={form.last_name}
@@ -176,7 +178,7 @@ export function CreateStudentModal({
           </Field>
         </div>
 
-        <Field label="Correo electrónico *">
+        <Field label={`${t("common.email")} *`}>
           <input
             name="email"
             type="email"
@@ -186,18 +188,18 @@ export function CreateStudentModal({
             placeholder="ana@ejemplo.com"
             className={`${inputCls} ${emailError ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" : ""}`}
           />
-          {emailError && <p className="mt-1 text-xs text-red-400">{emailError}</p>}
+          {emailError && <p className="mt-1 text-xs text-red-400">{t("common.invalidEmail")}</p>}
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <PhoneInput
-            label="Teléfono"
+            label={t("common.phone")}
             value={form.phone_e164}
             onChange={(e164) => {
               setForm((prev) => ({ ...prev, phone_e164: e164 }));
             }}
           />
-          <Field label="Estado">
+          <Field label={t("common.status")}>
             <select
               name="status"
               value={form.status}
@@ -213,7 +215,7 @@ export function CreateStudentModal({
           </Field>
         </div>
 
-        <Field label="Fecha de nacimiento">
+        <Field label={t("common.birthDate")}>
           <input
             name="birth_date"
             type="date"
@@ -225,7 +227,7 @@ export function CreateStudentModal({
 
         {/* Structured address */}
         <div className="border-t border-[--bd-default] pt-3 mt-1">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">Domicilio</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">{t("students.domicilio")}</p>
           <AddressInput
             value={form.address}
             onChange={(addr) => setForm((prev) => ({ ...prev, address: addr }))}
@@ -234,9 +236,9 @@ export function CreateStudentModal({
 
         {/* Emergency contact */}
         <div className="border-t border-[--bd-default] pt-3 mt-1">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">Contacto de emergencia</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">{t("students.emergencyContactSection")}</p>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Nombre">
+            <Field label={t("common.name")}>
               <input
                 name="ec_name"
                 value={form.ec_name}
@@ -245,7 +247,7 @@ export function CreateStudentModal({
                 className={inputCls}
               />
             </Field>
-            <Field label="Parentesco">
+            <Field label={t("students.ecRelationship")}>
               <input
                 name="ec_relationship"
                 value={form.ec_relationship}
@@ -257,7 +259,7 @@ export function CreateStudentModal({
           </div>
           <div className="mt-3">
             <PhoneInput
-              label="Teléfono de emergencia"
+              label={t("students.ecPhone")}
               value={form.ec_phone_e164}
               onChange={(e164) => {
                 setForm((prev) => ({ ...prev, ec_phone_e164: e164 }));
@@ -266,7 +268,7 @@ export function CreateStudentModal({
           </div>
         </div>
 
-        <Field label="Notas">
+        <Field label={t("common.notes")}>
           <textarea
             name="notes"
             value={form.notes ?? ""}
@@ -283,7 +285,7 @@ export function CreateStudentModal({
             onClick={onClose}
             className="rounded-xl border border-[--bd-default] px-5 py-2.5 text-sm font-medium text-[--tx-muted] transition-colors hover:border-[--bd-subtle] hover:text-[--tx-primary]"
           >
-            Cancelar
+            {t("common.cancel")}
           </button>
           <button
             type="submit"
@@ -294,7 +296,7 @@ export function CreateStudentModal({
               color: "var(--gold-fg)",
             }}
           >
-            {isPending ? "Guardando..." : "Registrar Alumno"}
+            {isPending ? t("common.saving") : t("students.registerStudent")}
           </button>
         </div>
       </form>

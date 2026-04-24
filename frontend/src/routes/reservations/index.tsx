@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { CalendarCheck, Plus, UserPlus, Users, XCircle, CheckCircle2, Clock } from "lucide-react";
 import { useClasses } from "@/hooks/useClasses";
 import { useStudents } from "@/hooks/useStudents";
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/reservations/")({
 type DateFilter = "today" | "week" | "all";
 
 function ReservationsPage(): React.JSX.Element {
+  const { t } = useTranslation();
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");
@@ -59,9 +61,9 @@ function ReservationsPage(): React.JSX.Element {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[--tx-primary]">Reservaciones</h1>
+          <h1 className="text-3xl font-bold text-[--tx-primary]">{t("reservations.title")}</h1>
           <p className="mt-1 text-lg text-[--tx-muted]">
-            Gestiona las reservaciones de cada clase
+            {t("reservations.manageDesc")}
           </p>
         </div>
       </div>
@@ -89,7 +91,7 @@ function ReservationsPage(): React.JSX.Element {
                   : undefined
               }
             >
-              {f === "today" ? "Hoy" : f === "week" ? "Esta semana" : "Todas"}
+              {f === "today" ? t("reservations.filterToday") : f === "week" ? t("reservations.filterWeek") : t("reservations.filterAll")}
             </button>
           ))}
           {dateFilter === "today" && (
@@ -107,7 +109,7 @@ function ReservationsPage(): React.JSX.Element {
         ) : classes.length === 0 ? (
           <div className="rounded-xl bg-[--bg-muted]/30 py-6 text-center">
             <p className="text-[--tx-disabled]">
-              {dateFilter === "today" ? "No hay clases hoy" : dateFilter === "week" ? "No hay clases esta semana" : "No hay clases registradas"}
+              {dateFilter === "today" ? t("reservations.noClassesToday") : dateFilter === "week" ? t("reservations.noClassesWeek") : t("reservations.noClassesAll")}
             </p>
           </div>
         ) : (
@@ -132,7 +134,7 @@ function ReservationsPage(): React.JSX.Element {
         <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] py-20 text-center">
           <CalendarCheck className="mx-auto mb-4 h-16 w-16 text-[--tx-disabled]" />
           <p className="text-xl text-[--tx-muted]">
-            Selecciona una clase para ver y gestionar sus reservaciones
+            {t("reservations.selectClassPrompt")}
           </p>
         </div>
       ) : resLoading ? (
@@ -146,17 +148,17 @@ function ReservationsPage(): React.JSX.Element {
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-5">
               <div className="flex flex-wrap gap-6">
                 <div>
-                  <p className="text-xs text-[--tx-disabled]">Capacidad</p>
+                  <p className="text-xs text-[--tx-disabled]">{t("reservations.capacity")}</p>
                   <p className="text-2xl font-bold text-[--tx-primary]">{selectedClass.capacity}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[--tx-disabled]">Reservadas</p>
+                  <p className="text-xs text-[--tx-disabled]">{t("reservations.reservedCount")}</p>
                   <p className="text-2xl font-bold text-[--color-success]">
                     {selectedClass.reservations_count}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-[--tx-disabled]">Disponibles</p>
+                  <p className="text-xs text-[--tx-disabled]">{t("reservations.available")}</p>
                   <p
                     className={`text-2xl font-bold ${
                       selectedClass.available_spots === 0
@@ -180,7 +182,7 @@ function ReservationsPage(): React.JSX.Element {
                 onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
               >
                 <UserPlus className="h-5 w-5" />
-                Añadir Miembro
+                {t("reservations.addMember")}
               </button>
             </div>
           )}
@@ -189,7 +191,7 @@ function ReservationsPage(): React.JSX.Element {
             <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] py-16 text-center">
               <Users className="mx-auto mb-4 h-12 w-12 text-[--tx-disabled]" />
               <p className="text-lg text-[--tx-muted]">
-                No hay reservaciones para esta clase
+                {t("reservations.noReservations")}
               </p>
               <button
                 onClick={() => setModalOpen(true)}
@@ -200,7 +202,7 @@ function ReservationsPage(): React.JSX.Element {
                 }}
               >
                 <Plus className="h-5 w-5" />
-                Añadir primer miembro
+                {t("reservations.addFirst")}
               </button>
             </div>
           ) : (

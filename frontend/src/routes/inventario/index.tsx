@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import {
   Package,
   Plus,
@@ -37,6 +38,7 @@ const selectCls =
   "w-full rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]";
 
 function InventarioPage(): React.JSX.Element {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("");
   const [showCreate, setShowCreate] = useState(false);
@@ -109,8 +111,8 @@ function InventarioPage(): React.JSX.Element {
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[--tx-primary]">Inventario</h1>
-          <p className="mt-1 text-[--tx-muted]">Productos y ventas del Studio</p>
+          <h1 className="text-3xl font-bold text-[--tx-primary]">{t("inventario.title")}</h1>
+          <p className="mt-1 text-[--tx-muted]">{t("inventario.subtitle")}</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
@@ -121,7 +123,7 @@ function InventarioPage(): React.JSX.Element {
           }}
         >
           <Plus className="h-4 w-4" />
-          Nuevo Producto
+          {t("inventario.newProduct")}
         </button>
       </div>
 
@@ -131,7 +133,7 @@ function InventarioPage(): React.JSX.Element {
           <AlertTriangle className="h-5 w-5 shrink-0 text-[--color-warning] mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-[--color-warning]">
-              {lowStock.length} producto{lowStock.length !== 1 ? "s" : ""} con stock bajo
+              {t("inventario.lowStockAlert", { count: lowStock.length })}
             </p>
             <p className="text-sm text-[--tx-muted]">
               {lowStock.map((p) => p.name).join(", ")}
@@ -146,7 +148,7 @@ function InventarioPage(): React.JSX.Element {
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[--tx-disabled]" />
           <input
             className="w-full rounded-xl border border-[--bd-default] bg-[--bg-surface] py-3 pl-11 pr-4 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]"
-            placeholder="Buscar producto..."
+            placeholder={t("inventario.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -156,7 +158,7 @@ function InventarioPage(): React.JSX.Element {
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
         >
-          <option value="">Todas las categorías</option>
+          <option value="">{t("inventario.allCategories")}</option>
           {Object.entries(PRODUCT_CATEGORY_LABELS).map(([val, label]) => (
             <option key={val} value={val}>
               {label}
@@ -167,10 +169,10 @@ function InventarioPage(): React.JSX.Element {
 
       {/* Stats */}
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Productos Activos" value={products.filter((p) => p.is_active).length} />
-        <StatCard label="Con Stock Bajo" value={lowStock.length} warning={lowStock.length > 0} />
+        <StatCard label={t("inventario.activeProducts")} value={products.filter((p) => p.is_active).length} />
+        <StatCard label={t("inventario.lowStock")} value={lowStock.length} warning={lowStock.length > 0} />
         <StatCard
-          label="Sin Stock"
+          label={t("inventario.outOfStock")}
           value={products.filter((p) => p.stock === 0 && p.is_active).length}
         />
       </div>
@@ -179,16 +181,16 @@ function InventarioPage(): React.JSX.Element {
       <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface]">
         <div className="border-b border-[--bd-default] px-6 py-4">
           <h2 className="text-lg font-semibold text-[--tx-primary]">
-            Productos ({filtered.length})
+            {t("inventario.productsCount", { count: filtered.length })}
           </h2>
         </div>
 
         {isLoading ? (
-          <p className="px-6 py-10 text-center text-[--tx-muted]">Cargando...</p>
+          <p className="px-6 py-10 text-center text-[--tx-muted]">{t("common.loading")}</p>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
             <Package className="h-12 w-12 text-[--tx-disabled]" />
-            <p className="text-[--tx-muted]">No hay productos registrados</p>
+            <p className="text-[--tx-muted]">{t("inventario.noProducts")}</p>
             <button
               onClick={() => setShowCreate(true)}
               className="mt-2 rounded-xl px-5 py-2.5 text-sm font-semibold"
@@ -197,7 +199,7 @@ function InventarioPage(): React.JSX.Element {
                 color: "var(--gold-fg)",
               }}
             >
-              Agregar primer producto
+              {t("inventario.addFirst")}
             </button>
           </div>
         ) : (
@@ -219,11 +221,11 @@ function InventarioPage(): React.JSX.Element {
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
-            <h2 className="mb-6 text-xl font-bold text-[--tx-primary]">Nuevo Producto</h2>
+            <h2 className="mb-6 text-xl font-bold text-[--tx-primary]">{t("inventario.newProductTitle")}</h2>
             <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                  Nombre *
+                  {t("inventario.productName")} *
                 </label>
                 <input
                   className={inputCls}
@@ -235,7 +237,7 @@ function InventarioPage(): React.JSX.Element {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                    Precio (MXN) *
+                    {t("inventario.price")} *
                   </label>
                   <input
                     type="number"
@@ -251,7 +253,7 @@ function InventarioPage(): React.JSX.Element {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                    Stock inicial
+                    {t("inventario.initialStock")}
                   </label>
                   <input
                     type="number"
@@ -267,7 +269,7 @@ function InventarioPage(): React.JSX.Element {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                    Categoría
+                    {t("inventario.category")}
                   </label>
                   <select
                     className={selectCls}
@@ -288,7 +290,7 @@ function InventarioPage(): React.JSX.Element {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                    Alerta stock bajo
+                    {t("inventario.lowStockThreshold")}
                   </label>
                   <input
                     type="number"
@@ -306,7 +308,7 @@ function InventarioPage(): React.JSX.Element {
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                  Código / SKU (opcional)
+                  {t("inventario.sku")}
                 </label>
                 <input
                   className={inputCls}
@@ -321,7 +323,7 @@ function InventarioPage(): React.JSX.Element {
                 onClick={() => setShowCreate(false)}
                 className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] hover:bg-[--bg-muted]"
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 onClick={() => void handleCreate()}
@@ -332,7 +334,7 @@ function InventarioPage(): React.JSX.Element {
                   color: "var(--gold-fg)",
                 }}
               >
-                {createMutation.isPending ? "Guardando..." : "Crear Producto"}
+                {createMutation.isPending ? t("common.saving") : t("inventario.createProduct")}
               </button>
             </div>
           </div>
@@ -343,12 +345,12 @@ function InventarioPage(): React.JSX.Element {
       {sellProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
-            <h2 className="mb-1 text-xl font-bold text-[--tx-primary]">Vender</h2>
+            <h2 className="mb-1 text-xl font-bold text-[--tx-primary]">{t("inventario.sellTitle")}</h2>
             <p className="mb-6 text-[--tx-muted]">{sellProduct.name}</p>
             <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                  Cantidad (disponible: {sellProduct.stock})
+                  {t("inventario.quantityAvailable", { count: sellProduct.stock })}
                 </label>
                 <input
                   type="number"
@@ -363,7 +365,7 @@ function InventarioPage(): React.JSX.Element {
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                  Método de pago *
+                  {t("inventario.paymentMethod")} *
                 </label>
                 <select
                   className={selectCls}
@@ -380,7 +382,7 @@ function InventarioPage(): React.JSX.Element {
                 </select>
               </div>
               <div className="rounded-xl bg-[--gold-bg] px-4 py-3">
-                <p className="text-sm text-[--tx-muted]">Total a cobrar</p>
+                <p className="text-sm text-[--tx-muted]">{t("inventario.totalToCharge")}</p>
                 <p className="text-xl font-bold text-[--gold]">
                   {formatCurrency(sellProduct.price * (sellForm.quantity ?? 1))}
                 </p>
@@ -391,7 +393,7 @@ function InventarioPage(): React.JSX.Element {
                 onClick={() => setSellProduct(null)}
                 className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] hover:bg-[--bg-muted]"
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 onClick={() => void handleSell()}
@@ -402,7 +404,7 @@ function InventarioPage(): React.JSX.Element {
                   color: "var(--gold-fg)",
                 }}
               >
-                {sellMutation.isPending ? "Procesando..." : "Confirmar Venta"}
+                {sellMutation.isPending ? t("inventario.processing") : t("inventario.confirmSale")}
               </button>
             </div>
           </div>
@@ -413,13 +415,13 @@ function InventarioPage(): React.JSX.Element {
       {restockProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
-            <h2 className="mb-1 text-xl font-bold text-[--tx-primary]">Reabastecer</h2>
+            <h2 className="mb-1 text-xl font-bold text-[--tx-primary]">{t("inventario.restockTitle")}</h2>
             <p className="mb-6 text-[--tx-muted]">
-              {restockProduct.name} — Stock actual: {restockProduct.stock}
+              {restockProduct.name} — {t("inventario.currentStock", { count: restockProduct.stock })}
             </p>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                Unidades a agregar
+                {t("inventario.addUnits")}
               </label>
               <input
                 type="number"
@@ -434,7 +436,7 @@ function InventarioPage(): React.JSX.Element {
                 onClick={() => setRestockProduct(null)}
                 className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] hover:bg-[--bg-muted]"
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 onClick={() => void handleRestock()}
@@ -445,7 +447,7 @@ function InventarioPage(): React.JSX.Element {
                   color: "var(--gold-fg)",
                 }}
               >
-                {restockMutation.isPending ? "Guardando..." : "Agregar Stock"}
+                {restockMutation.isPending ? t("common.saving") : t("inventario.addStock")}
               </button>
             </div>
           </div>
@@ -466,6 +468,7 @@ function ProductRow({
   onRestock: () => void;
   onToggleActive: () => void;
 }): React.JSX.Element {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-4 px-6 py-4">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[--gold-bg]">
@@ -476,12 +479,12 @@ function ProductRow({
           <p className="truncate text-sm font-medium text-[--tx-primary]">{product.name}</p>
           {product.is_low_stock && product.is_active && (
             <span className="rounded-full bg-[--color-warning-bg] px-2 py-0.5 text-xs font-medium text-[--color-warning]">
-              Stock bajo
+              {t("inventario.stockBadge")}
             </span>
           )}
           {!product.is_active && (
             <span className="rounded-full bg-[--bg-muted] px-2 py-0.5 text-xs text-[--tx-disabled]">
-              Inactivo
+              {t("common.inactive")}
             </span>
           )}
         </div>
@@ -500,7 +503,7 @@ function ProductRow({
             className="flex items-center gap-1 rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-muted] hover:border-[--gold-bd] hover:text-[--gold] transition-colors"
           >
             <ShoppingCart className="h-3.5 w-3.5" />
-            Vender
+            {t("inventario.sellButton")}
           </button>
         )}
         <button
@@ -508,13 +511,13 @@ function ProductRow({
           className="flex items-center gap-1 rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-muted] hover:border-[--gold-bd] hover:text-[--gold] transition-colors"
         >
           <ArrowUpCircle className="h-3.5 w-3.5" />
-          Reabastecer
+          {t("inventario.restockButton")}
         </button>
         <button
           onClick={onToggleActive}
           className="rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-disabled] hover:text-[--tx-muted] transition-colors"
         >
-          {product.is_active ? "Desact." : "Activar"}
+          {product.is_active ? t("inventario.deactivate") : t("inventario.activate")}
         </button>
       </div>
     </div>

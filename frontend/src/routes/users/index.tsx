@@ -2,7 +2,9 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2, Plus, Shield } from "lucide-react";
+
 import { PageWrapper } from "@/components/shared/PageWrapper";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SearchInput } from "@/components/shared/SearchInput";
@@ -37,6 +39,7 @@ const FILTER_OPTIONS = USER_GROUP_FILTER_OPTIONS.map((o) => ({
 }));
 
 function UsersPage(): React.JSX.Element {
+  const { t } = useTranslation();
   const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState<GroupFilterValue>("all");
@@ -70,16 +73,19 @@ function UsersPage(): React.JSX.Element {
   );
 
   const subtitle = [
-    `${users?.length ?? 0} usuarios`,
+    t("users.total", { count: users?.length ?? 0 }),
     ...USER_GROUPS.map((g) => `${counts[g]} ${USER_GROUP_LABELS[g].toLowerCase()}`),
   ].join(" · ");
+
+  const confirmUserName =
+    confirmAction?.user.name || confirmAction?.user.email || "";
 
   return (
     <PageWrapper>
       <PageHeader
-        title="Gestión de Usuarios"
+        title={t("users.title")}
         subtitle={subtitle}
-        action={{ label: "Nuevo Usuario", icon: Plus, onClick: () => setCreateOpen(true) }}
+        action={{ label: t("users.newUser"), icon: Plus, onClick: () => setCreateOpen(true) }}
       />
 
       {/* Filters */}
@@ -87,7 +93,7 @@ function UsersPage(): React.JSX.Element {
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Buscar por nombre o email..."
+          placeholder={t("users.searchPlaceholder")}
         />
         <FilterTabs<GroupFilterValue>
           options={FILTER_OPTIONS}
@@ -102,7 +108,7 @@ function UsersPage(): React.JSX.Element {
           <Loader2 className="h-8 w-8 animate-spin text-[--gold]" />
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState icon={Shield} message="No se encontraron usuarios" />
+        <EmptyState icon={Shield} message={t("users.noUsersFound")} />
       ) : (
         <div className="grid gap-3">
           {filtered.map((user) => (
@@ -127,9 +133,9 @@ function UsersPage(): React.JSX.Element {
           if (confirmAction?.user) disableUser(confirmAction.user.username);
           setConfirmAction(null);
         }}
-        title="Deshabilitar usuario"
-        description={`¿Deseas deshabilitar a ${confirmAction?.user.name || confirmAction?.user.email}? No podrá iniciar sesión.`}
-        confirmLabel="Deshabilitar"
+        title={t("users.disableTitle")}
+        description={t("users.disableDesc", { name: confirmUserName })}
+        confirmLabel={t("users.disable")}
         variant="warning"
       />
 
@@ -141,9 +147,9 @@ function UsersPage(): React.JSX.Element {
           if (confirmAction?.user) deleteUser(confirmAction.user.username);
           setConfirmAction(null);
         }}
-        title="Eliminar usuario"
-        description={`¿ELIMINAR PERMANENTEMENTE a ${confirmAction?.user.name || confirmAction?.user.email}? Esta acción no se puede deshacer.`}
-        confirmLabel="Eliminar"
+        title={t("users.deleteTitle")}
+        description={t("users.deleteDesc", { name: confirmUserName })}
+        confirmLabel={t("common.delete")}
         variant="danger"
       />
     </PageWrapper>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import {
   BarChart3,
   TrendingUp,
@@ -107,6 +108,7 @@ function DayPill({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function ReportesPage(): React.JSX.Element {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("income");
   const today = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -137,20 +139,18 @@ function ReportesPage(): React.JSX.Element {
     useInactiveStudents(inactiveDays);
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "income", label: "Ingresos", icon: DollarSign },
-    { id: "attendance", label: "Asistencia", icon: BarChart3 },
-    { id: "rankings", label: "Rankings", icon: Trophy },
-    { id: "inactive", label: "Inactivos", icon: UserX },
+    { id: "income", label: t("reportes.income"), icon: DollarSign },
+    { id: "attendance", label: t("reportes.attendance"), icon: BarChart3 },
+    { id: "rankings", label: t("reportes.rankings"), icon: Trophy },
+    { id: "inactive", label: t("reportes.inactive"), icon: UserX },
   ];
 
   return (
     <div className="min-h-screen bg-[--bg-base] p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[--tx-primary]">Reportes</h1>
-        <p className="mt-1 text-[--tx-muted]">
-          Análisis de ingresos, asistencia y comportamiento de alumnos
-        </p>
+        <h1 className="text-3xl font-bold text-[--tx-primary]">{t("reportes.title")}</h1>
+        <p className="mt-1 text-[--tx-muted]">{t("reportes.subtitle")}</p>
       </div>
 
       {/* Main tabs */}
@@ -170,7 +170,7 @@ function ReportesPage(): React.JSX.Element {
           <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
             <div className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-[--tx-muted]" />
-              <span className="text-sm text-[--tx-muted]">Período:</span>
+              <span className="text-sm text-[--tx-muted]">{t("reportes.period")}</span>
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -208,21 +208,21 @@ function ReportesPage(): React.JSX.Element {
           </div>
 
           {incomeLoading ? (
-            <p className="text-center text-[--tx-muted]">Calculando...</p>
+            <p className="text-center text-[--tx-muted]">{t("reportes.calculating")}</p>
           ) : income ? (
             <>
               {/* Totals */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <IncomeCard label="Total del Período" value={formatCurrency(income.grand_total)} accent />
-                <IncomeCard label="Efectivo" value={formatCurrency(income.total_cash)} />
-                <IncomeCard label="Tarjeta" value={formatCurrency(income.total_card)} />
-                <IncomeCard label="Transferencia" value={formatCurrency(income.total_transfer)} />
+                <IncomeCard label={t("reportes.totalPeriod")} value={formatCurrency(income.grand_total)} accent />
+                <IncomeCard label={t("dashboard.cash")} value={formatCurrency(income.total_cash)} />
+                <IncomeCard label={t("dashboard.card")} value={formatCurrency(income.total_card)} />
+                <IncomeCard label={t("caja.transfer")} value={formatCurrency(income.total_transfer)} />
               </div>
 
               {/* By type */}
               {Object.keys(income.by_type).length > 0 && (
                 <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
-                  <h3 className="mb-4 text-base font-semibold text-[--tx-primary]">Por Categoría</h3>
+                  <h3 className="mb-4 text-base font-semibold text-[--tx-primary]">{t("reportes.byCategory")}</h3>
                   <div className="space-y-3">
                     {Object.entries(income.by_type)
                       .sort(([, a], [, b]) => (b as number) - (a as number))
@@ -259,7 +259,7 @@ function ReportesPage(): React.JSX.Element {
               {/* Daily breakdown */}
               <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface]">
                 <div className="border-b border-[--bd-default] px-6 py-4">
-                  <h3 className="text-base font-semibold text-[--tx-primary]">Detalle por Día</h3>
+                  <h3 className="text-base font-semibold text-[--tx-primary]">{t("reportes.dailyDetail")}</h3>
                 </div>
                 <div className="divide-y divide-[--bd-default]">
                   {income.days
@@ -278,7 +278,7 @@ function ReportesPage(): React.JSX.Element {
                     ))}
                   {income.days.filter((d) => d.count > 0).length === 0 && (
                     <p className="px-6 py-8 text-center text-sm text-[--tx-muted]">
-                      Sin movimientos en el período seleccionado
+                      {t("reportes.noMovements")}
                     </p>
                   )}
                 </div>
@@ -292,7 +292,7 @@ function ReportesPage(): React.JSX.Element {
       {tab === "attendance" && (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
-            <span className="text-sm text-[--tx-muted]">Últimos</span>
+            <span className="text-sm text-[--tx-muted]">{t("reportes.last")}</span>
             {[7, 14, 30, 90].map((d) => (
               <DayPill
                 key={d}
@@ -304,13 +304,13 @@ function ReportesPage(): React.JSX.Element {
           </div>
 
           {attendanceLoading ? (
-            <p className="text-center text-[--tx-muted]">Calculando...</p>
+            <p className="text-center text-[--tx-muted]">{t("reportes.calculating")}</p>
           ) : attendance ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <AttStat label="Total Reservas" value={attendance.total} />
-              <AttStat label="Asistieron" value={attendance.attended} color="success" />
-              <AttStat label="No se presentaron" value={attendance.no_show} color="danger" />
-              <AttStat label="Canceladas" value={attendance.cancelled} color="warning" />
+              <AttStat label={t("reportes.totalReservations")} value={attendance.total} />
+              <AttStat label={t("reportes.attended")} value={attendance.attended} color="success" />
+              <AttStat label={t("reportes.noShow")} value={attendance.no_show} color="danger" />
+              <AttStat label={t("reportes.cancelled")} value={attendance.cancelled} color="warning" />
             </div>
           ) : null}
         </div>
@@ -320,7 +320,7 @@ function ReportesPage(): React.JSX.Element {
       {tab === "rankings" && (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
-            <span className="text-sm text-[--tx-muted]">Últimos</span>
+            <span className="text-sm text-[--tx-muted]">{t("reportes.last")}</span>
             {[7, 14, 30, 90].map((d) => (
               <DayPill
                 key={d}
@@ -350,17 +350,17 @@ function ReportesPage(): React.JSX.Element {
           </div>
 
           {rankingsLoading ? (
-            <p className="text-center text-[--tx-muted]">Calculando...</p>
+            <p className="text-center text-[--tx-muted]">{t("reportes.calculating")}</p>
           ) : (
             <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface]">
               <div className="border-b border-[--bd-default] px-6 py-4">
                 <h3 className="text-base font-semibold text-[--tx-primary]">
-                  Top Alumnos por Check-in
+                  {t("reportes.topByCheckin")}
                 </h3>
               </div>
               {rankings.length === 0 ? (
                 <p className="px-6 py-10 text-center text-[--tx-muted]">
-                  Sin check-ins en el período
+                  {t("reportes.noCheckins")}
                 </p>
               ) : (
                 <div className="divide-y divide-[--bd-default]">
@@ -395,7 +395,7 @@ function ReportesPage(): React.JSX.Element {
                         <span className="text-sm font-semibold text-[--tx-primary]">
                           {student.checkin_count}
                         </span>
-                        <span className="text-xs text-[--tx-muted]">check-ins</span>
+                        <span className="text-xs text-[--tx-muted]">{t("reportes.checkinsLabel")}</span>
                       </div>
                     </div>
                   ))}
@@ -410,7 +410,7 @@ function ReportesPage(): React.JSX.Element {
       {tab === "inactive" && (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
-            <span className="text-sm text-[--tx-muted]">Sin visita en</span>
+            <span className="text-sm text-[--tx-muted]">{t("reportes.noVisitSince")}</span>
             {[7, 14, 21, 30].map((d) => (
               <DayPill
                 key={d}
@@ -441,20 +441,20 @@ function ReportesPage(): React.JSX.Element {
           </div>
 
           {inactiveLoading ? (
-            <p className="text-center text-[--tx-muted]">Analizando...</p>
+            <p className="text-center text-[--tx-muted]">{t("reportes.analyzing")}</p>
           ) : (
             <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface]">
               <div className="border-b border-[--bd-default] px-6 py-4">
                 <h3 className="text-base font-semibold text-[--tx-primary]">
-                  Alumnos Inactivos ({inactive.length})
+                  {t("reportes.inactiveStudents", { count: inactive.length })}
                 </h3>
                 <p className="text-sm text-[--tx-muted]">
-                  Sin check-in en los últimos {inactiveDays} días
+                  {t("reportes.noVisitIn", { days: inactiveDays })}
                 </p>
               </div>
               {inactive.length === 0 ? (
                 <p className="px-6 py-10 text-center text-[--tx-muted]">
-                  ¡Excelente! Todos los alumnos han visitado recientemente.
+                  {t("reportes.allActive")}
                 </p>
               ) : (
                 <div className="divide-y divide-[--bd-default]">

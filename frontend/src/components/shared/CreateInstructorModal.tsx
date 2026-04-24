@@ -1,6 +1,7 @@
 /** Modal form for creating a new instructor. */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { PhoneInput } from "./PhoneInput";
@@ -18,6 +19,7 @@ export function CreateInstructorModal({
   open,
   onClose,
 }: CreateInstructorModalProps): React.JSX.Element {
+  const { t } = useTranslation();
   const [form, setForm] = useState<CreateInstructorRequest>({
     first_name: "",
     last_name: "",
@@ -89,12 +91,12 @@ export function CreateInstructorModal({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Nuevo Instructor"
-      description="Registra un nuevo instructor en el sistema"
+      title={t("instructors.newInstructorTitle")}
+      description={t("instructors.newInstructorDesc")}
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Nombre *">
+          <Field label={t("students.firstName")}>
             <input
               name="first_name"
               value={form.first_name}
@@ -104,7 +106,7 @@ export function CreateInstructorModal({
               placeholder="María"
             />
           </Field>
-          <Field label="Apellido *">
+          <Field label={t("students.lastName")}>
             <input
               name="last_name"
               value={form.last_name}
@@ -116,7 +118,7 @@ export function CreateInstructorModal({
           </Field>
         </div>
 
-        <Field label="Correo electrónico *">
+        <Field label={`${t("common.email")} *`}>
           <input
             name="email"
             type="email"
@@ -126,16 +128,16 @@ export function CreateInstructorModal({
             className={`${inputCls} ${emailError ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" : ""}`}
             placeholder="maria@gym.com"
           />
-          {emailError && <p className="mt-1 text-xs text-red-400">{emailError}</p>}
+          {emailError && <p className="mt-1 text-xs text-red-400">{t("common.invalidEmail")}</p>}
         </Field>
 
         <PhoneInput
-          label="Teléfono"
+          label={t("common.phone")}
           value={form.phone ?? ""}
           onChange={(e164) => setForm((prev) => ({ ...prev, phone: e164 }))}
         />
 
-        <Field label="Especialidades">
+        <Field label={t("instructors.specialties")}>
           <div className="flex flex-wrap gap-2">
             {SPECIALTIES.map((specialty) => (
               <button
@@ -180,7 +182,7 @@ export function CreateInstructorModal({
               value={customSpecialty}
               onChange={(e) => setCustomSpecialty(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomSpecialty(); } }}
-              placeholder="Agregar especialidad..."
+              placeholder={t("instructors.addSpecialty")}
               className={`${inputCls} flex-1`}
             />
             <button
@@ -194,14 +196,14 @@ export function CreateInstructorModal({
           </div>
         </Field>
 
-        <Field label="Biografía">
+        <Field label={t("instructors.bio")}>
           <textarea
             name="bio"
             value={form.bio}
             onChange={handleChange}
             rows={3}
             className={`${inputCls} resize-none`}
-            placeholder="Experiencia, certificaciones, etc."
+            placeholder={t("instructors.bioPlaceholder")}
           />
         </Field>
 
@@ -211,7 +213,7 @@ export function CreateInstructorModal({
             onClick={onClose}
             className="rounded-xl border-2 border-[--bd-subtle] px-5 py-3 text-sm font-medium text-[--tx-muted] transition-colors hover:border-[--bd-default] hover:text-[--tx-primary]"
           >
-            Cancelar
+            {t("common.cancel")}
           </button>
           <button
             type="submit"
@@ -225,7 +227,7 @@ export function CreateInstructorModal({
             onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
           >
-            {isPending ? "Guardando..." : "Crear Instructor"}
+            {isPending ? t("common.saving") : t("instructors.createInstructor")}
           </button>
         </div>
       </form>

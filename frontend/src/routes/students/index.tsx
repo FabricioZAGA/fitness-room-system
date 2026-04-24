@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { Loader2, Mail, Phone, Plus, Users } from "lucide-react";
 import { PageWrapper } from "@/components/shared/PageWrapper";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -18,14 +19,14 @@ export const Route = createFileRoute("/students/")({
 
 type FilterValue = StudentStatus | "all";
 
-const FILTER_OPTIONS: { label: string; value: FilterValue }[] = [
-  { label: "Todos", value: "all" },
-  { label: "Activos", value: "active" },
-  { label: "Inactivos", value: "inactive" },
-  { label: "Suspendidos", value: "suspended" },
-];
-
 function StudentsPage(): React.JSX.Element {
+  const { t } = useTranslation();
+  const FILTER_OPTIONS: { label: string; value: FilterValue }[] = [
+    { label: t("students.allStatuses"), value: "all" },
+    { label: t("common.active"), value: "active" },
+    { label: t("common.inactive"), value: "inactive" },
+    { label: t("common.suspended"), value: "suspended" },
+  ];
   const [filter, setFilter] = useState<FilterValue>("all");
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -43,14 +44,14 @@ function StudentsPage(): React.JSX.Element {
     : students;
 
   const total = data?.total ?? 0;
-  const subtitle = `${total} miembro${total !== 1 ? "s" : ""} registrado${total !== 1 ? "s" : ""}`;
+  const subtitle = t("students.membersCount", { count: total });
 
   return (
     <PageWrapper>
       <PageHeader
-        title="Miembros"
+        title={t("students.title")}
         subtitle={subtitle}
-        action={{ label: "Nuevo Miembro", icon: Plus, onClick: () => setCreateOpen(true) }}
+        action={{ label: t("students.newStudent"), icon: Plus, onClick: () => setCreateOpen(true) }}
       />
 
       {/* Search + Filters */}
@@ -58,7 +59,7 @@ function StudentsPage(): React.JSX.Element {
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Buscar por nombre o correo..."
+          placeholder={t("students.searchPlaceholder")}
         />
         <FilterTabs<FilterValue>
           options={FILTER_OPTIONS}
@@ -75,7 +76,7 @@ function StudentsPage(): React.JSX.Element {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Users}
-          message={search ? "No se encontraron miembros" : "No hay miembros registrados"}
+          message={search ? t("students.noMembersFound") : t("students.noStudents")}
         />
       ) : (
         <div className="space-y-3">

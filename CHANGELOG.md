@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.5.3] — 2026-04-23
+
+### Added
+- Internacionalización (i18n) completa en el admin frontend: todas las páginas y modales ahora usan `useTranslation()` en lugar de strings hardcodeados en español
+- Nuevas secciones de traducción en `es.json` / `en.json`: `caja`, `reportes`, `inventario`, plus keys adicionales en `students`, `instructors`, `users`, `common`
+- Páginas wired: `users/`, `caja/`, `reportes/`, `inventario/`
+- Modales wired: `CreateStudentModal`, `EditStudentModal`, `CreateInstructorModal`, `EditInstructorModal`
+
+---
+
 ## [1.5.2] — 2026-04-23
 
 ### Fixed

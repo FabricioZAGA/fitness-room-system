@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, CreditCard, Plus, Calendar, DollarSign, Mail } from "lucide-react";
 import { useExpiringSoon } from "@/hooks/useMemberships";
 import { useStudents } from "@/hooks/useStudents";
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/memberships/")({
 });
 
 function MembershipsPage(): React.JSX.Element {
+  const { t } = useTranslation();
   const [createOpen, setCreateOpen] = useState(false);
   const [renewStudentId, setRenewStudentId] = useState<string | null>(null);
   const { data: expiring7, isLoading } = useExpiringSoon(7);
@@ -39,9 +41,9 @@ function MembershipsPage(): React.JSX.Element {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[--tx-primary]">Membresías</h1>
+            <h1 className="text-3xl font-bold text-[--tx-primary]">{t("memberships.title")}</h1>
             <p className="mt-1 text-lg text-[--tx-muted]">
-              Alertas de vencimiento y gestión de planes
+              {t("memberships.alertsDesc")}
             </p>
           </div>
           <button
@@ -56,7 +58,7 @@ function MembershipsPage(): React.JSX.Element {
             onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
           >
             <Plus className="h-5 w-5" />
-            Nueva Membresía
+            {t("memberships.newMembership")}
           </button>
         </div>
 
@@ -69,7 +71,7 @@ function MembershipsPage(): React.JSX.Element {
               </div>
               <div>
                 <p className="text-3xl font-bold text-[--tx-primary]">{critical.length}</p>
-                <p className="text-sm text-[--color-danger]">Vencen esta semana</p>
+                <p className="text-sm text-[--color-danger]">{t("memberships.expireThisWeek")}</p>
               </div>
             </div>
           </div>
@@ -80,7 +82,7 @@ function MembershipsPage(): React.JSX.Element {
               </div>
               <div>
                 <p className="text-3xl font-bold text-[--tx-primary]">{all30.length}</p>
-                <p className="text-sm text-[--color-warning]">Vencen en 30 días</p>
+                <p className="text-sm text-[--color-warning]">{t("memberships.expireIn30")}</p>
               </div>
             </div>
           </div>
@@ -93,7 +95,7 @@ function MembershipsPage(): React.JSX.Element {
                 <p className="text-3xl font-bold text-[--tx-primary]">
                   {formatCurrency(all30.reduce((sum, m) => sum + (m.price_paid ?? 0), 0))}
                 </p>
-                <p className="text-sm text-[--color-success]">Renovaciones pendientes</p>
+                <p className="text-sm text-[--color-success]">{t("memberships.pendingRenewals")}</p>
               </div>
             </div>
           </div>
@@ -107,9 +109,9 @@ function MembershipsPage(): React.JSX.Element {
           <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] py-20 text-center">
             <CreditCard className="mx-auto mb-4 h-16 w-16 text-[--tx-disabled]" />
             <p className="text-xl text-[--tx-muted]">
-              No hay membresías por vencer en los próximos 30 días
+              {t("memberships.noExpiringLong")}
             </p>
-            <p className="mt-2 text-[--tx-disabled]">¡Todo al día!</p>
+            <p className="mt-2 text-[--tx-disabled]">{t("memberships.allUpToDate")}</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -118,7 +120,7 @@ function MembershipsPage(): React.JSX.Element {
               <section>
                 <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-[--color-danger]">
                   <AlertTriangle className="h-5 w-5" />
-                  Urgente — vencen en 7 días ({critical.length})
+                  {t("memberships.critical")} ({critical.length})
                 </h2>
                 <div className="space-y-3">
                   {critical.map((m) => (
@@ -140,7 +142,7 @@ function MembershipsPage(): React.JSX.Element {
               <section>
                 <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-[--color-warning]">
                   <CreditCard className="h-5 w-5" />
-                  Próximamente — 8 a 30 días ({warning.length})
+                  {t("memberships.warning")} ({warning.length})
                 </h2>
                 <div className="space-y-3">
                   {warning.map((m) => (
@@ -185,6 +187,7 @@ function MembershipCard({
   onRenew?: () => void;
   onNotify?: () => void;
 }): React.JSX.Element {
+  const { t } = useTranslation();
   const days = m.days_until_expiry ?? 0;
 
   const borderColor =
@@ -207,7 +210,7 @@ function MembershipCard({
           className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl ${daysBg}`}
         >
           <p className={`text-2xl font-bold ${daysColor}`}>{days}</p>
-          <p className="text-xs text-[--tx-disabled]">días</p>
+          <p className="text-xs text-[--tx-disabled]">{t("memberships.days")}</p>
         </div>
 
         {/* Info */}
@@ -233,7 +236,7 @@ function MembershipCard({
             </span>
             <span className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5" />
-              Vence: {formatDate(m.end_date)}
+              {t("checkin.expires")}: {formatDate(m.end_date)}
             </span>
             <span className="flex items-center gap-1.5">
               <DollarSign className="h-3.5 w-3.5" />
@@ -251,7 +254,7 @@ function MembershipCard({
             className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]"
           >
             <Mail className="h-4 w-4" />
-            Recordatorio
+            {t("memberships.reminder")}
           </button>
         )}
         {onRenew && (
@@ -263,7 +266,7 @@ function MembershipCard({
               color: "var(--gold-fg)",
             }}
           >
-            Renovar
+            {t("memberships.renewMembership")}
           </button>
         )}
       </div>

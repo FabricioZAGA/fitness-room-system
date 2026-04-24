@@ -124,7 +124,7 @@ function ClassesPage(): React.JSX.Element {
       ) : classes.length === 0 ? (
         <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] py-20 text-center">
           <Calendar className="mx-auto mb-4 h-16 w-16 text-[--tx-disabled]" />
-          <p className="text-xl text-[--tx-muted]">No hay clases registradas</p>
+          <p className="text-xl text-[--tx-muted]">{t("classes.noClasses")}</p>
           <button
             onClick={() => setCreateOpen(true)}
             className="mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-base font-semibold"
@@ -134,7 +134,7 @@ function ClassesPage(): React.JSX.Element {
             }}
           >
             <Plus className="h-5 w-5" />
-            Crear primera clase
+            {t("classes.createFirst")}
           </button>
         </div>
       ) : viewMode === "calendar" ? (
@@ -157,7 +157,7 @@ function ClassesPage(): React.JSX.Element {
             <div className="hidden xl:flex flex-col items-center justify-center rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-8 text-center">
               <Calendar className="mb-4 h-14 w-14 text-[--tx-disabled]" />
               <p className="text-[--tx-disabled]">
-                Selecciona una clase del calendario para ver detalles
+                {t("classes.selectFromCalendar")}
               </p>
             </div>
           )}
@@ -183,7 +183,7 @@ function ClassesPage(): React.JSX.Element {
                   <p className="text-lg font-semibold text-[--tx-primary]">
                     {cls.instructor_name}
                     {cls.is_cancelled && (
-                      <span className="ml-2 text-sm font-normal text-[--color-danger]">Cancelada</span>
+                      <span className="ml-2 text-sm font-normal text-[--color-danger]">{t("classes.classCancelled")}</span>
                     )}
                   </p>
                   <div className="flex flex-wrap items-center gap-4 text-sm text-[--tx-muted]">
@@ -256,6 +256,7 @@ function ClassDetailPanel({
   onCancel: () => void;
   onClose: () => void;
 }): React.JSX.Element {
+  const { t } = useTranslation();
   const occupancyPct = Math.round((cls.reservations_count / cls.capacity) * 100);
   const { data: attendees, isLoading: attendeesLoading } = useClassAttendees(cls.class_id);
 
@@ -277,16 +278,16 @@ function ClassDetailPanel({
 
         <h3 className="mb-1 text-xl font-bold text-[--tx-primary]">{cls.instructor_name}</h3>
         {cls.is_cancelled && (
-          <p className="mb-3 text-sm font-medium text-[--color-danger]">Clase cancelada</p>
+          <p className="mb-3 text-sm font-medium text-[--color-danger]">{t("classes.classCancelled")}</p>
         )}
 
         {/* Details */}
         <div className="mb-6 space-y-3">
-          <DetailRow icon={Calendar} label="Fecha" value={formatDate(cls.class_date)} />
-          <DetailRow icon={Clock} label="Hora" value={`${formatTime(cls.start_time)} (${cls.duration_minutes ?? 60} min)`} />
-          <DetailRow icon={MapPin} label="Lugar" value={cls.location ?? "Sin especificar"} />
+          <DetailRow icon={Calendar} label={t("classes.date")} value={formatDate(cls.class_date)} />
+          <DetailRow icon={Clock} label={t("classes.time")} value={`${formatTime(cls.start_time)} (${cls.duration_minutes ?? 60} min)`} />
+          <DetailRow icon={MapPin} label={t("classes.place")} value={cls.location ?? "Sin especificar"} />
           {cls.class_link && (
-            <DetailRow icon={LinkIcon} label="Enlace" value="Ver clase en línea" link={cls.class_link} />
+            <DetailRow icon={LinkIcon} label={t("classes.link")} value={t("classes.onlineClass")} link={cls.class_link} />
           )}
         </div>
 
@@ -295,7 +296,7 @@ function ClassDetailPanel({
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-[--tx-muted]">
               <Users className="h-4 w-4" />
-              Ocupación
+              {t("classes.occupancy")}
             </div>
             <span className="text-lg font-bold text-[--tx-primary]">
               {cls.reservations_count}/{cls.capacity}
@@ -344,7 +345,7 @@ function ClassDetailPanel({
               ))}
             </div>
           ) : (
-            <p className="py-2 text-center text-sm text-[--tx-disabled]">Sin inscripciones aún</p>
+            <p className="py-2 text-center text-sm text-[--tx-disabled]">{t("classes.noEnrollments")}</p>
           )}
         </div>
 
@@ -389,14 +390,14 @@ function ClassDetailPanel({
               onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
             >
               <UserPlus className="h-5 w-5" />
-              Añadir Miembro
+              {t("classes.addMember")}
             </button>
             <button
               onClick={onCancel}
               className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[--color-danger-bd] py-3 text-sm font-medium text-[--color-danger] transition-colors hover:border-[--color-danger-bd] hover:bg-[--color-danger-bg]"
             >
               <XCircle className="h-4 w-4" />
-              Cancelar clase
+              {t("classes.cancelClass")}
             </button>
           </div>
         )}
