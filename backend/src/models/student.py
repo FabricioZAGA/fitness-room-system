@@ -148,7 +148,7 @@ class StudentDynamoItem(BaseModel):
     birth_date: str | None = None
     address: str | None = None
     city: str | None = None
-    emergency_contact: dict | None = None
+    emergency_contact: dict[str, str] | None = None
     photo_url: str | None = None
     status: str
     notes: str | None = None

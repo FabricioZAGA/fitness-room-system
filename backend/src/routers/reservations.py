@@ -66,7 +66,7 @@ def create_reservation(
                     class_type=cls.class_type,
                     class_date=cls.class_date,
                     start_time=cls.start_time,
-                    position=result.position or 1,
+                    position=result.waitlist_position or 1,
                 )
             # Notify instructor
             inst = notifier.resolve_instructor_for_class(cls.instructor_name)

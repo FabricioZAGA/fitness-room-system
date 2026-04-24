@@ -97,7 +97,8 @@ class NotificationService:
                     f"{student_item.get('first_name', '')} {student_item.get('last_name', '')}".strip()
                 )
                 email = student_item["email"]
-                days_left = membership.days_until_expiry
+                end_date = date.fromisoformat(membership.end_date)
+                days_left = (end_date - date.today()).days
                 membership_label = MEMBERSHIP_TYPE_LABELS.get(
                     membership.membership_type, membership.membership_type
                 )

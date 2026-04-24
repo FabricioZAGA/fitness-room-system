@@ -78,6 +78,7 @@ class ReservationDynamoItem(BaseModel):
     class_date: str
     created_at: datetime
     updated_at: datetime
+    waitlist_position: int | None = None
 
     @classmethod
     def from_create(cls, data: ReservationCreate, class_date: str) -> "ReservationDynamoItem":

@@ -18,6 +18,7 @@ In local mode, emails/SMS are **not** sent — they are logged at INFO level.
 
 from __future__ import annotations
 
+from datetime import date, time
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -89,6 +90,13 @@ _SMS: dict[str, str] = {
     "instructor_class_cancelled": "{gym}: Tu clase {class_type} ({date} {time}) fue cancelada.",
     "admin_new_student": "{gym}: Nuevo alumno registrado: {student} ({email}).",
 }
+
+
+def _to_str(val: str | date | time) -> str:
+    """Convert date/time to ISO string if needed."""
+    if isinstance(val, (date, time)):
+        return val.isoformat()
+    return val
 
 
 class EventNotifier:
@@ -245,11 +253,13 @@ class EventNotifier:
         self,
         students: list[dict[str, Any]],
         class_type: str,
-        class_date: str,
-        start_time: str,
+        class_date: str | date,
+        start_time: str | time,
         instructor_name: str,
     ) -> None:
         """Notify all enrolled students that a class was cancelled."""
+        date_str = _to_str(class_date)
+        time_str = _to_str(start_time)
         for s in students:
             name = s.get("name", "Alumno")
             email = s.get("email")
@@ -259,13 +269,13 @@ class EventNotifier:
             html = class_cancelled_html(
                 student_name=name,
                 class_type=class_type,
-                class_date=class_date,
-                start_time=start_time,
+                class_date=date_str,
+                start_time=time_str,
                 instructor_name=instructor_name,
                 gym_name=self._gym,
             )
             sms = _SMS["class_cancelled"].format(
-                gym=self._gym, class_type=class_type, date=class_date, time=start_time,
+                gym=self._gym, class_type=class_type, date=date_str, time=time_str,
             )
             self._dispatch(
                 notification_type=NotificationType.CLASS_CANCELLED,
@@ -605,23 +615,25 @@ class EventNotifier:
         instructor_email: str,
         instructor_phone: str | None,
         class_type: str,
-        class_date: str,
-        start_time: str,
+        class_date: str | date,
+        start_time: str | time,
         duration_minutes: int,
         location: str,
     ) -> None:
         """Instructor: assigned to a new class."""
+        date_str = _to_str(class_date)
+        time_str = _to_str(start_time)
         html = instructor_class_assigned_html(
             instructor_name=instructor_name,
             class_type=class_type,
-            class_date=class_date,
-            start_time=start_time,
+            class_date=date_str,
+            start_time=time_str,
             duration_minutes=duration_minutes,
             location=location,
             gym_name=self._gym,
         )
         sms = _SMS["instructor_class_assigned"].format(
-            gym=self._gym, class_type=class_type, date=class_date, time=start_time,
+            gym=self._gym, class_type=class_type, date=date_str, time=time_str,
         )
         self._dispatch(
             notification_type=NotificationType.INSTRUCTOR_CLASS_ASSIGNED,
@@ -639,19 +651,21 @@ class EventNotifier:
         instructor_email: str,
         instructor_phone: str | None,
         class_type: str,
-        class_date: str,
-        start_time: str,
+        class_date: str | date,
+        start_time: str | time,
     ) -> None:
         """Instructor: their class was cancelled by admin."""
+        date_str = _to_str(class_date)
+        time_str = _to_str(start_time)
         html = instructor_class_cancelled_html(
             instructor_name=instructor_name,
             class_type=class_type,
-            class_date=class_date,
-            start_time=start_time,
+            class_date=date_str,
+            start_time=time_str,
             gym_name=self._gym,
         )
         sms = _SMS["instructor_class_cancelled"].format(
-            gym=self._gym, class_type=class_type, date=class_date, time=start_time,
+            gym=self._gym, class_type=class_type, date=date_str, time=time_str,
         )
         self._dispatch(
             notification_type=NotificationType.INSTRUCTOR_CLASS_CANCELLED,

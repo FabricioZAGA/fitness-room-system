@@ -146,6 +146,7 @@ class CognitoService:
             for u in resp.get("Users", []):
                 attrs = {a["Name"]: a["Value"] for a in u.get("Attributes", [])}
                 groups = self._get_user_groups(u["Username"])
+                created_dt = u.get("UserCreateDate")
                 users.append({
                     "username": u["Username"],
                     "email": attrs.get("email", ""),
@@ -153,8 +154,7 @@ class CognitoService:
                     "status": u.get("UserStatus", ""),
                     "enabled": u.get("Enabled", True),
                     "groups": groups,
-                    "created_at": u.get("UserCreateDate", "").isoformat()
-                    if u.get("UserCreateDate") else "",
+                    "created_at": created_dt.isoformat() if created_dt else "",
                 })
             token = resp.get("PaginationToken")
             if not token or len(users) >= limit:

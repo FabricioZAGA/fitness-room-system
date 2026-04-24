@@ -4,6 +4,8 @@ All business logic exceptions should extend these base classes.
 HTTP status codes are mapped in the exception handlers registered in main.py.
 """
 
+from typing import NoReturn
+
 from fastapi import HTTPException, status
 
 
@@ -43,7 +45,7 @@ class MembershipNotFoundException(FitnessRoomException):
     """Raised when a student has no active membership."""
 
 
-def raise_not_found(resource: str, identifier: str) -> None:
+def raise_not_found(resource: str, identifier: str) -> NoReturn:
     """Raise HTTP 404 with a consistent message format."""
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -51,7 +53,7 @@ def raise_not_found(resource: str, identifier: str) -> None:
     )
 
 
-def raise_conflict(message: str) -> None:
+def raise_conflict(message: str) -> NoReturn:
     """Raise HTTP 409 with a conflict message."""
     raise HTTPException(
         status_code=status.HTTP_409_CONFLICT,
@@ -59,7 +61,7 @@ def raise_conflict(message: str) -> None:
     )
 
 
-def raise_bad_request(message: str) -> None:
+def raise_bad_request(message: str) -> NoReturn:
     """Raise HTTP 400 with a validation or business rule message."""
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
@@ -67,7 +69,7 @@ def raise_bad_request(message: str) -> None:
     )
 
 
-def raise_forbidden(message: str) -> None:
+def raise_forbidden(message: str) -> NoReturn:
     """Raise HTTP 403 with a permission message."""
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,

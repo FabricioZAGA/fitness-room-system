@@ -12,6 +12,7 @@ from __future__ import annotations
 from datetime import date
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
@@ -158,7 +159,7 @@ def generate_carta_responsiva(
 
     # ── Build story ─────────────────────────────────────────────────────
 
-    story: list = []
+    story: list[Any] = []
 
     # Logo + title header
     if _LOGO.exists():
