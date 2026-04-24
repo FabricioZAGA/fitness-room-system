@@ -148,13 +148,13 @@ export function PhoneInput({
           inputMode="tel"
           maxLength={country.digits + 5}
           required={required}
-          className={`${inputCls} flex-1 ${phoneError ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" : ""}`}
+          className={`${inputCls} flex-1 ${phoneError ? "border-[--color-danger] focus:border-[--color-danger] focus:ring-[--color-danger]/20" : ""}`}
         />
       </div>
       {phoneError ? (
-        <p className="mt-1 text-xs text-red-400">{phoneError}</p>
+        <p className="mt-1 text-xs text-[--color-danger]">{phoneError}</p>
       ) : raw && digits.length > 0 ? (
-        <p className="mt-1 text-xs text-emerald-400">
+        <p className="mt-1 text-xs text-[--color-success]">
           {country.dial} {formatPhoneDisplay(raw, country)}
         </p>
       ) : (

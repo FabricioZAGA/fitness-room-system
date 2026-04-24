@@ -130,9 +130,9 @@ export function EditInstructorModal({
             value={form.email ?? ""}
             onChange={handleChange}
             required
-            className={`w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none ${emailError ? "border-red-500 focus:border-red-500" : ""}`}
+            className={`w-full rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none ${emailError ? "border-[--color-danger] focus:border-[--color-danger]" : ""}`}
           />
-          {emailError && <p className="mt-1 text-xs text-red-400">{t("common.invalidEmail")}</p>}
+          {emailError && <p className="mt-1 text-xs text-[--color-danger]">{t("common.invalidEmail")}</p>}
         </div>
 
         <PhoneInput

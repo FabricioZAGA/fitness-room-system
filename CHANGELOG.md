@@ -5,6 +5,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.5.5] — 2026-04-24
+
+### Fixed
+- Colores de estado en inputs (error/éxito) ahora usan CSS variables del design system en lugar de clases hardcodeadas de Tailwind (`red-500`, `emerald-400`)
+- Modal "Crear Usuario" — campo de nombre dividido en Nombre y Apellido, consistente con todas las demás entidades del sistema
+- Backend `/api/v1/users` — `CreateUserRequest` ahora acepta `first_name` + `last_name` en lugar de `name` completo
+- Portal login — bordes de inputs con mayor contraste (`rgba(255,255,255,0.25)`) y texto de requisitos de contraseña más legible (`rgba(255,255,255,0.8)`)
+- Portal login — atributos `required` agregados a inputs de email y contraseña
+
+---
+
 ## [1.5.4] — 2026-04-24
 
 ### Fixed

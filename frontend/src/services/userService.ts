@@ -14,7 +14,8 @@ export interface CognitoUser {
 
 export interface CreateUserRequest {
   email: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   group: string;
 }
 

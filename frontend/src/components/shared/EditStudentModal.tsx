@@ -194,9 +194,9 @@ export function EditStudentModal({
             value={form.email ?? ""}
             onChange={handleChange}
             required
-            className={`${inputCls} ${emailError ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" : ""}`}
+            className={`${inputCls} ${emailError ? "border-[--color-danger] focus:border-[--color-danger] focus:ring-[--color-danger]/20" : ""}`}
           />
-          {emailError && <p className="mt-1 text-xs text-red-400">{t("common.invalidEmail")}</p>}
+          {emailError && <p className="mt-1 text-xs text-[--color-danger]">{t("common.invalidEmail")}</p>}
         </Field>
 
         <div className="grid grid-cols-2 gap-3">

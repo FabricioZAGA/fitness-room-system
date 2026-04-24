@@ -6,13 +6,14 @@ import { Container } from '../components'
 const inputStyle: React.CSSProperties = {
   padding: '16px',
   borderRadius: '16px',
-  border: '1px solid rgba(255,255,255,0.1)',
+  border: '1px solid rgba(255,255,255,0.25)',
   background: 'rgba(17, 24, 39, 0.8)',
   color: '#fff',
   fontSize: '16px',
   outline: 'none',
   width: '100%',
   boxSizing: 'border-box',
+  transition: 'border-color 0.15s',
 }
 
 const btnStyle: React.CSSProperties = {
@@ -210,11 +211,11 @@ export default function Login(): React.JSX.Element {
             <input type="email" placeholder="Correo electrónico" value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, handleLogin)}
-              autoComplete="email" style={inputStyle} />
+              autoComplete="email" required style={inputStyle} />
             <input type="password" placeholder="Contraseña" value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, handleLogin)}
-              autoComplete="current-password" style={inputStyle} />
+              autoComplete="current-password" required style={inputStyle} />
             <button onClick={handleLogin} disabled={loading || !email || !password}
               style={{ ...btnStyle, opacity: (loading || !email || !password) ? 0.5 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}>
               {loading ? 'Ingresando...' : 'Iniciar sesión'}
@@ -245,7 +246,7 @@ export default function Login(): React.JSX.Element {
             <div style={{
               padding: '12px 16px', borderRadius: '12px',
               background: 'rgba(212, 175, 55, 0.08)', border: '1px solid rgba(212, 175, 55, 0.2)',
-              fontSize: '13px', color: 'rgba(255,255,255,0.5)',
+              fontSize: '13px', color: 'rgba(255,255,255,0.8)',
             }}>
               Mínimo 8 caracteres, incluir mayúsculas, minúsculas y números.
             </div>

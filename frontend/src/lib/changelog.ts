@@ -12,9 +12,20 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.5.4";
+export const APP_VERSION = "1.5.5";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.5.5",
+    date: "2026-04-24",
+    title: "Validación de inputs y calidad de formularios",
+    items: [
+      { icon: "🎨", text: "Colores de error/éxito en inputs ahora usan variables CSS del sistema de diseño" },
+      { icon: "📝", text: "Crear usuario — nombre separado en Nombre y Apellido (consistente con alumnos e instructores)" },
+      { icon: "🔑", text: "Portal — inputs con mejor contraste de borde y texto de requisitos de contraseña más legible" },
+      { icon: "✅", text: "Atributos required en inputs del login del portal" },
+    ],
+  },
   {
     version: "1.5.4",
     date: "2026-04-24",

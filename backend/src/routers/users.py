@@ -24,8 +24,9 @@ class CreateUserRequest(BaseModel):
     """Schema for creating a new Cognito user."""
 
     email: EmailStr
-    name: str = Field(..., min_length=1, max_length=200)
-    group: str = Field(..., description="Cognito group: admin, staff, or student")
+    first_name: str = Field(..., min_length=1, max_length=100)
+    last_name: str = Field(..., min_length=1, max_length=100)
+    group: str = Field(..., description="Cognito group: admin, receptionist, staff, or student")
 
 
 class UpdateUserGroupsRequest(BaseModel):
@@ -98,13 +99,14 @@ def create_user(
 
     svc = CognitoService()
     settings = get_settings()
-    password = svc.create_user(email=data.email, name=data.name, group=data.group)
+    full_name = f"{data.first_name.strip()} {data.last_name.strip()}"
+    password = svc.create_user(email=data.email, name=full_name, group=data.group)
 
     # Send credentials email
     try:
         portal_url = settings.portal_url if data.group != "admin" else settings.frontend_url
         EventNotifier().notify_portal_credentials(
-            student_name=data.name,
+            student_name=full_name,
             student_email=data.email,
             password=password,
             portal_url=portal_url,

@@ -15,10 +15,18 @@ interface CreateUserModalProps {
   onClose: () => void;
 }
 
+interface FormState {
+  first_name: string;
+  last_name: string;
+  email: string;
+  group: UserGroup;
+}
+
 export function CreateUserModal({ open, onClose }: CreateUserModalProps): React.JSX.Element {
-  const [form, setForm] = useState<CreateUserRequest>({
+  const [form, setForm] = useState<FormState>({
+    first_name: "",
+    last_name: "",
     email: "",
-    name: "",
     group: "admin",
   });
   const { mutate, isPending } = useCreateUser();
@@ -28,9 +36,15 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps): React.
   function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
     if (emailError) return;
-    mutate(form, {
+    const payload: CreateUserRequest = {
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      email: form.email,
+      group: form.group,
+    };
+    mutate(payload, {
       onSuccess: () => {
-        setForm({ email: "", name: "", group: "admin" });
+        setForm({ first_name: "", last_name: "", email: "", group: "admin" });
         onClose();
       },
     });
@@ -39,15 +53,27 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps): React.
   return (
     <Dialog open={open} onClose={onClose} title="Nuevo Usuario" description="Crea un usuario con acceso al sistema">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">Nombre completo *</label>
-          <input
-            value={form.name}
-            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-            required
-            placeholder="Juan Pérez"
-            className={inputCls}
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">Nombre *</label>
+            <input
+              value={form.first_name}
+              onChange={(e) => setForm((p) => ({ ...p, first_name: e.target.value }))}
+              required
+              placeholder="Juan"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">Apellido *</label>
+            <input
+              value={form.last_name}
+              onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))}
+              required
+              placeholder="Pérez"
+              className={inputCls}
+            />
+          </div>
         </div>
 
         <div>
@@ -58,9 +84,9 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps): React.
             onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
             required
             placeholder="juan@ejemplo.com"
-            className={`${inputCls} ${emailError ? "border-red-500" : ""}`}
+            className={`${inputCls} ${emailError ? "border-[--color-danger] focus:border-[--color-danger] focus:ring-[--color-danger]/20" : ""}`}
           />
-          {emailError && <p className="mt-1 text-xs text-red-400">{emailError}</p>}
+          {emailError && <p className="mt-1 text-xs text-[--color-danger]">{emailError}</p>}
         </div>
 
         <div>
