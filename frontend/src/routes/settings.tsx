@@ -31,6 +31,7 @@ import {
 } from "@/hooks/useNotifications";
 import { NOTIFICATION_TYPE_LABELS } from "@/types/notification";
 import type { NotificationResponse } from "@/types/notification";
+import { SuppressionCard } from "@/components/shared/SuppressionCard";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -485,6 +486,9 @@ function SettingsPage(): React.JSX.Element {
             </div>
           </div>
         </SettingSection>
+
+        {/* Email delivery health / suppression list */}
+        <SuppressionCard />
 
         {/* Security */}
         <SettingSection
