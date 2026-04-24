@@ -12,9 +12,21 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.5.2";
+export const APP_VERSION = "1.5.3";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.5.3",
+    date: "2026-04-23",
+    title: "i18n completo, modales y nuevas pantallas",
+    items: [
+      { icon: "🌍", text: "i18n completo — todas las pantallas y modales traducidos ES/EN" },
+      { icon: "📦", text: "Inventario — gestión de productos, ventas y restock" },
+      { icon: "💰", text: "Caja y Reportes — traducciones de pagos, cortes, ingresos y rankings" },
+      { icon: "👤", text: "Modales de alumno e instructor — crear y editar con cámara, dirección y contacto de emergencia" },
+      { icon: "🔧", text: "Gestión de usuarios — deshabilitar, eliminar y badges con i18n" },
+    ],
+  },
   {
     version: "1.5.2",
     date: "2026-04-23",
