@@ -12,9 +12,20 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.5.3";
+export const APP_VERSION = "1.5.4";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.5.4",
+    date: "2026-04-24",
+    title: "RBAC corregido y filtros de alumnos",
+    items: [
+      { icon: "🔒", text: "RBAC — recepcionista ahora se puede crear desde el panel (estaba bloqueado por error)" },
+      { icon: "🚫", text: "Gestión de usuarios — solo se crean admin y recepcionista manualmente; alumnos e instructores se crean automáticamente" },
+      { icon: "🔑", text: "Primer login — ya no pide nombre al cambiar contraseña (se tomó del registro original)" },
+      { icon: "🐛", text: "Filtros de alumnos por estado ya funcionan correctamente (activo, inactivo, suspendido)" },
+    ],
+  },
   {
     version: "1.5.3",
     date: "2026-04-23",

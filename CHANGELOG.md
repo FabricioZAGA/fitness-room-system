@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.5.4] — 2026-04-24
+
+### Fixed
+- Filtros de alumnos por estado (activo, inactivo, suspendido) no mostraban resultados — dato corrupto `status: "new"` en DynamoDB corregido a `active`; backend ahora tolera valores desconocidos con fallback a `active`
+- RBAC: `receptionist` agregado a `VALID_GROUPS` en el backend (crear recepcionista daba error 400)
+- Gestión de usuarios: modal de creación solo muestra `admin` y `recepcionista` — alumnos e instructores se crean automáticamente desde sus propias páginas
+- Primer login: eliminados campos de nombre/apellido en el paso de cambio de contraseña — ya están guardados en Cognito desde el registro
+
+---
+
 ## [1.5.3] — 2026-04-23
 
 ### Added

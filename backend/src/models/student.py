@@ -202,7 +202,7 @@ class StudentDynamoItem(BaseModel):
             city=self.city,
             emergency_contact=ec,
             photo_url=self.photo_url,
-            status=StudentStatus(self.status),
+            status=StudentStatus(self.status) if self.status in StudentStatus._value2member_map_ else StudentStatus.ACTIVE,
             notes=self.notes,
             created_at=self.created_at,
             updated_at=self.updated_at,
