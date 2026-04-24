@@ -1,23 +1,28 @@
 """Portal router — self-service endpoints for students and instructors."""
 
-from datetime import date, datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
-from io import BytesIO
+from __future__ import annotations
+
 import base64
+from datetime import date, datetime, timedelta
+from io import BytesIO
+from typing import Any
+from zoneinfo import ZoneInfo
 
 import qrcode
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
-from ..utils.auth import require_student_or_staff_group
-from ..utils.exceptions import ResourceNotFoundException
-from ..repositories.student_repository import StudentRepository
+from ..models.class_model import ClassDynamoItem
+from ..models.reservation import ReservationCreate
+from ..models.student import StudentDynamoItem
+from ..repositories.class_repository import ClassRepository
+from ..repositories.instructor_repository import InstructorRepository
 from ..repositories.membership_repository import MembershipRepository
 from ..repositories.reservation_repository import ReservationRepository
-from ..repositories.instructor_repository import InstructorRepository
-from ..repositories.class_repository import ClassRepository
-from ..models.reservation import ReservationCreate
+from ..repositories.student_repository import StudentRepository
 from ..services.event_notifier import EventNotifier
+from ..utils.auth import require_student_or_staff_group
+from ..utils.exceptions import ResourceNotFoundException
 
 router = APIRouter(prefix="/portal", tags=["portal"])
 
@@ -53,7 +58,7 @@ def get_class_repository() -> ClassRepository:
 # Helpers
 # ---------------------------------------------------------------------------
 
-def get_user_role(current_user: dict) -> str:
+def get_user_role(current_user: dict[str, Any]) -> str:
     """Return 'staff' if user belongs to the staff/teacher Cognito group, else 'student'."""
     groups = current_user.get("cognito:groups", [])
     if "staff" in groups or "teacher" in groups:
@@ -64,7 +69,7 @@ def get_user_role(current_user: dict) -> str:
 def _find_student_by_email(
     email: str,
     student_repo: StudentRepository,
-) -> dict | None:
+) -> StudentDynamoItem | None:
     """Find a student record by email (scan GSI1, filter by email)."""
     items, _ = student_repo.list_all(limit=1000)
     for item in items:
@@ -74,9 +79,9 @@ def _find_student_by_email(
 
 
 def _resolve_student(
-    current_user: dict,
+    current_user: dict[str, Any],
     student_repo: StudentRepository,
-):
+) -> StudentDynamoItem:
     """Resolve the student DynamoDB record for the current Cognito user.
 
     Tries lookup by Cognito sub first (student_id == sub),
@@ -86,10 +91,11 @@ def _resolve_student(
     email = current_user.get("email", "")
 
     # Try direct lookup (student_id == cognito sub)
-    try:
-        return student_repo.get_by_id(user_id)
-    except ResourceNotFoundException:
-        pass
+    if user_id:
+        try:
+            return student_repo.get_by_id(user_id)
+        except ResourceNotFoundException:
+            pass
 
     # Fallback: lookup by email
     if email:
@@ -101,7 +107,7 @@ def _resolve_student(
 
 
 def _can_cancel_reservation(
-    class_item,
+    class_item: ClassDynamoItem,
 ) -> tuple[bool, str]:
     """Check if a reservation can be cancelled (2-hour cutoff before class start)."""
     try:
@@ -124,42 +130,42 @@ def _can_cancel_reservation(
 
 @router.get("/profile")
 def get_profile(
-    current_user: dict = Depends(require_student_or_staff_group()),
+    current_user: dict[str, Any] = Depends(require_student_or_staff_group()),
     student_repo: StudentRepository = Depends(get_student_repository),
     instructor_repo: InstructorRepository = Depends(get_instructor_repository),
-):
+) -> JSONResponse:
     """Return the current user's profile (student or instructor)."""
-    user_id = current_user.get("sub")
+    user_id = current_user.get("sub") or ""
     role = get_user_role(current_user)
 
     try:
         if role == "student":
-            profile = _resolve_student(current_user, student_repo)
+            student_profile = _resolve_student(current_user, student_repo)
             return JSONResponse(content={
                 "role": "student",
-                "student_id": profile.student_id,
-                "first_name": profile.first_name,
-                "last_name": profile.last_name,
-                "email": profile.email,
-                "phone": profile.phone,
-                "status": profile.status,
-                "created_at": profile.created_at.isoformat() if profile.created_at else None,
-                "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
+                "student_id": student_profile.student_id,
+                "first_name": student_profile.first_name,
+                "last_name": student_profile.last_name,
+                "email": student_profile.email,
+                "phone": student_profile.phone,
+                "status": student_profile.status,
+                "created_at": student_profile.created_at.isoformat() if student_profile.created_at else None,
+                "updated_at": student_profile.updated_at.isoformat() if student_profile.updated_at else None,
             })
         else:
-            profile = instructor_repo.get_by_id(user_id)
+            instructor_profile = instructor_repo.get_by_id(user_id)
             return JSONResponse(content={
                 "role": "staff",
-                "instructor_id": profile.instructor_id,
-                "first_name": profile.first_name,
-                "last_name": profile.last_name,
-                "email": profile.email,
-                "phone": profile.phone,
-                "status": profile.status,
-                "specialties": profile.specialties,
-                "bio": profile.bio,
-                "created_at": profile.created_at.isoformat() if profile.created_at else None,
-                "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
+                "instructor_id": instructor_profile.instructor_id,
+                "first_name": instructor_profile.first_name,
+                "last_name": instructor_profile.last_name,
+                "email": instructor_profile.email,
+                "phone": instructor_profile.phone,
+                "status": instructor_profile.status,
+                "specialties": instructor_profile.specialties,
+                "bio": instructor_profile.bio,
+                "created_at": instructor_profile.created_at.isoformat() if instructor_profile.created_at else None,
+                "updated_at": instructor_profile.updated_at.isoformat() if instructor_profile.updated_at else None,
             })
     except ResourceNotFoundException:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
@@ -174,10 +180,10 @@ def get_profile(
 
 @router.get("/membership")
 def get_membership(
-    current_user: dict = Depends(require_student_or_staff_group()),
+    current_user: dict[str, Any] = Depends(require_student_or_staff_group()),
     student_repo: StudentRepository = Depends(get_student_repository),
     membership_repo: MembershipRepository = Depends(get_membership_repository),
-):
+) -> JSONResponse:
     """Return the current student's active membership (staff always returns null)."""
     role = get_user_role(current_user)
 
@@ -223,26 +229,26 @@ def get_membership(
 
 @router.get("/qr")
 def get_qr(
-    current_user: dict = Depends(require_student_or_staff_group()),
+    current_user: dict[str, Any] = Depends(require_student_or_staff_group()),
     student_repo: StudentRepository = Depends(get_student_repository),
     instructor_repo: InstructorRepository = Depends(get_instructor_repository),
-):
+) -> JSONResponse:
     """Generate and return the current user's QR code as base64 PNG.
 
     IMPORTANT: For students, the QR encodes the *student_id* (DynamoDB key),
     NOT the Cognito sub.  This matches what the kiosk scanner expects.
     """
-    user_id = current_user.get("sub")
+    user_id = current_user.get("sub") or ""
     role = get_user_role(current_user)
 
     try:
         if role == "student":
-            user = _resolve_student(current_user, student_repo)
-            user_name = f"{user.first_name} {user.last_name}"
-            qr_data = user.student_id  # encode student_id for kiosk compatibility
+            student_user = _resolve_student(current_user, student_repo)
+            user_name = f"{student_user.first_name} {student_user.last_name}"
+            qr_data = student_user.student_id  # encode student_id for kiosk compatibility
         else:
-            user = instructor_repo.get_by_id(user_id)
-            user_name = f"{user.first_name} {user.last_name}"
+            instructor_user = instructor_repo.get_by_id(user_id)
+            user_name = f"{instructor_user.first_name} {instructor_user.last_name}"
             qr_data = user_id
     except ResourceNotFoundException:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -278,16 +284,16 @@ def get_qr(
 
 @router.get("/reservations")
 def get_reservations(
-    current_user: dict = Depends(require_student_or_staff_group()),
+    current_user: dict[str, Any] = Depends(require_student_or_staff_group()),
     student_repo: StudentRepository = Depends(get_student_repository),
     reservation_repo: ReservationRepository = Depends(get_reservation_repository),
     instructor_repo: InstructorRepository = Depends(get_instructor_repository),
     class_repo: ClassRepository = Depends(get_class_repository),
     status_filter: str | None = Query(None, description="Filter by status"),
-):
+) -> JSONResponse:
     """Return reservations for students or assigned classes for staff."""
     role = get_user_role(current_user)
-    user_id = current_user.get("sub")
+    user_id = current_user.get("sub") or ""
 
     try:
         if role == "student":
@@ -299,9 +305,9 @@ def get_reservations(
                 reservations = [r for r in reservations if r.status == status_filter]
 
             # Enrich each reservation with class details and cancellation policy
-            items = []
+            items: list[dict[str, Any]] = []
             for r in reservations:
-                item_data: dict = {
+                item_data: dict[str, Any] = {
                     "reservation_id": r.reservation_id,
                     "student_id": r.student_id,
                     "class_id": r.class_id,
@@ -368,11 +374,11 @@ def get_reservations(
 @router.delete("/reservations/{class_id}")
 def cancel_reservation(
     class_id: str,
-    current_user: dict = Depends(require_student_or_staff_group()),
+    current_user: dict[str, Any] = Depends(require_student_or_staff_group()),
     student_repo: StudentRepository = Depends(get_student_repository),
     reservation_repo: ReservationRepository = Depends(get_reservation_repository),
     class_repo: ClassRepository = Depends(get_class_repository),
-):
+) -> JSONResponse:
     """Cancel the calling student's reservation for a given class.
 
     Enforces 2-hour cancellation policy: students cannot cancel
@@ -481,11 +487,11 @@ def cancel_reservation(
 @router.get("/classes/{class_id}")
 def get_class_detail(
     class_id: str,
-    current_user: dict = Depends(require_student_or_staff_group()),
+    current_user: dict[str, Any] = Depends(require_student_or_staff_group()),
     student_repo: StudentRepository = Depends(get_student_repository),
     class_repo: ClassRepository = Depends(get_class_repository),
     reservation_repo: ReservationRepository = Depends(get_reservation_repository),
-):
+) -> JSONResponse:
     """Return class details with instructor and enrolled classmates.
 
     Privacy: students only see first names and last initial of classmates.
@@ -497,12 +503,12 @@ def get_class_detail(
 
     reservations, _ = reservation_repo.list_for_class(class_id, limit=500)
 
-    confirmed = []
-    waitlisted = []
+    confirmed: list[dict[str, Any]] = []
+    waitlisted: list[dict[str, Any]] = []
     for r in reservations:
         if r.status not in ("confirmed", "waitlisted"):
             continue
-        attendee: dict = {"status": r.status}
+        attendee: dict[str, Any] = {"status": r.status}
         try:
             item = student_repo.get_item(f"STUDENT#{r.student_id}", "PROFILE")
             if item:
@@ -543,12 +549,12 @@ def get_class_detail(
 
 @router.get("/classes")
 def get_upcoming_classes(
-    current_user: dict = Depends(require_student_or_staff_group()),
+    current_user: dict[str, Any] = Depends(require_student_or_staff_group()),
     student_repo: StudentRepository = Depends(get_student_repository),
     class_repo: ClassRepository = Depends(get_class_repository),
     reservation_repo: ReservationRepository = Depends(get_reservation_repository),
     days: int = Query(default=7, ge=1, le=30, description="Days ahead to look"),
-):
+) -> JSONResponse:
     """List upcoming classes for the next N days with enrollment status.
 
     For students: includes whether they already have a reservation/waitlist.
@@ -580,10 +586,10 @@ def get_upcoming_classes(
         ]
 
         # Build response with enrollment status
-        items = []
+        items: list[dict[str, Any]] = []
         for c in active_classes:
             available_spots = max(0, c.capacity - c.reservations_count)
-            item_data: dict = {
+            item_data: dict[str, Any] = {
                 "class_id": c.class_id,
                 "class_type": c.class_type,
                 "class_date": c.class_date,
@@ -625,11 +631,11 @@ def get_upcoming_classes(
 @router.post("/reservations")
 def create_reservation(
     class_id: str = Query(..., description="Class ID to enroll in"),
-    current_user: dict = Depends(require_student_or_staff_group()),
+    current_user: dict[str, Any] = Depends(require_student_or_staff_group()),
     student_repo: StudentRepository = Depends(get_student_repository),
     class_repo: ClassRepository = Depends(get_class_repository),
     reservation_repo: ReservationRepository = Depends(get_reservation_repository),
-):
+) -> JSONResponse:
     """Student self-service: enroll in a class (or join waitlist if full)."""
     role = get_user_role(current_user)
 
@@ -751,10 +757,10 @@ def create_reservation(
 
 @router.get("/checkins")
 def get_checkins(
-    current_user: dict = Depends(require_student_or_staff_group()),
+    current_user: dict[str, Any] = Depends(require_student_or_staff_group()),
     student_repo: StudentRepository = Depends(get_student_repository),
     limit: int = Query(default=30, ge=1, le=100),
-):
+) -> JSONResponse:
     """Return the calling student's recent check-in history (staff returns empty list)."""
     role = get_user_role(current_user)
 
