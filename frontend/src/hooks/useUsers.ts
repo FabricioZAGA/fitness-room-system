@@ -38,7 +38,15 @@ export function useCreateUser(): UseMutationResult<CognitoUser, unknown, CreateU
           `Usuario creado pero el correo no se pudo entregar: la dirección ${user.email} ` +
             `está en la lista de supresión de SES por un rebote previo. ` +
             `Verifica la dirección o usa "Reenviar invitación" tras corregirla.`,
-          { duration: 12000 },
+          {
+            duration: 15000,
+            action: {
+              label: "Ver supresiones",
+              onClick: () => {
+                window.location.href = "/settings#email-health";
+              },
+            },
+          },
         );
       } else if (status === "failed") {
         toast.warning(
@@ -125,7 +133,15 @@ export function useResendInvite(): UseMutationResult<CognitoUser, unknown, strin
         toast.error(
           `El correo de ${user.email} está en la lista de supresión de SES (rebote previo). ` +
             `Verifica que la dirección sea correcta o contacta al usuario por otro medio.`,
-          { duration: 10000 },
+          {
+            duration: 15000,
+            action: {
+              label: "Ver supresiones",
+              onClick: () => {
+                window.location.href = "/settings#email-health";
+              },
+            },
+          },
         );
       } else {
         toast.error(

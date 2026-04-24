@@ -52,7 +52,10 @@ export function SuppressionCard(): React.JSX.Element {
   const count = data?.count ?? 0;
 
   return (
-    <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
+    <div
+      id="email-health"
+      className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6 scroll-mt-24"
+    >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

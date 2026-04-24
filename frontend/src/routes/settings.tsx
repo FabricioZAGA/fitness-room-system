@@ -448,39 +448,64 @@ function SettingsPage(): React.JSX.Element {
                   </p>
                 </div>
               ) : (
-                <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
-                  {recentNotifs.map((n: NotificationResponse) => (
-                    <div
-                      key={n.notification_id}
-                      className="flex items-center gap-3 rounded-xl bg-[--bg-muted] px-3 py-2.5"
-                    >
-                      {n.status === "sent" ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[--color-success]" />
-                      ) : (
-                        <XCircle className="h-3.5 w-3.5 shrink-0 text-[--color-danger]" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="truncate text-xs font-medium text-[--tx-primary]">
-                          {n.student_name ?? "—"} ·{" "}
-                          {NOTIFICATION_TYPE_LABELS[n.notification_type] ?? n.notification_type}
-                        </p>
-                        <p className="text-xs text-[--tx-disabled]">
-                          {new Date(n.sent_at).toLocaleString("es-MX", {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          })}
-                        </p>
+                <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+                  {recentNotifs.map((n: NotificationResponse) => {
+                    const isFailed = n.status === "failed";
+                    const err = n.error_message ?? "";
+                    const isSuppressed = /suppressed|supresión|supresion/i.test(err);
+                    const reasonLabel = isSuppressed
+                      ? err.toLowerCase().includes("complaint")
+                        ? "Reporte spam"
+                        : "Rebote (suprimido)"
+                      : err.split(/[\n:]/)[0]?.slice(0, 80) || "Error";
+                    return (
+                      <div
+                        key={n.notification_id}
+                        className="flex items-start gap-3 rounded-xl bg-[--bg-muted] px-3 py-2.5"
+                      >
+                        {n.status === "sent" ? (
+                          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[--color-success]" />
+                        ) : (
+                          <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[--color-danger]" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-xs font-medium text-[--tx-primary]">
+                            {n.student_name ?? n.recipient_email ?? "—"} ·{" "}
+                            {NOTIFICATION_TYPE_LABELS[n.notification_type] ?? n.notification_type}
+                          </p>
+                          <p className="text-xs text-[--tx-disabled]">
+                            {new Date(n.sent_at).toLocaleString("es-MX", {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })}
+                            {n.recipient_email && n.student_name && (
+                              <> · {n.recipient_email}</>
+                            )}
+                          </p>
+                          {isFailed && err && (
+                            <p
+                              className="mt-1 truncate text-xs text-[--color-danger]"
+                              title={err}
+                            >
+                              {reasonLabel}
+                              {isSuppressed && (
+                                <>
+                                  {" "}
+                                  ·{" "}
+                                  <a
+                                    href="#email-health"
+                                    className="underline hover:text-[--color-danger]/80"
+                                  >
+                                    Ver supresiones
+                                  </a>
+                                </>
+                              )}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      {n.status === "failed" && n.error_message && (
-                        <span
-                          className="shrink-0 rounded-full bg-[--color-danger-bg] px-2 py-0.5 text-[10px] text-[--color-danger]"
-                          title={n.error_message}
-                        >
-                          Error
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
