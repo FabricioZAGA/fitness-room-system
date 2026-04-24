@@ -88,7 +88,7 @@ class TestCancelReservation:
         )
         with patch("src.routers.reservations.ReservationService") as mock_svc_cls:
             mock_svc = MagicMock()
-            mock_svc.cancel_reservation.return_value = mock_response
+            mock_svc.cancel_reservation.return_value = (mock_response, None)
             mock_svc_cls.return_value = mock_svc
 
             response = client.delete(f"/api/v1/reservations/class/{class_id}/student/{student_id}")

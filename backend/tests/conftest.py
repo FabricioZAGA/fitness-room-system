@@ -74,7 +74,7 @@ def sample_student_create() -> dict:
         "last_name": "García",
         "email": "ana.garcia@test.com",
         "phone": "+52 55 1234 5678",
-        "status": "new",
+        "status": "active",
     }
 
 

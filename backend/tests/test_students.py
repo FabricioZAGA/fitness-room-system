@@ -19,7 +19,7 @@ def make_student_response(overrides: dict | None = None) -> StudentResponse:
         "last_name": "García",
         "email": "ana.garcia@test.com",
         "phone": "+52 55 1234 5678",
-        "status": StudentStatus.NEW,
+        "status": StudentStatus.ACTIVE,
         "notes": None,
         "created_at": datetime.now(UTC),
         "updated_at": datetime.now(UTC),
