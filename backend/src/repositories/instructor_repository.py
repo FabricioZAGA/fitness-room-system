@@ -9,7 +9,7 @@ from src.models.instructor import (
     InstructorUpdate,
 )
 from src.repositories.dynamo_repository import DynamoRepository
-from src.utils.exceptions import ResourceAlreadyExistsException, ResourceNotFoundException
+from src.utils.exceptions import ResourceNotFoundException
 
 
 class InstructorRepository(DynamoRepository):

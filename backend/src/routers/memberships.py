@@ -5,10 +5,15 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 
 from src.models.common import PaginatedResponse
-from src.models.membership import FreezeMembershipRequest, MembershipCreate, MembershipResponse, MembershipUpdate
-from src.services.membership_service import MembershipService
-from src.services.event_notifier import EventNotifier
+from src.models.membership import (
+    FreezeMembershipRequest,
+    MembershipCreate,
+    MembershipResponse,
+    MembershipUpdate,
+)
 from src.repositories.student_repository import StudentRepository
+from src.services.event_notifier import EventNotifier
+from src.services.membership_service import MembershipService
 from src.utils.auth import get_current_user
 
 router = APIRouter(prefix="/memberships", tags=["Memberships"])

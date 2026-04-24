@@ -5,7 +5,6 @@ from typing import Any
 from aws_lambda_powertools import Logger
 
 from src.models.inventory import (
-    ProductCategory,
     ProductCreate,
     ProductResponse,
     ProductSaleCreate,

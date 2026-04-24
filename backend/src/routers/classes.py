@@ -6,10 +6,10 @@ from fastapi import APIRouter, Depends, Query, status
 
 from src.models.class_model import ClassCreate, ClassResponse, ClassUpdate
 from src.models.common import MessageResponse, PaginatedResponse
-from src.services.class_service import ClassService
-from src.services.event_notifier import EventNotifier
 from src.repositories.reservation_repository import ReservationRepository
 from src.repositories.student_repository import StudentRepository
+from src.services.class_service import ClassService
+from src.services.event_notifier import EventNotifier
 from src.utils.auth import get_current_user
 
 router = APIRouter(prefix="/classes", tags=["Classes"])

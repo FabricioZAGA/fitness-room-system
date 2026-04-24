@@ -1,6 +1,6 @@
 """Reports router — business intelligence endpoints for gym management."""
 
-from datetime import date, timedelta
+from datetime import date
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query

@@ -11,7 +11,6 @@ logged at INFO level so the flow can be tested without SES credentials.
 """
 
 from datetime import date, timedelta
-from typing import Any
 
 import boto3
 from aws_lambda_powertools import Logger
@@ -23,8 +22,8 @@ from src.models.notification import (
     NotificationChannel,
     NotificationDynamoItem,
     NotificationResponse,
-    NotificationType,
     NotificationStatus,
+    NotificationType,
 )
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.notification_repository import NotificationRepository

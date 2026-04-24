@@ -18,7 +18,6 @@ In local mode, emails/SMS are **not** sent — they are logged at INFO level.
 
 from __future__ import annotations
 
-import base64
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -26,18 +25,17 @@ from typing import Any
 
 import boto3
 from aws_lambda_powertools import Logger
-from botocore.exceptions import ClientError
 
 from src.config import get_settings
 from src.models.notification import (
     NotificationChannel,
     NotificationDynamoItem,
-    NotificationResponse,
     NotificationStatus,
     NotificationType,
 )
 from src.repositories.instructor_repository import InstructorRepository
 from src.repositories.notification_repository import NotificationRepository
+from src.services.carta_responsiva import generate_carta_responsiva
 from src.services.email_templates import (
     admin_membership_expired_html,
     admin_new_student_html,
@@ -51,14 +49,13 @@ from src.services.email_templates import (
     membership_created_html,
     membership_frozen_html,
     membership_unfrozen_html,
+    portal_credentials_html,
     reservation_cancelled_html,
     reservation_confirmed_html,
     waitlist_joined_html,
     waitlist_promoted_html,
-    portal_credentials_html,
     welcome_carta_responsiva_html,
 )
-from src.services.carta_responsiva import generate_carta_responsiva
 
 logger = Logger()
 

@@ -15,7 +15,6 @@ from typing import Any
 
 from aws_lambda_powertools import Logger
 
-from src.models.checkin import CheckinDynamoItem
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.reservation_repository import ReservationRepository
 from src.repositories.student_repository import StudentRepository

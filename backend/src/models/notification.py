@@ -1,6 +1,6 @@
 """Notification models — email/SMS notification logs for gym management."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 from uuid import uuid4
@@ -147,7 +147,7 @@ class NotificationDynamoItem(BaseModel):
     ) -> "NotificationDynamoItem":
         """Factory — builds a new notification log item."""
         nid = str(uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         sent_at = now.isoformat()
         date_str = now.strftime("%Y-%m-%d")
         time_str = now.strftime("%H:%M:%S")
