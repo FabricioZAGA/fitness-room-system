@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useCallback } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -8,6 +9,8 @@ import Profile from './pages/Profile'
 import QR from './pages/QR'
 import Schedule from './pages/Schedule'
 import BottomNav from './components/BottomNav'
+import SessionExpiryModal from './components/SessionExpiryModal'
+import { useSessionExpiry } from './hooks/useSessionExpiry'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +44,47 @@ function ProtectedRoute({ children }: { children: React.ReactNode }): React.JSX.
   )
 }
 
+function SessionMonitor(): React.JSX.Element | null {
+  const { isAuthenticated, logout } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isDev = import.meta.env.DEV
+  const isLoginPage = location.pathname === '/login'
+
+  const handleExpired = useCallback(async () => {
+    await logout()
+    navigate('/login', { replace: true })
+  }, [logout, navigate])
+
+  const { status, secondsLeft, extend, dismiss } = useSessionExpiry({
+    enabled: isAuthenticated && !isLoginPage && !isDev,
+    onExpired: handleExpired,
+  })
+
+  const handleExtend = async (): Promise<boolean> => {
+    const ok = await extend()
+    if (!ok) {
+      await handleExpired()
+    }
+    return ok
+  }
+
+  const handleLogoutFromModal = async (): Promise<void> => {
+    dismiss()
+    await logout()
+    navigate('/login', { replace: true })
+  }
+
+  return (
+    <SessionExpiryModal
+      open={status === 'warning'}
+      secondsLeft={secondsLeft}
+      onExtend={handleExtend}
+      onLogout={handleLogoutFromModal}
+    />
+  )
+}
+
 export default function App(): React.JSX.Element {
   return (
     <ErrorBoundary>
@@ -55,6 +99,7 @@ export default function App(): React.JSX.Element {
               <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
+            <SessionMonitor />
           </BrowserRouter>
         </AuthProvider>
       </QueryClientProvider>

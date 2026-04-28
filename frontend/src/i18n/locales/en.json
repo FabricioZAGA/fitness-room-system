@@ -300,7 +300,25 @@
     "passwordRequirements": "Password must be at least 8 characters, include uppercase, lowercase and numbers.",
     "passwordMismatch": "Passwords don't match",
     "members": "Members",
-    "classesPerWeek": "Classes/week"
+    "classesPerWeek": "Classes/week",
+    "keepSession": "Keep me signed in on this browser",
+    "keepSessionHelp": "We won't ask you to sign in again while you use this device."
+  },
+  "session": {
+    "expiringTitle": "Your session is about to expire",
+    "expiringSubtitle": "For security we'll sign you out shortly. You can extend your session to keep working.",
+    "expiresIn": "Expires in",
+    "extend": "Stay signed in",
+    "logoutNow": "Sign out",
+    "dontAskAgain": "Don't ask again on this browser",
+    "dontAskAgainHelp": "We'll extend your session automatically on this device.",
+    "extending": "Extending...",
+    "extendFailed": "We couldn't extend your session. Please sign in again.",
+    "expiredToast": "Your session expired. Please sign in again.",
+    "forgetBrowser": "Forget this browser",
+    "forgetBrowserDesc": "Show the warning again when your session is about to expire on this device.",
+    "forgetBrowserDone": "Done. We'll warn you again before signing you out.",
+    "keepEnabled": "Auto-session is enabled on this browser"
   },
   "caja": {
     "subtitle": "Payment registration and cash cut",

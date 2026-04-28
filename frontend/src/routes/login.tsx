@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useAuth, type AuthStep } from "@/contexts/AuthContext";
 import { Dumbbell, Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, KeyRound, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { isKeepSessionEnabled, setKeepSession } from "@/lib/sessionPreferences";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -89,6 +90,7 @@ function LoginPage(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [localStep, setLocalStep] = useState<"login" | "forgotPassword" | "confirmReset">("login");
+  const [keepSession, setKeepSessionState] = useState<boolean>(() => isKeepSessionEnabled());
 
   const step: AuthStep | "forgotPassword" | "confirmReset" =
     authStep !== "login" ? authStep : localStep;
@@ -113,6 +115,7 @@ function LoginPage(): React.JSX.Element {
     setIsLoading(true);
     try {
       await login(email, password);
+      setKeepSession(keepSession);
       navigate({ to: "/" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión");
@@ -307,6 +310,22 @@ function LoginPage(): React.JSX.Element {
                   <PasswordInput id="password" value={password} onChange={setPassword}
                     placeholder="••••••••" show={showPassword} onToggle={() => setShowPassword(!showPassword)} />
                 </div>
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[--bd-subtle] px-4 py-3 transition-colors hover:bg-[--bg-muted]">
+                  <input
+                    type="checkbox"
+                    checked={keepSession}
+                    onChange={(e) => setKeepSessionState(e.target.checked)}
+                    className="mt-1 h-4 w-4 accent-[--gold]"
+                  />
+                  <div>
+                    <div className="text-sm font-medium text-[--tx-primary]">
+                      {t("login.keepSession")}
+                    </div>
+                    <div className="text-xs text-[--tx-muted]">
+                      {t("login.keepSessionHelp")}
+                    </div>
+                  </div>
+                </label>
                 <GoldButton type="submit" disabled={isLoading}>
                   {isLoading ? (
                     <span className="flex items-center justify-center gap-2">

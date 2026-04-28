@@ -1,6 +1,7 @@
 /** Settings / configuration page. */
 
 import { useState } from "react";
+import { isKeepSessionEnabled, setKeepSession } from "@/lib/sessionPreferences";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Building2,
@@ -120,6 +121,13 @@ function SettingsPage(): React.JSX.Element {
   const { i18n } = useTranslation();
   const gym = useGymStore();
   const [showChangelog, setShowChangelog] = useState(false);
+  const [keepSessionActive, setKeepSessionActive] = useState<boolean>(() => isKeepSessionEnabled());
+
+  const handleForgetBrowser = (): void => {
+    setKeepSession(false);
+    setKeepSessionActive(false);
+    toast.success(t("session.forgetBrowserDone"));
+  };
 
   // ── Gym info form ──────────────────────────────────────────────────
   const [gymForm, setGymForm] = useState<GymInfo>({
@@ -597,6 +605,29 @@ function SettingsPage(): React.JSX.Element {
               <ShieldCheck className="h-4 w-4" />
               {pwLoading ? "Guardando..." : "Cambiar contraseña"}
             </button>
+
+            <div className="mt-4 border-t border-[--bd-subtle] pt-4">
+              <p className="text-sm font-medium text-[--tx-primary]">
+                {t("session.forgetBrowser")}
+              </p>
+              <p className="mt-1 text-xs text-[--tx-muted]">
+                {t("session.forgetBrowserDesc")}
+              </p>
+              {keepSessionActive ? (
+                <button
+                  onClick={handleForgetBrowser}
+                  className="mt-3 flex items-center gap-2 rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  {t("session.forgetBrowser")}
+                </button>
+              ) : (
+                <p className="mt-3 inline-flex items-center gap-2 rounded-xl border border-[--bd-subtle] bg-[--bg-muted] px-3 py-2 text-xs text-[--tx-disabled]">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  {t("session.forgetBrowserDone")}
+                </p>
+              )}
+            </div>
           </div>
         </SettingSection>
 

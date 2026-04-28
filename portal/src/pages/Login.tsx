@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth, type AuthStep } from '../contexts/AuthContext'
 import { Container } from '../components'
+import { isKeepSessionEnabled, setKeepSession } from '../lib/sessionPreferences'
 
 const inputStyle: React.CSSProperties = {
   padding: '16px',
@@ -44,6 +45,7 @@ export default function Login(): React.JSX.Element {
   const [successMsg, setSuccessMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const [localStep, setLocalStep] = useState<'login' | 'forgotPassword' | 'confirmReset'>('login')
+  const [keepSession, setKeepSessionState] = useState<boolean>(() => isKeepSessionEnabled())
 
   const step: AuthStep | 'forgotPassword' | 'confirmReset' =
     authStep !== 'login' ? authStep : localStep
@@ -71,6 +73,7 @@ export default function Login(): React.JSX.Element {
     setLoading(true)
     try {
       await login(email, password)
+      setKeepSession(keepSession)
       navigate('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
@@ -216,6 +219,30 @@ export default function Login(): React.JSX.Element {
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, handleLogin)}
               autoComplete="current-password" required style={inputStyle} />
+            <label style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              padding: '12px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              cursor: 'pointer',
+            }}>
+              <input
+                type="checkbox"
+                checked={keepSession}
+                onChange={(e) => setKeepSessionState(e.target.checked)}
+                style={{ marginTop: '2px', accentColor: '#d4af37' }}
+              />
+              <div>
+                <div style={{ fontSize: '14px', color: '#fff', fontWeight: 500 }}>
+                  Mantener sesión iniciada en este navegador
+                </div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', marginTop: '2px' }}>
+                  No te pediremos iniciar sesión de nuevo mientras uses este equipo.
+                </div>
+              </div>
+            </label>
             <button onClick={handleLogin} disabled={loading || !email || !password}
               style={{ ...btnStyle, opacity: (loading || !email || !password) ? 0.5 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}>
               {loading ? 'Ingresando...' : 'Iniciar sesión'}

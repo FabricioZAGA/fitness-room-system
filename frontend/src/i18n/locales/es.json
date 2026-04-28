@@ -300,7 +300,25 @@
     "passwordRequirements": "La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números.",
     "passwordMismatch": "Las contraseñas no coinciden",
     "members": "Miembros",
-    "classesPerWeek": "Clases/semana"
+    "classesPerWeek": "Clases/semana",
+    "keepSession": "Mantener sesión iniciada en este navegador",
+    "keepSessionHelp": "No te pediremos iniciar sesión de nuevo mientras uses este equipo."
+  },
+  "session": {
+    "expiringTitle": "Tu sesión está por expirar",
+    "expiringSubtitle": "Por seguridad cerraremos tu sesión en unos momentos. Puedes extenderla para seguir trabajando.",
+    "expiresIn": "Expira en",
+    "extend": "Continuar sesión",
+    "logoutNow": "Cerrar sesión",
+    "dontAskAgain": "No volver a preguntar en este navegador",
+    "dontAskAgainHelp": "Mientras uses este equipo, extenderemos tu sesión automáticamente.",
+    "extending": "Extendiendo...",
+    "extendFailed": "No pudimos extender tu sesión. Vuelve a iniciar sesión.",
+    "expiredToast": "Tu sesión expiró. Inicia sesión de nuevo.",
+    "forgetBrowser": "Olvidar este navegador",
+    "forgetBrowserDesc": "Vuelve a mostrar la advertencia cuando tu sesión esté por expirar en este equipo.",
+    "forgetBrowserDone": "Listo. Volveremos a preguntarte antes de cerrar sesión.",
+    "keepEnabled": "Sesión automática activada en este navegador"
   },
   "caja": {
     "subtitle": "Registro de pagos y corte de caja",

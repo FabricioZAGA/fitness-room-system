@@ -5,6 +5,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.6.0] — 2026-04-28
+
+### Added
+- `useSessionExpiry` hook en admin y portal — decodifica el `exp` del idToken, poll cada 15s (y en `visibilitychange`), expone `status: "idle" | "warning" | "expired"` y `secondsLeft`
+- `SessionExpiryModal` en ambas apps — modal con countdown `M:SS`, botones **Continuar sesión** y **Cerrar sesión**
+- Checkbox "Mantener sesión iniciada en este navegador" en el login de admin y portal — guarda la preferencia en `localStorage`
+- Checkbox "No volver a preguntar en este navegador" dentro del modal — activa renovación silenciosa sin modal
+- Sección "Olvidar este navegador" en Configuración → Seguridad del admin para revertir la preferencia
+- Toast "Tu sesión expiró" (sonner) cuando el refresh falla o el usuario no responde al modal
+- Claves i18n `session.*` y `login.keepSession*` en `es.json` y `en.json`
+
+### Changed
+- `__root.tsx` ahora inyecta el `SessionExpiryModal` para rutas autenticadas y maneja logout-on-expired con redirección a `/login`
+- Portal `App.tsx` envuelve el `BrowserRouter` con un `SessionMonitor` que usa `react-router-dom` para navegar en expiración
+
+---
+
 ## [1.5.6] — 2026-04-24
 
 ### Added

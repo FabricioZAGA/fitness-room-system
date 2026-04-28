@@ -12,9 +12,21 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.5.6";
+export const APP_VERSION = "1.6.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.6.0",
+    date: "2026-04-28",
+    title: "Sesión extendible y modo \"mantener sesión\"",
+    items: [
+      { icon: "⏳", text: "Aviso automático 2 minutos antes de que expire tu sesión con countdown y opción de continuar" },
+      { icon: "🔐", text: "Checkbox \"Mantener sesión iniciada en este navegador\" en el login de admin y portal" },
+      { icon: "🤫", text: "Con la preferencia activa, renovamos tu sesión automáticamente sin interrumpirte" },
+      { icon: "🧹", text: "Opción en Configuración → Seguridad para olvidar el navegador y volver a pedir confirmación" },
+      { icon: "🔔", text: "Toast claro cuando la sesión expira sin acción, para evitar que te quedes \"colgado\" en pantalla" },
+    ],
+  },
   {
     version: "1.5.6",
     date: "2026-04-24",
