@@ -16,8 +16,8 @@ export const metadata: Metadata = {
   description: c.seo.description,
   keywords: [
     "gym", "gimnasio", c.location.city, c.location.state, "fitness",
-    "clases grupales", "membresías", "zumba", "yoga", "crossfit",
-    "spinning", "pilates", c.name,
+    "hyrox", "strong nation", "entrenamiento funcional",
+    "yoga", "mat", "zumba", "clases grupales", "membresías", c.name,
   ],
   authors: [{ name: c.name }],
   creator: c.name,
@@ -44,6 +44,14 @@ export const metadata: Metadata = {
   alternates: { canonical: `https://${c.seo.domain}` },
 };
 
+const socialUrls: readonly (string | null | undefined)[] = [
+  c.contact.instagramUrl,
+  c.contact.facebookUrl,
+];
+const sameAs: string[] = socialUrls.filter(
+  (v): v is string => typeof v === "string" && v.length > 0,
+);
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "HealthClub",
@@ -61,21 +69,12 @@ const jsonLd = {
     postalCode: c.location.zip,
     addressCountry: "MX",
   },
-  geo: {
-    "@type": "GeoCoordinates",
-    latitude: c.location.lat,
-    longitude: c.location.lng,
-  },
   openingHoursSpecification: [
-    { "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday"], opens: "06:00", closes: "22:00" },
-    { "@type": "OpeningHoursSpecification", dayOfWeek: "Saturday", opens: "07:00", closes: "14:00" },
-    { "@type": "OpeningHoursSpecification", dayOfWeek: "Sunday", opens: "08:00", closes: "13:00" },
+    { "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday"], opens: "08:00", closes: "10:00" },
+    { "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday"], opens: "19:00", closes: "21:00" },
+    { "@type": "OpeningHoursSpecification", dayOfWeek: "Saturday", opens: "08:00", closes: "10:00" },
   ],
-  sameAs: [
-    `https://www.instagram.com/${c.contact.instagram}`,
-    `https://www.facebook.com/${c.contact.facebook}`,
-    `https://www.tiktok.com/@${c.contact.tiktok}`,
-  ],
+  sameAs,
   priceRange: "$$",
 };
 

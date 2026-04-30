@@ -26,17 +26,13 @@ from src.models.common import TimestampedModel, new_id, utc_now
 
 
 class MembershipType(StrEnum):
-    """Available membership plan types."""
+    """Available membership plan types (Fitness Room León)."""
 
-    FOUNDER_MONTHLY = "founder_monthly"
-    MONTHLY = "monthly"
-    QUARTERLY = "quarterly"
-    SEMI_ANNUAL = "semi_annual"
-    ANNUAL = "annual"
-    CLASS_PACK_5 = "class_pack_5"
-    CLASS_PACK_10 = "class_pack_10"
-    CLASS_PACK_20 = "class_pack_20"
-    DAY_PASS = "day_pass"
+    FOUNDER = "founder"            # Socio Fundador — $950 — 1 sesión/día L-S (AGOTADO)
+    ROOM_DAILY = "room_daily"      # Room Daily — $1,300 — 1 sesión/día L-S
+    ROOM_ELITE = "room_elite"      # Room Elite — $1,600 — ilimitado L-S
+    ROOM_FLEX = "room_flex"        # Room Flex — $1,150 — 12 sesiones/mes
+    ROOM_PASS = "room_pass"        # Room Pass — $150 — 1 sesión mismo día
 
 
 class MembershipStatus(StrEnum):
@@ -76,15 +72,10 @@ class MembershipCreate(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_class_pack_total(self) -> "MembershipCreate":
-        """Require classes_total for class pack memberships."""
-        is_class_pack = self.membership_type in (
-            MembershipType.CLASS_PACK_5,
-            MembershipType.CLASS_PACK_10,
-            MembershipType.CLASS_PACK_20,
-        )
-        if is_class_pack and self.classes_total is None:
-            raise ValueError("classes_total is required for class pack memberships")
+    def validate_session_pack_total(self) -> "MembershipCreate":
+        """Require classes_total for session-based packs (Room Flex)."""
+        if self.membership_type == MembershipType.ROOM_FLEX and self.classes_total is None:
+            raise ValueError("classes_total is required for Room Flex memberships")
         return self
 
 
@@ -169,12 +160,8 @@ class MembershipDynamoItem(BaseModel):
         status = MembershipStatus.ACTIVE.value
         membership_type = data.membership_type.value
 
-        is_class_pack = data.membership_type in (
-            MembershipType.CLASS_PACK_5,
-            MembershipType.CLASS_PACK_10,
-            MembershipType.CLASS_PACK_20,
-        )
-        classes_remaining = data.classes_total if is_class_pack else None
+        is_session_pack = data.membership_type == MembershipType.ROOM_FLEX
+        classes_remaining = data.classes_total if is_session_pack else None
 
         return cls(
             PK=f"STUDENT#{data.student_id}",

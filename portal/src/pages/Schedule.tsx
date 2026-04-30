@@ -7,14 +7,13 @@ import { Container, Card, PageHeader, LoadingState } from '../components'
 const isDev = import.meta.env.DEV
 
 const CLASS_TYPE_LABELS: Record<string, string> = {
+  hyrox: 'Hyrox',
+  strong_nation: 'Strong Nation',
+  entrenamiento_funcional: 'Entrenamiento Funcional',
   yoga: 'Yoga',
-  pilates: 'Pilates',
+  mat: 'Mat',
   zumba: 'Zumba',
-  spinning: 'Spinning',
-  cross_training: 'Cross Training',
-  boxing: 'Box',
-  functional: 'Funcional',
-  stretching: 'Estiramiento',
+  other: 'Otra',
 }
 
 const mockClasses: UpcomingClass[] = [
@@ -36,7 +35,7 @@ const mockClasses: UpcomingClass[] = [
   },
   {
     class_id: 'class-2',
-    class_type: 'spinning',
+    class_type: 'entrenamiento_funcional',
     class_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     start_time: '18:30',
     duration_minutes: 45,

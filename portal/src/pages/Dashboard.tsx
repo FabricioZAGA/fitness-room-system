@@ -7,6 +7,24 @@ import { Container, Card, Button, LoadingState, ErrorState } from '../components
 
 const isDev = import.meta.env.DEV
 
+const MEMBERSHIP_TYPE_LABELS: Record<string, string> = {
+  founder: 'Socio Fundador',
+  room_daily: 'Room Daily',
+  room_elite: 'Room Elite',
+  room_flex: 'Room Flex',
+  room_pass: 'Room Pass',
+  // Legacy (hasta que la migración termine)
+  monthly: 'Mensual',
+  quarterly: 'Trimestral',
+  semi_annual: 'Semestral',
+  annual: 'Anual',
+  founder_monthly: 'Fundador (Mensual)',
+  class_pack_5: 'Pack 5 Clases',
+  class_pack_10: 'Pack 10 Clases',
+  class_pack_20: 'Pack 20 Clases',
+  day_pass: 'Pase de Día',
+}
+
 // Mock data for development
 const mockProfile: Profile = {
   role: 'student',
@@ -25,11 +43,11 @@ const mockMembership: MembershipResponse = {
   membership: {
     membership_id: 'mem-dev-001',
     student_id: 'dev-student-001',
-    membership_type: 'monthly',
+    membership_type: 'room_daily',
     status: 'active',
     start_date: '2024-04-01',
     end_date: '2024-04-30',
-    price_paid: 799,
+    price_paid: 1300,
     days_until_expiry: 18,
     classes_remaining: null,
   },
@@ -267,7 +285,7 @@ export default function Dashboard(): React.JSX.Element {
               >
                 <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 4px 0' }}>Tipo</p>
                 <p style={{ fontSize: '16px', fontWeight: 600, color: '#ffffff', margin: 0 }}>
-                  {membershipData.membership_type}
+                  {MEMBERSHIP_TYPE_LABELS[membershipData.membership_type] ?? membershipData.membership_type}
                 </p>
               </div>
               <div

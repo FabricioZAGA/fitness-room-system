@@ -3,6 +3,7 @@
 from datetime import date
 from typing import Any
 
+from aws_lambda_powertools import Logger
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
@@ -15,6 +16,8 @@ from src.repositories.instructor_repository import InstructorRepository
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.student_repository import StudentRepository
 from src.utils.auth import get_current_user
+
+logger = Logger()
 
 router = APIRouter(prefix="/stats", tags=["Stats"])
 
@@ -48,7 +51,12 @@ class DashboardStats(BaseModel):
 def get_dashboard_stats(
     _current_user: dict[str, Any] = Depends(get_current_user),
 ) -> DashboardStats:
-    """Fetch all dashboard stats in one request."""
+    """Fetch all dashboard stats in one request.
+
+    Each data source is wrapped in its own try/except so a partial failure
+    (e.g. one corrupt membership row) returns a degraded payload instead of
+    a blank 500 error that would leave the dashboard empty.
+    """
     today = date.today().isoformat()
 
     student_repo = StudentRepository()
@@ -56,37 +64,57 @@ def get_dashboard_stats(
     instructor_repo = InstructorRepository()
     membership_repo = MembershipRepository()
 
-    # Active students count
-    active_students_items, _ = student_repo.list_all(
-        status=StudentStatus.ACTIVE, limit=500
-    )
-    active_students = len(active_students_items)
+    def _safe(section: str, fn):  # type: ignore[no-untyped-def]
+        try:
+            return fn()
+        except Exception:  # noqa: BLE001
+            logger.exception("stats: %s failed", section)
+            return None
 
-    # Today's classes count
-    today_classes_items, _ = class_repo.list_by_date(class_date=today, limit=50)
-    today_classes = len(today_classes_items)
+    active_students = _safe(
+        "active_students",
+        lambda: len(student_repo.list_all(status=StudentStatus.ACTIVE, limit=500)[0]),
+    ) or 0
 
-    # Active instructors count
-    active_instructor_items, _ = instructor_repo.list_by_status(
-        status=InstructorStatus.ACTIVE, limit=100
-    )
-    active_instructors = len(active_instructor_items)
+    today_classes = _safe(
+        "today_classes",
+        lambda: len(class_repo.list_by_date(class_date=today, limit=50)[0]),
+    ) or 0
 
-    # Upcoming classes (next 5) - get all and filter for future dates
-    all_classes_items, _ = class_repo.list_all(limit=100, scan_index_forward=True)
-    upcoming_classes = []
-    for cls in all_classes_items:
-        if cls.class_date >= today and not cls.is_cancelled:
-            upcoming_classes.append(cls.to_response())
-            if len(upcoming_classes) >= 5:
-                break
+    active_instructors = _safe(
+        "active_instructors",
+        lambda: len(
+            instructor_repo.list_by_status(status=InstructorStatus.ACTIVE, limit=100)[0]
+        ),
+    ) or 0
 
-    # Expiring memberships in 7 days
-    expiring_items, _ = membership_repo.list_expiring_soon(days=7)
-    expiring_memberships_7d = len(expiring_items)
+    # Upcoming classes (next 5) — skip individual rows that fail to serialize
+    upcoming_classes: list[ClassResponse] = []
+    try:
+        all_classes_items, _ = class_repo.list_all(limit=100, scan_index_forward=True)
+        for cls in all_classes_items:
+            try:
+                if cls.class_date >= today and not cls.is_cancelled:
+                    upcoming_classes.append(cls.to_response())
+                    if len(upcoming_classes) >= 5:
+                        break
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "stats: skipping class %s", getattr(cls, "class_id", "?")
+                )
+    except Exception:  # noqa: BLE001
+        logger.exception("stats: upcoming_classes failed")
 
-    # Build student name map for expiring memberships
-    student_ids = list({m.student_id for m in expiring_items})
+    # Expiring memberships in 7 days — also skip bad rows individually
+    expiring_items_raw: list[Any] = []
+    try:
+        expiring_items_raw, _ = membership_repo.list_expiring_soon(days=7)
+    except Exception:  # noqa: BLE001
+        logger.exception("stats: list_expiring_soon failed")
+
+    expiring_memberships_7d = len(expiring_items_raw)
+
+    student_ids = list({m.student_id for m in expiring_items_raw})
     student_name_map: dict[str, str] = {}
     for sid in student_ids:
         try:
@@ -95,13 +123,20 @@ def get_dashboard_stats(
         except Exception:  # noqa: BLE001
             student_name_map[sid] = sid[:8] + "…"
 
-    expiring_memberships = [
-        MembershipWithStudent(
-            **m.to_response().model_dump(),
-            student_name=student_name_map.get(m.student_id, ""),
-        )
-        for m in expiring_items
-    ]
+    expiring_memberships: list[MembershipWithStudent] = []
+    for m in expiring_items_raw:
+        try:
+            expiring_memberships.append(
+                MembershipWithStudent(
+                    **m.to_response().model_dump(),
+                    student_name=student_name_map.get(m.student_id, ""),
+                )
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "stats: skipping membership %s",
+                getattr(m, "membership_id", "?"),
+            )
 
     return DashboardStats(
         active_students=active_students,

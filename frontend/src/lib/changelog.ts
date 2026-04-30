@@ -12,9 +12,22 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.6.0";
+export const APP_VERSION = "1.7.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.7.0",
+    date: "2026-04-29",
+    title: "Nuevo catálogo de planes y clases de Fitness Room León",
+    items: [
+      { icon: "💳", text: "Planes actualizados: Socio Fundador, Room Daily, Room Elite, Room Flex y Room Pass con precios sugeridos" },
+      { icon: "🏋️", text: "Clases actualizadas: Hyrox, Strong Nation, Entrenamiento Funcional, Yoga, Mat y Zumba" },
+      { icon: "💰", text: "Caja ya no permite cobrar membresías directo — se registran automáticamente al asignar la membresía desde el alumno" },
+      { icon: "🛟", text: "Dashboard más resistente: si una fuente de datos falla, el resto sigue cargando y muestras un botón Reintentar" },
+      { icon: "🔔", text: "Mensajes de error visibles al crear/actualizar/reabastecer productos" },
+      { icon: "🌐", text: "Landing pública renovada con la info real del studio: León, horarios, planes reales y contacto" },
+    ],
+  },
   {
     version: "1.6.0",
     date: "2026-04-28",

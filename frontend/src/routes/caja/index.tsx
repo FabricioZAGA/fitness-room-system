@@ -54,12 +54,14 @@ function CajaPage(): React.JSX.Element {
   const [showCutConfirm, setShowCutConfirm] = useState(false);
   const [cutNotes, setCutNotes] = useState("");
 
-  // Which "tab" is active in the register modal
-  const [registerType, setRegisterType] = useState<TransactionType>("membership");
+  // Which "tab" is active in the register modal.
+  // Memberships/packs are created via "Nueva membresía" (auto-records transaction here),
+  // so Caja only exposes product sales and miscellaneous "other" payments.
+  const [registerType, setRegisterType] = useState<TransactionType>("product");
   // Standard transaction form
   const [form, setForm] = useState<Partial<CreateTransactionRequest>>({
     payment_method: "cash",
-    transaction_type: "membership",
+    transaction_type: "other",
   });
   // Product sale form
   const [productForm, setProductForm] = useState<ProductSaleForm>({
@@ -97,8 +99,8 @@ function CajaPage(): React.JSX.Element {
       student_id: form.student_id,
       notes: form.notes,
     });
-    setForm({ payment_method: "cash", transaction_type: "membership" });
-    setRegisterType("membership");
+    setForm({ payment_method: "cash", transaction_type: "other" });
+    setRegisterType("product");
     setShowRegister(false);
   };
 
@@ -110,7 +112,7 @@ function CajaPage(): React.JSX.Element {
       payment_method: productForm.payment_method,
     });
     setProductForm({ product_id: "", quantity: 1, payment_method: "cash" });
-    setRegisterType("membership");
+    setRegisterType("product");
     setShowRegister(false);
   };
 
@@ -243,9 +245,9 @@ function CajaPage(): React.JSX.Element {
           >
             <h2 className="mb-4 text-xl font-bold text-[--tx-primary]">{t("caja.registerPayment")}</h2>
 
-            {/* Type selector tabs */}
+            {/* Type selector tabs — memberships get auto-recorded from "Nueva Membresía" */}
             <div className="mb-5 flex rounded-xl border border-[--bd-default] bg-[--bg-muted] p-1">
-              {(["membership", "class_pack", "product", "other"] as TransactionType[]).map((t) => (
+              {(["product", "other"] as TransactionType[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => {
@@ -326,8 +328,8 @@ function CajaPage(): React.JSX.Element {
               <button
                 onClick={() => {
                   setShowRegister(false);
-                  setRegisterType("membership");
-                  setForm({ payment_method: "cash", transaction_type: "membership" });
+                  setRegisterType("product");
+                  setForm({ payment_method: "cash", transaction_type: "other" });
                   setProductForm({ product_id: "", quantity: 1, payment_method: "cash" });
                 }}
                 className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] transition-all hover:bg-[--bg-muted]"

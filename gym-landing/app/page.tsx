@@ -1,8 +1,8 @@
 import { GYM_CONFIG } from "@/lib/config";
 import {
   Phone, MapPin, Clock, Camera,
-  Dumbbell, Star, Check, ArrowRight, Mail,
-  MessageCircle, Calendar, Users, Shield, Sparkles,
+  Star, Check, ArrowRight, Mail,
+  MessageCircle, Users, Shield, Sparkles,
 } from "lucide-react";
 
 const c = GYM_CONFIG;
@@ -10,17 +10,17 @@ const waLink = `https://wa.me/${c.contact.whatsapp}?text=${encodeURIComponent(`H
 
 /* ── DATA ── */
 const SOCIAL_PROOF = [
-  { value: "500+", label: "Miembros activos" },
-  { value: "4.9", label: "Calificación Google" },
-  { value: "6", label: "Disciplinas" },
-  { value: "3+", label: "Años operando" },
+  { value: c.socialProof.members, label: "Miembros activos" },
+  { value: c.socialProof.googleRating, label: "Calificación Google" },
+  { value: c.socialProof.disciplines, label: "Disciplinas" },
+  { value: c.socialProof.yearsOperating, label: "Operando" },
 ];
 
 const BENEFITS = [
   { icon: Shield, title: "Sin contratos", desc: "Cancela cuando quieras. Sin letra chica ni permanencias." },
-  { icon: Users, title: "Comunidad real", desc: "Más de 500 miembros que te motivan cada día." },
-  { icon: Sparkles, title: "Equipamiento premium", desc: "Equipo de última generación renovado constantemente." },
-  { icon: Clock, title: "Horarios flexibles", desc: "Abiertos desde las 6 AM para que entrenes a tu ritmo." },
+  { icon: Users, title: "Comunidad real", desc: "Entrena acompañado — tu futuro físico se construye en equipo." },
+  { icon: Sparkles, title: "Resultados en 15 días", desc: "Entrenamiento guiado y efectivo desde la primera sesión." },
+  { icon: Clock, title: "Horarios pensados para ti", desc: "Mañana y tarde, de lunes a sábado." },
 ];
 
 export default function GymLanding() {
@@ -47,24 +47,22 @@ export default function GymLanding() {
             ))}
           </div>
           <a href={waLink} target="_blank" rel="noopener noreferrer" className="btn-gold !py-2.5 !px-5 !text-[13px]">
-            Clase gratis
+            Pide informes
           </a>
         </div>
       </nav>
 
-      {/* ═══ HERO — CTA above the fold + social proof ═══ */}
+      {/* ═══ HERO ═══ */}
       <section className="relative overflow-hidden">
-        {/* Layered BG */}
         <div className="absolute inset-0">
           <img src={c.images.hero} alt={c.name} className="h-full w-full object-cover" />
           <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(10,10,11,0.55) 0%, rgba(10,10,11,0.75) 40%, rgba(10,10,11,0.92) 70%, var(--bg) 100%)" }} />
         </div>
 
         <div className="relative z-10 mx-auto max-w-3xl px-6 pb-20 pt-24 text-center sm:pb-28 sm:pt-32">
-          {/* Urgency badge */}
           <div className="animate-fade-up mb-6 inline-flex items-center gap-2 rounded-full border border-[--gold-bd] bg-[--gold-bg] px-4 py-1.5 text-[13px] font-medium text-[--gold]">
             <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-[--gold]" style={{ animation: "pulse-dot 2s infinite" }} /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[--gold]" /></span>
-            Primera clase totalmente gratis
+            Agenda tu primera sesión
           </div>
 
           <h1 className="animate-fade-up text-[clamp(2.2rem,6vw,3.8rem)] font-extrabold leading-[1.12] tracking-[-0.02em] text-[--text]" style={{ animationDelay: "0.08s" }}>
@@ -74,20 +72,18 @@ export default function GymLanding() {
           </h1>
 
           <p className="animate-fade-up mx-auto mt-5 max-w-xl text-[17px] leading-relaxed text-[--text-secondary]" style={{ animationDelay: "0.16s" }}>
-            Clases grupales, coaches certificados y la mejor comunidad fitness de {c.location.city}. Desde <span className="font-semibold text-[--gold]">$799/mes</span>.
+            Entrenamiento guiado, efectivo y enfocado en resultados reales desde los primeros 15 días. Planes desde <span className="font-semibold text-[--gold]">$150</span>.
           </p>
 
-          {/* CTAs — above the fold */}
           <div className="animate-fade-up mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center" style={{ animationDelay: "0.24s" }}>
             <a href={waLink} target="_blank" rel="noopener noreferrer" className="btn-gold w-full sm:w-auto">
-              <MessageCircle size={17} /> Agendar clase gratis
+              <MessageCircle size={17} /> Pide informes por WhatsApp
             </a>
             <a href="#planes" className="btn-ghost w-full sm:w-auto">
               Ver planes <ArrowRight size={15} />
             </a>
           </div>
 
-          {/* Social proof strip — immediately after CTA */}
           <div className="animate-fade-up mt-14 grid grid-cols-2 gap-4 sm:grid-cols-4" style={{ animationDelay: "0.36s" }}>
             {SOCIAL_PROOF.map((s) => (
               <div key={s.label} className="rounded-2xl bg-[--surface]/50 px-4 py-4 backdrop-blur-sm">
@@ -99,7 +95,7 @@ export default function GymLanding() {
         </div>
       </section>
 
-      {/* ═══ BENEFITS — Concrete value props ═══ */}
+      {/* ═══ BENEFITS ═══ */}
       <section id="beneficios" className="px-6 py-24">
         <div className="mx-auto max-w-6xl">
           <div className="text-center">
@@ -124,7 +120,7 @@ export default function GymLanding() {
 
       <div className="spacer my-4" />
 
-      {/* ═══ ABOUT — Story with image ═══ */}
+      {/* ═══ ABOUT ═══ */}
       <section className="px-6 py-24">
         <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-2">
           <div className="group overflow-hidden rounded-[var(--r-xl)]">
@@ -133,12 +129,13 @@ export default function GymLanding() {
           <div>
             <p className="section-label">Nuestra historia</p>
             <h2 className="text-[clamp(1.6rem,3.5vw,2.4rem)] font-bold leading-tight text-[--text]">
-              Más que un gym, una comunidad que te impulsa
+              Más que un gym, un compromiso con tu futuro físico
             </h2>
             <p className="mt-5 text-[15px] leading-[1.75] text-[--text-secondary]">
-              En {c.name} creemos que cada persona merece un espacio donde sentirse bienvenida.
-              Nuestros coaches certificados te acompañan en cada paso — ya sea tu primera clase
-              o tu récord personal. Llevamos más de 3 años transformando vidas en {c.location.city}.
+              En {c.name} creemos que lo que haces hoy construye tu futuro físico. Nuestro
+              entrenamiento es guiado, efectivo y está diseñado para mostrar resultados reales desde
+              los primeros 15 días. Aquí no se trata solo de hacer ejercicio — se trata de
+              construirte a ti mismo, día con día, en {c.location.city}.
             </p>
             <a href={waLink} target="_blank" rel="noopener noreferrer" className="btn-gold mt-8">
               Conoce nuestras instalaciones
@@ -158,54 +155,31 @@ export default function GymLanding() {
               Encuentra tu actividad ideal
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-[15px] text-[--text-secondary]">
-              Desde energía pura hasta calma total. Hay una clase para ti.
+              Horarios y cupos se consultan directamente en el studio. Escríbenos por WhatsApp para más info.
             </p>
           </div>
           <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {c.classes.map((cls) => (
-              <div key={cls.name} className="card group flex items-start gap-5 p-5">
+              <div key={cls.name} className="card group flex items-center gap-5 p-5">
                 <span className="shrink-0 text-3xl">{cls.emoji}</span>
                 <div className="min-w-0">
                   <h3 className="text-[15px] font-semibold text-[--text]">{cls.name}</h3>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[--text-muted]">
-                    <span className="flex items-center gap-1"><Clock size={12} className="text-[--gold]" /> {cls.time}</span>
-                    <span className="flex items-center gap-1"><Calendar size={12} className="text-[--gold]" /> {cls.days}</span>
-                  </div>
+                  <p className="mt-1 text-[12px] text-[--text-muted]">Pide informes</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ═══ TRAINERS ═══ */}
-      <section className="px-6 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="text-center">
-            <p className="section-label">Nuestro equipo</p>
-            <h2 className="text-[clamp(1.8rem,4vw,2.8rem)] font-bold tracking-tight text-[--text]">
-              Coaches que inspiran resultados
-            </h2>
-          </div>
-          <div className="mt-14 grid gap-5 sm:grid-cols-3">
-            {c.trainers.map((t) => (
-              <div key={t.name} className="card group overflow-hidden">
-                <div className="aspect-[3/4] overflow-hidden">
-                  <img src={t.image} alt={t.name} className="img-cover" loading="lazy" />
-                </div>
-                <div className="p-5">
-                  <h3 className="text-[15px] font-semibold text-[--text]">{t.name}</h3>
-                  <p className="text-[13px] text-[--gold]">{t.specialty}</p>
-                </div>
-              </div>
-            ))}
+          <div className="mt-10 text-center">
+            <a href={waLink} target="_blank" rel="noopener noreferrer" className="btn-ghost">
+              <MessageCircle size={15} /> Consulta horarios
+            </a>
           </div>
         </div>
       </section>
 
       {/* ═══ PLANS ═══ */}
       <section id="planes" className="px-6 py-24">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-6xl">
           <div className="text-center">
             <p className="section-label">Membresías</p>
             <h2 className="text-[clamp(1.8rem,4vw,2.8rem)] font-bold tracking-tight text-[--text]">
@@ -213,13 +187,14 @@ export default function GymLanding() {
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-[15px] text-[--text-secondary]">Sin contratos, sin cuota de inscripción. Cancela cuando quieras.</p>
           </div>
-          <div className="mt-14 grid gap-5 lg:grid-cols-3">
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {c.plans.map((plan) => {
               const isHl = plan.highlight;
+              const isSoldOut = plan.soldOut;
               return (
                 <div
                   key={plan.name}
-                  className={`relative flex flex-col rounded-[var(--r-xl)] p-7 transition-all ${isHl ? "bg-[--elevated]" : "card"}`}
+                  className={`relative flex flex-col rounded-[var(--r-xl)] p-7 transition-all ${isHl ? "bg-[--elevated]" : "card"} ${isSoldOut ? "opacity-75" : ""}`}
                   style={isHl ? { boxShadow: "0 0 60px rgba(196,163,79,0.05), 0 0 0 1px rgba(196,163,79,0.1)" } : undefined}
                 >
                   {isHl && (
@@ -229,7 +204,17 @@ export default function GymLanding() {
                       </span>
                     </div>
                   )}
+                  {isSoldOut && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="rounded-full border border-[--text-muted] bg-[--surface] px-3.5 py-1 text-[11px] font-semibold text-[--text-secondary]">
+                        AGOTADO
+                      </span>
+                    </div>
+                  )}
                   <h3 className="text-lg font-semibold text-[--text]">{plan.name}</h3>
+                  {plan.tagline && (
+                    <p className="mt-1 text-[12px] text-[--gold]">{plan.tagline}</p>
+                  )}
                   <div className="mt-3 mb-5">
                     <span className="text-3xl font-extrabold text-[--text]">{plan.price}</span>
                     {plan.period && <span className="text-[13px] text-[--text-muted]">{plan.period}</span>}
@@ -241,14 +226,24 @@ export default function GymLanding() {
                       </li>
                     ))}
                   </ul>
-                  <a
-                    href={waLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={isHl ? "btn-gold w-full justify-center" : "btn-ghost w-full justify-center"}
-                  >
-                    Inscribirme
-                  </a>
+                  {isSoldOut ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="btn-ghost w-full justify-center !cursor-not-allowed !opacity-60"
+                    >
+                      No disponible
+                    </button>
+                  ) : (
+                    <a
+                      href={waLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={isHl ? "btn-gold w-full justify-center" : "btn-ghost w-full justify-center"}
+                    >
+                      Pedir informes
+                    </a>
+                  )}
                 </div>
               );
             })}
@@ -262,7 +257,7 @@ export default function GymLanding() {
       <section id="horarios" className="px-6 py-24">
         <div className="mx-auto max-w-3xl text-center">
           <p className="section-label justify-center">Horarios</p>
-          <h2 className="text-[clamp(1.8rem,4vw,2.8rem)] font-bold tracking-tight text-[--text]">Siempre abiertos para ti</h2>
+          <h2 className="text-[clamp(1.8rem,4vw,2.8rem)] font-bold tracking-tight text-[--text]">Estamos cuando tú estás</h2>
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {[
               { day: "Lunes a Viernes", hours: c.schedule.weekdays },
@@ -288,7 +283,11 @@ export default function GymLanding() {
           <div className="mt-14 grid items-start gap-10 lg:grid-cols-2">
             <div className="space-y-6">
               {[
-                { icon: MapPin, main: c.location.address, sub: `${c.location.city}, ${c.location.state} ${c.location.zip}` },
+                {
+                  icon: MapPin,
+                  main: c.location.address,
+                  sub: `${c.location.neighborhood} · ${c.location.city}, ${c.location.state} ${c.location.zip}`,
+                },
                 { icon: Phone, main: c.contact.phone, sub: "Llámanos o envíanos WhatsApp" },
                 { icon: Mail, main: c.contact.email, sub: "Escríbenos para más info" },
               ].map((item) => (
@@ -302,23 +301,38 @@ export default function GymLanding() {
                   </div>
                 </div>
               ))}
+              <a
+                href={c.location.googleMapsShortUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-ghost"
+              >
+                <MapPin size={15} /> Abrir en Google Maps
+              </a>
               {/* Social */}
               <div className="flex gap-2.5 pt-2">
-                {c.contact.instagram && (
-                  <a href={`https://instagram.com/${c.contact.instagram}`} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-lg bg-[--surface] text-[--text-muted] transition-all hover:text-[--gold]">
+                {c.contact.instagramUrl && (
+                  <a href={c.contact.instagramUrl} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-lg bg-[--surface] text-[--text-muted] transition-all hover:text-[--gold]" aria-label="Instagram">
                     <Camera size={17} />
                   </a>
                 )}
-                {c.contact.tiktok && (
-                  <a href={`https://tiktok.com/@${c.contact.tiktok}`} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-lg bg-[--surface] text-[--text-muted] transition-all hover:text-[--gold]">
-                    <Dumbbell size={17} />
+                {c.contact.facebookUrl && (
+                  <a
+                    href={c.contact.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-10 items-center justify-center gap-1.5 rounded-lg bg-[--surface] px-3 text-[13px] font-semibold text-[--text-muted] transition-all hover:text-[--gold]"
+                    aria-label="Facebook"
+                  >
+                    <span aria-hidden="true" className="text-[15px] leading-none">f</span>
+                    <span className="text-[11px]">Facebook</span>
                   </a>
                 )}
               </div>
             </div>
             <div className="overflow-hidden rounded-[var(--r-xl)]">
               <iframe
-                src={c.location.googleMapsUrl}
+                src={c.location.googleMapsEmbedUrl}
                 width="100%"
                 height="380"
                 style={{ border: 0, filter: "invert(0.92) hue-rotate(180deg) brightness(0.75) contrast(1.3) saturate(0.3)" }}
@@ -341,14 +355,14 @@ export default function GymLanding() {
         <div className="relative z-10 mx-auto max-w-2xl text-center">
           <p className="section-label justify-center">Da el primer paso</p>
           <h2 className="text-[clamp(1.8rem,5vw,3rem)] font-bold tracking-tight text-[--text]">
-            Tu primera clase es <span className="text-[--gold-vivid]">gratis</span>
+            Empieza hoy, tu futuro te lo <span className="text-[--gold-vivid]">agradecerá</span>
           </h2>
           <p className="mt-4 text-[16px] leading-relaxed text-[--text-secondary]">
-            Ven a conocernos. Sin compromiso, sin presión. Solo tú y tu mejor versión.
+            Ven a conocernos. Pide informes y reserva tu lugar. Tu mejor versión empieza en el primer entreno.
           </p>
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <a href={waLink} target="_blank" rel="noopener noreferrer" className="btn-gold w-full sm:w-auto">
-              <MessageCircle size={17} /> Agendar clase gratis
+              <MessageCircle size={17} /> Pide informes
             </a>
             <a href={`tel:${c.contact.phone.replace(/\s/g, "")}`} className="btn-ghost w-full sm:w-auto">
               <Phone size={16} /> Llamar ahora
@@ -370,11 +384,22 @@ export default function GymLanding() {
             © {new Date().getFullYear()} {c.name}. Todos los derechos reservados.
           </p>
           <div className="flex gap-3">
-            {c.contact.instagram && (
-              <a href={`https://instagram.com/${c.contact.instagram}`} target="_blank" rel="noopener noreferrer" className="text-[--text-muted] transition-colors hover:text-[--gold]"><Camera size={16} /></a>
+            {c.contact.instagramUrl && (
+              <a href={c.contact.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-[--text-muted] transition-colors hover:text-[--gold]" aria-label="Instagram"><Camera size={16} /></a>
             )}
-            <a href={`mailto:${c.contact.email}`} className="text-[--text-muted] transition-colors hover:text-[--gold]"><Mail size={16} /></a>
-            <a href={waLink} target="_blank" rel="noopener noreferrer" className="text-[--text-muted] transition-colors hover:text-[--gold]"><MessageCircle size={16} /></a>
+            {c.contact.facebookUrl && (
+              <a
+                href={c.contact.facebookUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[--text-muted] transition-colors hover:text-[--gold]"
+                aria-label="Facebook"
+              >
+                <span aria-hidden="true" className="text-[14px] font-bold leading-none">f</span>
+              </a>
+            )}
+            <a href={`mailto:${c.contact.email}`} className="text-[--text-muted] transition-colors hover:text-[--gold]" aria-label="Email"><Mail size={16} /></a>
+            <a href={waLink} target="_blank" rel="noopener noreferrer" className="text-[--text-muted] transition-colors hover:text-[--gold]" aria-label="WhatsApp"><MessageCircle size={16} /></a>
           </div>
         </div>
       </footer>

@@ -63,9 +63,50 @@ function ListSkeleton({ rows = 3 }: { rows?: number }): React.JSX.Element {
 
 function DashboardPage(): React.JSX.Element {
   const { t } = useTranslation();
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    isError: statsError,
+    refetch: refetchStats,
+  } = useDashboardStats();
   const { data: rankings = [], isLoading: rankingsLoading } = useRankings({ limit: 5, days: 30 });
   const { data: todaySummary, isLoading: summaryLoading } = useTodaySummary();
+
+  if (statsError) {
+    return (
+      <div className="min-h-screen bg-[--bg-base] p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-[--tx-primary]">{t("dashboard.welcome")}</h1>
+          <p className="mt-1 text-[--tx-muted]">{t("dashboard.subtitle")}</p>
+        </div>
+        <div
+          className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-[--color-danger-bd] p-10 text-center"
+          style={{ background: "var(--color-danger-bg)" }}
+        >
+          <AlertTriangle className="h-10 w-10" style={{ color: "var(--color-danger)" }} />
+          <div>
+            <h2 className="text-lg font-semibold text-[--tx-primary]">
+              No pudimos cargar el dashboard
+            </h2>
+            <p className="mt-1 text-sm text-[--tx-muted]">
+              Revisa tu conexión e intenta de nuevo. Si el problema persiste, avísale al equipo.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { void refetchStats(); }}
+            className="rounded-xl px-5 py-2.5 text-sm font-semibold"
+            style={{
+              background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+              color: "var(--gold-fg)",
+            }}
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const activeStudents = stats?.active_students ?? 0;
   const todayClasses = stats?.today_classes ?? 0;

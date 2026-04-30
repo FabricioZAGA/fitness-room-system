@@ -63,12 +63,8 @@ class MembershipService:
 
         # Auto-record transaction so income appears in Caja/Reports immediately.
         if data.price_paid > 0:
-            is_class_pack = data.membership_type in (
-                MembershipType.CLASS_PACK_5,
-                MembershipType.CLASS_PACK_10,
-                MembershipType.CLASS_PACK_20,
-            )
-            tx_type = TransactionType.CLASS_PACK if is_class_pack else TransactionType.MEMBERSHIP
+            is_session_pack = data.membership_type == MembershipType.ROOM_FLEX
+            tx_type = TransactionType.CLASS_PACK if is_session_pack else TransactionType.MEMBERSHIP
 
             try:
                 payment_method = PaymentMethod(data.payment_method)

@@ -22,14 +22,14 @@ from src.models.common import TimestampedModel, new_id, utc_now
 
 
 class ClassType(StrEnum):
-    """Available fitness class types."""
+    """Available fitness class types (Fitness Room León catalog)."""
 
-    ZUMBA = "zumba"
-    STRONG = "strong"
+    HYROX = "hyrox"
+    STRONG_NATION = "strong_nation"
+    ENTRENAMIENTO_FUNCIONAL = "entrenamiento_funcional"
     YOGA = "yoga"
-    HIIT = "hiit"
-    PILATES = "pilates"
-    CYCLING = "cycling"
+    MAT = "mat"
+    ZUMBA = "zumba"
     OTHER = "other"
 
 

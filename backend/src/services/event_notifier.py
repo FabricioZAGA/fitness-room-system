@@ -79,10 +79,18 @@ class SuppressedRecipientError(Exception):
         )
 
 MEMBERSHIP_TYPE_LABELS: dict[str, str] = {
+    # Current catalog
+    "founder": "Socio Fundador",
+    "room_daily": "Room Daily",
+    "room_elite": "Room Elite",
+    "room_flex": "Room Flex",
+    "room_pass": "Room Pass",
+    # Legacy labels kept for historical memberships until data migration clears them.
     "monthly": "Mensual",
     "quarterly": "Trimestral",
     "semi_annual": "Semestral",
     "annual": "Anual",
+    "founder_monthly": "Fundador (Mensual)",
     "class_pack_5": "Pack 5 Clases",
     "class_pack_10": "Pack 10 Clases",
     "class_pack_20": "Pack 20 Clases",

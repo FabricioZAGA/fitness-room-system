@@ -1,12 +1,12 @@
 /** TypeScript types for the Class entity — mirrors backend Pydantic models. */
 
 export type ClassType =
-  | "zumba"
-  | "strong"
+  | "hyrox"
+  | "strong_nation"
+  | "entrenamiento_funcional"
   | "yoga"
-  | "hiit"
-  | "pilates"
-  | "cycling"
+  | "mat"
+  | "zumba"
   | "other";
 
 export type ClassMode = "presencial" | "virtual";
@@ -94,21 +94,21 @@ export interface ClassAttendees {
 }
 
 export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
-  zumba: "Zumba",
-  strong: "STRONG",
+  hyrox: "Hyrox",
+  strong_nation: "Strong Nation",
+  entrenamiento_funcional: "Entrenamiento Funcional",
   yoga: "Yoga",
-  hiit: "HIIT",
-  pilates: "Pilates",
-  cycling: "Cycling",
+  mat: "Mat",
+  zumba: "Zumba",
   other: "Otra",
 };
 
 export const CLASS_TYPE_COLORS: Record<ClassType, string> = {
-  zumba: "bg-[--color-info-bg] text-[--color-info] border-[--color-info-bd]",
-  strong: "bg-[--color-danger-bg] text-[--color-danger] border-[--color-danger-bd]",
+  hyrox: "bg-[--color-danger-bg] text-[--color-danger] border-[--color-danger-bd]",
+  strong_nation: "bg-[--color-warning-bg] text-[--color-warning] border-[--color-warning-bd]",
+  entrenamiento_funcional: "bg-[--color-primary-bg] text-[--color-primary] border-[--color-primary-bd]",
   yoga: "bg-[--color-success-bg] text-[--color-success] border-[--color-success-bd]",
-  hiit: "bg-[--color-warning-bg] text-[--color-warning] border-[--color-warning-bd]",
-  pilates: "bg-[--color-primary-bg] text-[--color-primary] border-[--color-primary-bd]",
-  cycling: "bg-[--color-warning-bg] text-[--color-warning] border-[--color-warning-bd]",
+  mat: "bg-[--color-info-bg] text-[--color-info] border-[--color-info-bd]",
+  zumba: "bg-[--color-info-bg] text-[--color-info] border-[--color-info-bd]",
   other: "bg-[--tx-disabled-bg] text-[--tx-disabled] border-[--tx-disabled-bd]",
 };

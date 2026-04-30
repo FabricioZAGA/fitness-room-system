@@ -5,7 +5,7 @@ import { Dialog } from "./Dialog";
 import { useAssignMembership } from "@/hooks/useMemberships";
 import { useStudents } from "@/hooks/useStudents";
 import type { CreateMembershipRequest, MembershipType } from "@/types/membership";
-import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
+import { MEMBERSHIP_TYPE_LABELS, MEMBERSHIP_DEFAULT_PRICE } from "@/types/membership";
 import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
 
 interface CreateMembershipModalProps {
@@ -20,20 +20,21 @@ const MEMBERSHIP_TYPES = Object.entries(MEMBERSHIP_TYPE_LABELS) as [
   string,
 ][];
 
-const CLASS_PACKS = new Set<MembershipType>([
-  "class_pack_5",
-  "class_pack_10",
-  "class_pack_20",
-]);
+// Room Flex is session-based: user picks when to attend, we track classes_remaining.
+const SESSION_PACKS = new Set<MembershipType>(["room_flex"]);
 
-const CLASS_PACK_TOTALS: Partial<Record<MembershipType, number>> = {
-  class_pack_5: 5,
-  class_pack_10: 10,
-  class_pack_20: 20,
+const SESSION_PACK_TOTALS: Partial<Record<MembershipType, number>> = {
+  room_flex: 12,
 };
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function addDays(date: string, days: number): string {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 function addMonths(date: string, months: number): string {
@@ -42,21 +43,31 @@ function addMonths(date: string, months: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-const END_DATE_DEFAULTS: Partial<Record<MembershipType, string>> = {
-  founder_monthly: addMonths(todayStr(), 1),
-  monthly: addMonths(todayStr(), 1),
-  quarterly: addMonths(todayStr(), 3),
-  semi_annual: addMonths(todayStr(), 6),
-  annual: addMonths(todayStr(), 12),
-  day_pass: todayStr(),
-};
+/** End date defaults (from start_date). Keeps bookkeeping consistent with landing copy. */
+function endDateFor(type: MembershipType, startDate: string): string {
+  switch (type) {
+    case "room_pass":
+      // Same-day pass: end_date must be > start_date, so we give +1 day.
+      return addDays(startDate, 1);
+    case "room_flex":
+      // 12 sessions, no strict expiry — give 60 days so reports stay bounded.
+      return addMonths(startDate, 2);
+    case "founder":
+    case "room_daily":
+    case "room_elite":
+    default:
+      return addMonths(startDate, 1);
+  }
+}
+
+const DEFAULT_TYPE: MembershipType = "room_daily";
 
 const INITIAL_FORM = {
   student_id: "",
-  membership_type: "monthly" as MembershipType,
+  membership_type: DEFAULT_TYPE,
   start_date: todayStr(),
-  end_date: END_DATE_DEFAULTS["monthly"] ?? "",
-  price_paid: 0,
+  end_date: endDateFor(DEFAULT_TYPE, todayStr()),
+  price_paid: MEMBERSHIP_DEFAULT_PRICE[DEFAULT_TYPE],
   payment_method: "cash",
   classes_total: undefined as number | undefined,
   notes: "",
@@ -82,13 +93,14 @@ export function CreateMembershipModal({
 
       if (name === "membership_type") {
         const type = value as MembershipType;
-        next.end_date = END_DATE_DEFAULTS[type] ?? addMonths(prev.start_date, 1);
-        next.classes_total = CLASS_PACK_TOTALS[type];
+        next.end_date = endDateFor(type, prev.start_date);
+        next.classes_total = SESSION_PACK_TOTALS[type];
+        next.price_paid = MEMBERSHIP_DEFAULT_PRICE[type];
       }
 
       if (name === "start_date") {
         const type = prev.membership_type;
-        next.end_date = END_DATE_DEFAULTS[type] ?? addMonths(value, 1);
+        next.end_date = endDateFor(type, value);
       }
 
       return next;
@@ -115,7 +127,7 @@ export function CreateMembershipModal({
     });
   }
 
-  const isClassPack = CLASS_PACKS.has(form.membership_type);
+  const isSessionPack = SESSION_PACKS.has(form.membership_type);
 
   return (
     <Dialog
@@ -212,8 +224,8 @@ export function CreateMembershipModal({
           </Field>
         </div>
 
-        {isClassPack && (
-          <Field label="Total de clases">
+        {isSessionPack && (
+          <Field label="Total de sesiones">
             <input
               name="classes_total"
               type="number"

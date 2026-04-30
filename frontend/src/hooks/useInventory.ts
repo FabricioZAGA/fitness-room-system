@@ -16,6 +16,7 @@ import type {
   UpdateProductRequest,
 } from "@/types/inventory";
 import { inventoryService } from "@/services/inventoryService";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 export const PRODUCT_KEY = "products";
 export const SALE_KEY = "product-sales";
@@ -60,6 +61,10 @@ export function useCreateProduct(): UseMutationResult<
     mutationFn: (data) => inventoryService.createProduct(data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [PRODUCT_KEY] });
+      toast.success("Producto creado");
+    },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, "No pudimos crear el producto."));
     },
   });
 }
@@ -74,6 +79,10 @@ export function useUpdateProduct(): UseMutationResult<
     mutationFn: ({ productId, data }) => inventoryService.updateProduct(productId, data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [PRODUCT_KEY] });
+      toast.success("Producto actualizado");
+    },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, "No pudimos actualizar el producto."));
     },
   });
 }
@@ -89,6 +98,10 @@ export function useRestock(): UseMutationResult<
       inventoryService.restock(productId, quantity),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [PRODUCT_KEY] });
+      toast.success("Stock reabastecido");
+    },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, "No pudimos reabastecer el producto."));
     },
   });
 }
@@ -108,8 +121,8 @@ export function useSellProduct(): UseMutationResult<
       void qc.invalidateQueries({ queryKey: ["transactions"] });
       toast.success(`Venta registrada — ${sale.product_name ?? "Producto"} x${sale.quantity}`);
     },
-    onError: () => {
-      toast.error("Error al registrar la venta.");
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, "Error al registrar la venta."));
     },
   });
 }

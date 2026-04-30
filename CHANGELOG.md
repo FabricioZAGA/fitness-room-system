@@ -5,6 +5,30 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.7.0] — 2026-04-29
+
+### Added
+- `scripts/migrate_types.py` — idempotent DynamoDB migration para renombrar tipos viejos (`monthly`→`room_daily`, `class_pack_*`→`room_flex`, `pilates`→`mat`, etc.) con dry-run por defecto
+- `MEMBERSHIP_DEFAULT_PRICE` en `frontend/src/types/membership.ts` — el modal de Nueva Membresía precarga el precio sugerido al cambiar de plan
+- `scripts/migrate_types.py`, dashboard error boundary con botón Reintentar, y toast de error en creación/actualización/reabastecimiento de productos
+
+### Changed
+- `MembershipType` enum (backend + frontend + portal): `founder`, `room_daily`, `room_elite`, `room_flex`, `room_pass` — reemplaza el catálogo legacy de `monthly/quarterly/semi_annual/annual/founder_monthly/class_pack_5-10-20/day_pass`
+- `ClassType` enum: `hyrox`, `strong_nation`, `entrenamiento_funcional`, `yoga`, `mat`, `zumba` — reemplaza `strong/hiit/pilates/cycling`
+- `CreateMembershipModal` usa `endDateFor(type, start)` centralizado y precarga precio por plan; Room Flex muestra campo "Total de sesiones" (default 12)
+- `membership_service.assign_membership` — detección de session-pack vía `ROOM_FLEX` en lugar de class_pack_5/10/20
+- Caja (`frontend/src/routes/caja/index.tsx`) — el modal de "Registrar Pago" ya no expone los tipos `membership`/`class_pack`, solo `product` y `other`. Las membresías se cobran desde "Nueva Membresía" (que sigue auto-creando la transacción)
+- `stats` endpoint envuelve cada fuente de datos en try/except y skippea filas corruptas individualmente con logs explícitos
+- `gym-landing/lib/config.ts` + `app/page.tsx` — copy completo actualizado a Fitness Room León: nuevo tagline, 5 planes reales (con tag AGOTADO para Socio Fundador), 6 clases sin horarios, removida la sección de Coaches, horarios matutino/vespertino, dirección real, teléfonos reales, Instagram y Facebook (sin TikTok), "Desde 2002"
+- `MEMBERSHIP_TYPE_LABELS` en `event_notifier` y `notification_service` conservan etiquetas legacy para correos históricos mientras la migración completa el reemplazo
+
+### Fixed
+- Dashboard ya no se queda en blanco si una fuente falla — muestra UI de error con botón Reintentar y el backend degrada el payload en lugar de 500ear
+- Crear/actualizar/reabastecer productos ahora muestra toast con el detalle del error en lugar de fallar silenciosamente
+- Portal `Schedule.tsx` mock y label map alineados con backend (antes usaban tipos inventados como `spinning/cross_training`)
+
+---
+
 ## [1.6.0] — 2026-04-28
 
 ### Added
