@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.7.2] — 2026-05-01
+
+### Changed
+- `carta_responsiva.py` — refinados los textos del bloque legal: "Correo registrado" sustituye a "Correo verificado" (no hacemos verificación real de email), "Firmante (alumno)" y "Emisor (contraparte)" son más explícitos, y el footer centrado ahora muestra "Emitido por {gym_name} · {gym_email}" en vez del correo del alumno
+- `generate_carta_responsiva` acepta un nuevo parámetro `gym_email` (default `contacto@fitnessroom.mx`) que se incorpora al bloque "Emisor" y al footer
+- `EventNotifier.notify_portal_credentials` acepta parámetro `audience` (`admin` / `staff` / `student`) — ajusta el subject a "Panel de Administración" o "Panel del Staff" cuando corresponde, en lugar de decir "Portal de Alumnos" para todos
+- `POST /api/v1/users` pasa `audience=data.group` para que los correos de invitación a admins/staff tengan el título correcto
+
+---
+
 ## [1.7.1] — 2026-05-01
 
 ### Fixed

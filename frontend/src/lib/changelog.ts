@@ -12,9 +12,19 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.7.1";
+export const APP_VERSION = "1.7.2";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.7.2",
+    date: "2026-05-01",
+    title: "Carta responsiva afinada y correo de acceso según rol",
+    items: [
+      { icon: "📝", text: "Bloque legal de la carta responsiva con textos más precisos — 'Correo registrado' en lugar de 'verificado', etiquetas 'Firmante (alumno)' y 'Emisor (contraparte)'" },
+      { icon: "📧", text: "Footer del PDF ahora muestra el correo del gym (contacto@fitnessroom.mx), no el del alumno" },
+      { icon: "🔐", text: "Invitación a admins/staff ya no dice 'Portal de Alumnos' — usa el título correcto según el rol" },
+    ],
+  },
   {
     version: "1.7.1",
     date: "2026-05-01",

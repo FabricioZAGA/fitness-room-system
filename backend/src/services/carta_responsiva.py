@@ -99,6 +99,7 @@ def generate_carta_responsiva(
     student_email: str,
     gym_name: str = "Fitness Room",
     gym_address: str = "",
+    gym_email: str = "contacto@fitnessroom.mx",
     sign_date: date | None = None,
     signed_at: datetime | None = None,
 ) -> bytes:
@@ -106,9 +107,10 @@ def generate_carta_responsiva(
 
     Args:
         student_name: Full name of the student.
-        student_email: Email of the student (shown as digital ID).
-        gym_name: Name of the gym / business.
+        student_email: Email where this document was delivered.
+        gym_name: Name of the gym / business (issuer).
         gym_address: Physical address of the gym.
+        gym_email: Contact email for the gym (shown as the issuer in the footer).
         sign_date: Civil date shown in the preamble. Defaults to today.
         signed_at: UTC timestamp recorded in the legal block. Defaults to now.
 
@@ -422,21 +424,29 @@ def generate_carta_responsiva(
         spaceAfter=2 * mm, spaceBefore=0,
     ))
 
+    contraparte = gym_name
+    contraparte_detail_parts: list[str] = []
+    if gym_address:
+        contraparte_detail_parts.append(gym_address)
+    if gym_email:
+        contraparte_detail_parts.append(gym_email)
+    if contraparte_detail_parts:
+        contraparte = f"{gym_name} · " + " · ".join(contraparte_detail_parts)
+
     legal_lines = [
         (
-            "<b>Documento firmado electrónicamente.</b> Este acuerdo fue "
-            "aceptado por ambas partes mediante firma electrónica simple, "
-            "con plena validez jurídica en los términos de los artículos "
+            "<b>Documento firmado electrónicamente.</b> Ambas partes aceptan "
+            "el contenido de este acuerdo mediante firma electrónica simple, "
+            "con plena validez y eficacia jurídica conforme a los artículos "
             "89 a 114 del Código de Comercio, el artículo 1803 del Código "
             "Civil Federal y la Ley de Firma Electrónica Avanzada."
         ),
         (
-            f"<b>Firmante:</b> {student_name} · "
-            f"<b>Correo verificado:</b> {student_email}"
+            f"<b>Firmante (alumno):</b> {student_name} · "
+            f"<b>Correo registrado:</b> {student_email}"
         ),
         (
-            f"<b>Contraparte:</b> {gym_name}"
-            + (f" · {gym_address}" if gym_address else "")
+            f"<b>Emisor (contraparte):</b> {contraparte}"
         ),
         (
             f"<b>Fecha y hora de firma (UTC):</b> {signed_iso} · "
@@ -448,8 +458,8 @@ def generate_carta_responsiva(
         ),
         (
             "La huella permite verificar que el contenido del documento no "
-            "ha sido alterado desde su firma. Cualquier cambio, por mínimo "
-            "que sea, producirá una huella distinta."
+            "ha sido alterado desde su firma: cualquier cambio en el texto, "
+            "por mínimo que sea, produce una huella distinta."
         ),
     ]
     for line in legal_lines:
@@ -457,7 +467,7 @@ def generate_carta_responsiva(
 
     story.append(Spacer(1, 2 * mm))
     story.append(Paragraph(
-        f"Documento firmado electrónicamente · {student_email} · "
+        f"Emitido por {gym_name} · {gym_email} · "
         f"{_format_date_es(sign_date)}",
         small_style,
     ))

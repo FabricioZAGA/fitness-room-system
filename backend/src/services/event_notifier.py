@@ -503,8 +503,12 @@ class EventNotifier:
         student_email: str,
         password: str,
         portal_url: str = "https://portal.fitnessroom.mx",
+        audience: str = "student",
     ) -> dict[str, str]:
-        """Send portal access credentials to a newly registered user.
+        """Send portal/admin access credentials to a newly registered user.
+
+        ``audience`` tailors the subject line: "admin" / "staff" receive the
+        panel wording; everyone else gets the student portal wording.
 
         Returns a delivery status dict so callers can surface failures to the UI:
             {"status": "sent" | "suppressed" | "failed", "detail": str}
@@ -516,11 +520,17 @@ class EventNotifier:
             portal_url=portal_url,
             gym_name=self._gym,
         )
+        audience_labels = {
+            "admin": "Panel de Administración",
+            "staff": "Panel del Staff",
+            "student": "Portal de Alumnos",
+        }
+        audience_label = audience_labels.get(audience, audience_labels["student"])
         sms = (
-            f"{self._gym}: Tu acceso al portal de alumnos — "
+            f"{self._gym}: Tu acceso al {audience_label.lower()} — "
             f"Entra a {portal_url} con {student_email} / {password}"
         )
-        subject = f"🔐 Acceso al Portal de Alumnos — {self._gym}"
+        subject = f"🔐 Acceso al {audience_label} — {self._gym}"
 
         if self._settings.is_local:
             self._dispatch(

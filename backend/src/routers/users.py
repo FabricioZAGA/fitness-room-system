@@ -115,6 +115,7 @@ def create_user(
             student_email=data.email,
             password=password,
             portal_url=portal_url,
+            audience=data.group,
         )
     except Exception as exc:  # defensive — notifier already catches internal errors
         logger.exception("Failed to send credentials email", extra={"email": data.email})
