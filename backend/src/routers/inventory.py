@@ -68,6 +68,21 @@ def low_stock_alert(
     return service.get_low_stock()
 
 
+@router.post(
+    "/products/low-stock/notify",
+    summary="Send Low Stock Alert Emails",
+    description=(
+        "Send the low-stock alert email to every admin for each product "
+        "currently at or below its threshold. Returns a per-product summary."
+    ),
+)
+def notify_low_stock(
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: InventoryService = Depends(get_service),
+) -> dict[str, Any]:
+    return service.notify_low_stock()
+
+
 @router.get(
     "/products/{product_id}",
     response_model=ProductResponse,

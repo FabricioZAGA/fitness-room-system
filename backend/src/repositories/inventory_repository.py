@@ -69,7 +69,8 @@ class InventoryRepository(DynamoRepository):
         if data.description is not None:
             updates["description"] = data.description
         if data.price is not None:
-            updates["price"] = str(data.price)
+            # Keep as float; DynamoRepository.update_item converts to Decimal.
+            updates["price"] = data.price
         if data.stock is not None:
             updates["stock"] = data.stock
         if data.low_stock_threshold is not None:

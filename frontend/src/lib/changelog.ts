@@ -12,9 +12,21 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.7.0";
+export const APP_VERSION = "1.7.1";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.7.1",
+    date: "2026-05-01",
+    title: "Inventario arreglado — crear, vender y notificar stock bajo",
+    items: [
+      { icon: "🐛", text: "Arreglado el 500 que impedía registrar productos (colisión con 'name' reservado de LogRecord)" },
+      { icon: "💾", text: "Update de producto ya no corrompe el precio (se guarda como número, no como texto)" },
+      { icon: "📧", text: "Botón 'Enviar alertas' en el banner de stock bajo — dispara los correos a los admins al instante" },
+      { icon: "✅", text: "Modal de nuevo producto muestra los errores del formulario y acepta Enter para enviar" },
+      { icon: "🧮", text: "Validación más estricta de precio (>0), stock (≥0) y nombre (≥2 chars) antes de mandar al backend" },
+    ],
+  },
   {
     version: "1.7.0",
     date: "2026-04-29",

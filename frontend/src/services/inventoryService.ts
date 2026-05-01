@@ -49,6 +49,15 @@ export const inventoryService = {
     return res.data;
   },
 
+  async notifyLowStock(): Promise<{
+    total_products: number;
+    emails_sent: number;
+    products_failed: number;
+  }> {
+    const res = await apiClient.post("/inventory/products/low-stock/notify");
+    return res.data;
+  },
+
   async sellProduct(data: CreateSaleRequest): Promise<ProductSale> {
     const res = await apiClient.post<ProductSale>("/inventory/sales", data);
     return res.data;

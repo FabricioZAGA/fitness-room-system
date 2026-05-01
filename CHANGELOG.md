@@ -5,6 +5,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.7.1] — 2026-05-01
+
+### Fixed
+- **Registrar productos ahora funciona.** `inventory_service.create_product` usaba `extra={"name": data.name}` en `logger.info`, y `name` es una clave reservada de Python `LogRecord` — eso lanzaba `KeyError` y el endpoint devolvía 500 silencioso. Renombrado a `product_name`. Este bug causó la queja del dueño "no me deja registrar productos" — en CloudWatch no hay ni un log porque el crash ocurría antes de que Powertools alcanzara a registrar la petición
+- `InventoryRepository.update_product` guardaba `price` como `str(value)` en DynamoDB, corrompiendo el tipo del atributo; ahora se pasa el float tal cual y el repo base se encarga de la conversión a `Decimal`
+- `DynamoRepository.update_item` ahora aplica `_floats_to_decimal` a todos los valores antes de mandarlos a DynamoDB (antes solo lo hacía `put_item`, lo cual causaba errores silenciosos en cualquier actualización con números)
+
+### Added
+- `POST /api/v1/inventory/products/low-stock/notify` — endpoint manual para disparar correos de stock bajo a los admins; útil como botón "Enviar alertas" en el banner de inventario
+- `useNotifyLowStock` hook en el frontend + botón "Enviar alertas" junto al banner amarillo cuando hay productos bajos
+- Validación visible en el modal de "Nuevo Producto" — lista los errores debajo del form, acepta Enter para enviar, `autoFocus` en el nombre
+- Logging más rico en `create_product` (categoría, precio, stock, product_id de salida)
+
+---
+
 ## [1.7.0] — 2026-04-29
 
 ### Added

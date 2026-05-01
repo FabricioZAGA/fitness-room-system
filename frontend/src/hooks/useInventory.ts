@@ -106,6 +106,28 @@ export function useRestock(): UseMutationResult<
   });
 }
 
+export function useNotifyLowStock(): UseMutationResult<
+  { total_products: number; emails_sent: number; products_failed: number },
+  Error,
+  void
+> {
+  return useMutation({
+    mutationFn: () => inventoryService.notifyLowStock(),
+    onSuccess: (data) => {
+      if (data.total_products === 0) {
+        toast.success("No hay productos con stock bajo — todo bien.");
+        return;
+      }
+      toast.success(
+        `Alertas enviadas: ${data.emails_sent} correos para ${data.total_products} producto(s).`,
+      );
+    },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, "No pudimos enviar las alertas de stock bajo."));
+    },
+  });
+}
+
 export function useSellProduct(): UseMutationResult<
   ProductSale,
   Error,

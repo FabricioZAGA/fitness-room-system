@@ -36,9 +36,34 @@ class InventoryService:
     # ------------------------------------------------------------------
 
     def create_product(self, data: ProductCreate) -> ProductResponse:
-        """Create a new product in the inventory."""
-        logger.info("Creating product", extra={"name": data.name})
-        item = self._inventory.create_product(data)
+        """Create a new product in the inventory.
+
+        Note: ``name`` is a reserved key in Python's ``LogRecord``; using it as
+        an ``extra`` field crashes ``logger.info`` with ``KeyError``. We use
+        ``product_name`` instead — this was the bug that produced 500s on
+        every create-product request before v1.7.1.
+        """
+        logger.info(
+            "Creating product",
+            extra={
+                "product_name": data.name,
+                "category": data.category.value,
+                "price": data.price,
+                "stock": data.stock,
+            },
+        )
+        try:
+            item = self._inventory.create_product(data)
+        except Exception:
+            logger.exception(
+                "Failed to create product",
+                extra={"product_name": data.name},
+            )
+            raise
+        logger.info(
+            "Product created",
+            extra={"product_id": item.product_id, "product_name": item.name},
+        )
         return item.to_response()
 
     def get_product(self, product_id: str) -> ProductResponse:
@@ -79,6 +104,58 @@ class InventoryService:
             for i in items
             if i.is_active and i.stock <= i.low_stock_threshold
         ]
+
+    def notify_low_stock(self) -> dict[str, Any]:
+        """Send a low-stock email to every admin for each product under threshold.
+
+        Useful as a manual "Enviar alertas" button in the UI. The automatic
+        check-at-sale path still runs; this covers the case where the owner
+        wants a digest on demand.
+        """
+        products = self.get_low_stock()
+        notification_service = NotificationService()
+
+        sent = 0
+        failed = 0
+        items: list[dict[str, Any]] = []
+        for product in products:
+            try:
+                results = notification_service.send_low_stock_alert(
+                    product_name=product.name,
+                    current_stock=product.stock,
+                    threshold=product.low_stock_threshold,
+                )
+                items.append(
+                    {
+                        "product_id": product.product_id,
+                        "product_name": product.name,
+                        "recipients": len(results),
+                        "status": "sent",
+                    }
+                )
+                sent += len(results)
+            except Exception as e:  # noqa: BLE001
+                logger.exception(
+                    "Failed low-stock notify",
+                    extra={"product_id": product.product_id},
+                )
+                items.append(
+                    {
+                        "product_id": product.product_id,
+                        "product_name": product.name,
+                        "recipients": 0,
+                        "status": "failed",
+                        "error": str(e),
+                    }
+                )
+                failed += 1
+
+        return {
+            "total_products": len(products),
+            "emails_sent": sent,
+            "products_failed": failed,
+            "items": items,
+        }
 
     # ------------------------------------------------------------------
     # Sales

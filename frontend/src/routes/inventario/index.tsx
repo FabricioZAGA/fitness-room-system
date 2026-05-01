@@ -15,6 +15,7 @@ import {
   useSellProduct,
   useRestock,
   useUpdateProduct,
+  useNotifyLowStock,
 } from "@/hooks/useInventory";
 import { formatCurrency } from "@/lib/utils";
 import type {
@@ -60,6 +61,7 @@ function InventarioPage(): React.JSX.Element {
   const sellMutation = useSellProduct();
   const restockMutation = useRestock();
   const updateMutation = useUpdateProduct();
+  const notifyLowStockMutation = useNotifyLowStock();
 
   const filtered = products.filter((p) =>
     search
@@ -70,11 +72,51 @@ function InventarioPage(): React.JSX.Element {
 
   const lowStock = filtered.filter((p) => p.is_low_stock && p.is_active);
 
+  const createErrors: string[] = [];
+  if (!createForm.name || createForm.name.trim().length < 2) {
+    createErrors.push("El nombre es obligatorio (mínimo 2 caracteres)");
+  }
+  if (
+    createForm.price === undefined ||
+    createForm.price === null ||
+    Number.isNaN(createForm.price) ||
+    createForm.price <= 0
+  ) {
+    createErrors.push("Ingresa un precio mayor a 0");
+  }
+  if (
+    createForm.stock === undefined ||
+    createForm.stock === null ||
+    Number.isNaN(createForm.stock) ||
+    createForm.stock < 0
+  ) {
+    createErrors.push("El stock debe ser 0 o más");
+  }
+  const createDisabled = createErrors.length > 0 || createMutation.isPending;
+
   const handleCreate = async () => {
-    if (!createForm.name || !createForm.price) return;
-    await createMutation.mutateAsync(createForm as CreateProductRequest);
-    setCreateForm({ category: "other", stock: 0, low_stock_threshold: 5 });
-    setShowCreate(false);
+    if (createDisabled) return;
+    // Normalize payload — strip empty strings so optional fields don't hit
+    // backend validators (min_length=2 on name, max_length on sku, etc.)
+    const payload: CreateProductRequest = {
+      name: (createForm.name ?? "").trim(),
+      price: Number(createForm.price),
+      stock: Number(createForm.stock ?? 0),
+      category: createForm.category ?? "other",
+      low_stock_threshold: Number(createForm.low_stock_threshold ?? 5),
+    };
+    const sku = (createForm.sku ?? "").trim();
+    if (sku) payload.sku = sku;
+    const description = (createForm.description ?? "").trim();
+    if (description) payload.description = description;
+
+    try {
+      await createMutation.mutateAsync(payload);
+      setCreateForm({ category: "other", stock: 0, low_stock_threshold: 5 });
+      setShowCreate(false);
+    } catch {
+      // useCreateProduct surfaces the API error via toast; keep the modal open.
+    }
   };
 
   const handleSell = async () => {
@@ -131,7 +173,7 @@ function InventarioPage(): React.JSX.Element {
       {lowStock.length > 0 && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[--color-warning-bd] bg-[--color-warning-bg] p-4">
           <AlertTriangle className="h-5 w-5 shrink-0 text-[--color-warning] mt-0.5" />
-          <div>
+          <div className="flex-1">
             <p className="text-sm font-semibold text-[--color-warning]">
               {t("inventario.lowStockAlert", { count: lowStock.length })}
             </p>
@@ -139,6 +181,14 @@ function InventarioPage(): React.JSX.Element {
               {lowStock.map((p) => p.name).join(", ")}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => notifyLowStockMutation.mutate()}
+            disabled={notifyLowStockMutation.isPending}
+            className="shrink-0 rounded-xl border border-[--color-warning-bd] bg-[--bg-surface] px-3 py-1.5 text-xs font-medium text-[--color-warning] transition-colors hover:bg-[--color-warning-bg] disabled:opacity-50"
+          >
+            {notifyLowStockMutation.isPending ? "Enviando..." : "Enviar alertas"}
+          </button>
         </div>
       )}
 
@@ -220,7 +270,11 @@ function InventarioPage(): React.JSX.Element {
       {/* Create product modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
+          <form
+            className="w-full max-w-md rounded-2xl border border-[--gold-bd] p-6 shadow-2xl"
+            style={{ backgroundColor: "var(--bg-elevated)" }}
+            onSubmit={(e) => { e.preventDefault(); void handleCreate(); }}
+          >
             <h2 className="mb-6 text-xl font-bold text-[--tx-primary]">{t("inventario.newProductTitle")}</h2>
             <div className="space-y-4">
               <div>
@@ -232,6 +286,7 @@ function InventarioPage(): React.JSX.Element {
                   placeholder="Proteína Whey, Agua, etc."
                   value={createForm.name ?? ""}
                   onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                  autoFocus
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -246,9 +301,13 @@ function InventarioPage(): React.JSX.Element {
                     className={inputCls}
                     placeholder="0.00"
                     value={createForm.price ?? ""}
-                    onChange={(e) =>
-                      setCreateForm((f) => ({ ...f, price: parseFloat(e.target.value) }))
-                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setCreateForm((f) => ({
+                        ...f,
+                        price: v === "" ? undefined : parseFloat(v),
+                      }));
+                    }}
                   />
                 </div>
                 <div>
@@ -260,9 +319,13 @@ function InventarioPage(): React.JSX.Element {
                     min="0"
                     className={inputCls}
                     value={createForm.stock ?? 0}
-                    onChange={(e) =>
-                      setCreateForm((f) => ({ ...f, stock: parseInt(e.target.value) }))
-                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setCreateForm((f) => ({
+                        ...f,
+                        stock: v === "" ? 0 : Math.max(0, parseInt(v) || 0),
+                      }));
+                    }}
                   />
                 </div>
               </div>
@@ -318,16 +381,24 @@ function InventarioPage(): React.JSX.Element {
                 />
               </div>
             </div>
+            {createErrors.length > 0 && (
+              <ul className="mt-4 space-y-1 rounded-xl border border-[--color-warning-bd] bg-[--color-warning-bg] p-3 text-xs text-[--color-warning]">
+                {createErrors.map((err) => (
+                  <li key={err}>• {err}</li>
+                ))}
+              </ul>
+            )}
             <div className="mt-6 flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowCreate(false)}
                 className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] hover:bg-[--bg-muted]"
               >
                 {t("common.cancel")}
               </button>
               <button
-                onClick={() => void handleCreate()}
-                disabled={!createForm.name || !createForm.price || createMutation.isPending}
+                type="submit"
+                disabled={createDisabled}
                 className="flex-1 rounded-xl py-3 text-sm font-semibold disabled:opacity-50"
                 style={{
                   background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
@@ -337,7 +408,7 @@ function InventarioPage(): React.JSX.Element {
                 {createMutation.isPending ? t("common.saving") : t("inventario.createProduct")}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 

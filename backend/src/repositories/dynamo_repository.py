@@ -72,7 +72,11 @@ class DynamoRepository:
         expression_attribute_names: dict[str, str] = {}
         expression_attribute_values: dict[str, Any] = {}
 
-        for key, value in updates.items():
+        # DynamoDB rejects Python floats — convert every numeric value to
+        # Decimal (recursively, in case callers pass dicts/lists of numbers).
+        converted_values = self._floats_to_decimal(updates)
+
+        for key, value in converted_values.items():
             safe_key = f"#attr_{key}"
             val_key = f":val_{key}"
             update_expression_parts.append(f"{safe_key} = {val_key}")

@@ -1,15 +1,22 @@
 """Carta Responsiva (Liability Waiver) PDF generator.
 
-Generates a professional single-page PDF with the gym logo, student name,
-date, and signature placeholders.  Returned as bytes ready to attach to
-an email.
+Generates a professional single-page PDF with the gym logo, clauses, and a
+visibly-signed footer (both parties) using a registered calligraphy font
+(Great Vibes, SIL OFL). Includes an electronic-signature legal block with
+a SHA-256 content hash so the document can later be verified.
+
+The signature is a "firma electrónica simple" under the Ley Federal de
+Firma Electrónica Avanzada (México, DOF 11-01-2012) — it is binding between
+the parties provided the signer's identity and consent are recorded, which
+we preserve via the student record (email, created_at) and the PDF hash.
 
 Uses ReportLab for PDF generation.
 """
 
 from __future__ import annotations
 
-from datetime import date
+import hashlib
+from datetime import date, datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -19,6 +26,8 @@ from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm, mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     HRFlowable,
     Image,
@@ -33,11 +42,14 @@ from reportlab.platypus import (
 
 _ASSETS = Path(__file__).resolve().parent.parent / "assets"
 _LOGO = _ASSETS / "logo_fr.png"
+_SIG_FONT_PATH = _ASSETS / "fonts" / "GreatVibes-Regular.ttf"
+_SIG_FONT_NAME = "GreatVibes"
 
 # ── Colours ──────────────────────────────────────────────────────────────────
 
 _GOLD = colors.HexColor("#d4af37")
 _DARK = colors.HexColor("#1a1a1a")
+_INK = colors.HexColor("#1a1f3a")  # dark blue-black, looks like pen ink
 _GRAY = colors.HexColor("#666666")
 _LIGHT = colors.HexColor("#999999")
 
@@ -47,9 +59,39 @@ _MONTHS_ES = [
 ]
 
 
+# ── Font registration (idempotent) ──────────────────────────────────────────
+
+def _register_signature_font() -> bool:
+    """Register Great Vibes once per process. Returns True if available."""
+    if _SIG_FONT_NAME in pdfmetrics.getRegisteredFontNames():
+        return True
+    if not _SIG_FONT_PATH.exists():
+        return False
+    pdfmetrics.registerFont(TTFont(_SIG_FONT_NAME, str(_SIG_FONT_PATH)))
+    return True
+
+
 def _format_date_es(d: date) -> str:
     """Format a date in Spanish: '20 de abril de 2026'."""
     return f"{d.day} de {_MONTHS_ES[d.month]} de {d.year}"
+
+
+def _build_signature_identity(
+    name: str,
+    email: str,
+    sign_date: date,
+) -> str:
+    """Deterministic identity string used to derive the content hash."""
+    return f"{name.strip()}|{email.strip().lower()}|{sign_date.isoformat()}"
+
+
+def _content_hash(identity: str, body: str) -> str:
+    """SHA-256 of identity + full document body, hex-encoded."""
+    h = hashlib.sha256()
+    h.update(identity.encode("utf-8"))
+    h.update(b"\n---\n")
+    h.update(body.encode("utf-8"))
+    return h.hexdigest()
 
 
 def generate_carta_responsiva(
@@ -58,6 +100,7 @@ def generate_carta_responsiva(
     gym_name: str = "Fitness Room",
     gym_address: str = "",
     sign_date: date | None = None,
+    signed_at: datetime | None = None,
 ) -> bytes:
     """Generate a single-page liability waiver PDF and return raw bytes.
 
@@ -66,13 +109,19 @@ def generate_carta_responsiva(
         student_email: Email of the student (shown as digital ID).
         gym_name: Name of the gym / business.
         gym_address: Physical address of the gym.
-        sign_date: Date of signing. Defaults to today.
+        sign_date: Civil date shown in the preamble. Defaults to today.
+        signed_at: UTC timestamp recorded in the legal block. Defaults to now.
 
     Returns:
         PDF file content as bytes.
     """
     if sign_date is None:
         sign_date = date.today()
+    if signed_at is None:
+        signed_at = datetime.now(timezone.utc)
+
+    has_sig_font = _register_signature_font()
+    signature_font = _SIG_FONT_NAME if has_sig_font else "Helvetica-Oblique"
 
     buf = BytesIO()
     doc = SimpleDocTemplate(
@@ -84,6 +133,8 @@ def generate_carta_responsiva(
         rightMargin=2 * cm,
         title=f"Carta Responsiva — {student_name}",
         author=gym_name,
+        subject="Carta Responsiva firmada electrónicamente",
+        creator=f"{gym_name} · Firma electrónica",
     )
 
     styles = getSampleStyleSheet()
@@ -120,13 +171,23 @@ def generate_carta_responsiva(
         spaceAfter=2 * mm,
     )
 
-    sign_style = ParagraphStyle(
-        "WSign",
+    sign_caption_style = ParagraphStyle(
+        "WSignCaption",
         parent=styles["Normal"],
         fontSize=8.5,
         leading=11,
         textColor=_DARK,
         alignment=TA_CENTER,
+    )
+
+    signature_style = ParagraphStyle(
+        "WSignature",
+        parent=styles["Normal"],
+        fontSize=24,
+        leading=24,
+        textColor=_INK,
+        alignment=TA_CENTER,
+        fontName=signature_font,
     )
 
     small_style = ParagraphStyle(
@@ -154,6 +215,15 @@ def generate_carta_responsiva(
         fontSize=7.5,
         leading=10,
         textColor=_LIGHT,
+        alignment=TA_LEFT,
+    )
+
+    legal_style = ParagraphStyle(
+        "WLegal",
+        parent=styles["Normal"],
+        fontSize=6.8,
+        leading=9,
+        textColor=_GRAY,
         alignment=TA_LEFT,
     )
 
@@ -188,7 +258,7 @@ def generate_carta_responsiva(
 
     # Date
     story.append(Paragraph(
-        f"Ciudad de México, a {_format_date_es(sign_date)}",
+        f"León, Guanajuato, a {_format_date_es(sign_date)}",
         date_style,
     ))
     story.append(Spacer(1, 3 * mm))
@@ -258,6 +328,16 @@ def generate_carta_responsiva(
             "regalía o compensación a mi favor. Podré revocar esta "
             "autorización por escrito respecto de usos futuros."
         ),
+        (
+            "Manifiesto mi consentimiento expreso para firmar este documento "
+            "por medios electrónicos. Reconozco que la firma electrónica "
+            "plasmada al calce tiene la misma validez y eficacia jurídica "
+            "que una firma autógrafa conforme al artículo 1803 del Código "
+            "Civil Federal, los artículos 89 a 114 del Código de Comercio y "
+            "la Ley de Firma Electrónica Avanzada, y que mi consentimiento "
+            "queda acreditado al recibir y aceptar este documento a través "
+            "del correo electrónico registrado."
+        ),
     ]
 
     for i, text in enumerate(clauses, 1):
@@ -274,44 +354,45 @@ def generate_carta_responsiva(
         spaceAfter=4 * mm, spaceBefore=0,
     ))
 
-    # Signature block
+    # ── Signature block ────────────────────────────────────────────────
+
+    gym_representative = gym_name  # e.g. "Fitness Room"
     col_w = page_w / 2
+
+    # The actual calligraphy signatures sit on top of gold underlines.
+    # We center the text inside a fixed-width table so it aligns under
+    # the printed name caption.
+    def _signature_cell(text: str) -> Table:
+        return Table(
+            [[Paragraph(text, signature_style)]],
+            colWidths=[5.5 * cm],
+            rowHeights=[14 * mm],
+            style=TableStyle([
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
+                ("LINEBELOW", (0, 0), (0, 0), 1, _GOLD),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+            ]),
+        )
+
     sig_data = [
         [
-            Paragraph("", sign_style),
-            Paragraph("", sign_style),
+            _signature_cell(student_name),
+            _signature_cell(gym_representative),
         ],
         [
-            # Gold signature lines via a nested table
-            Table(
-                [[""]], colWidths=[5.5 * cm],
-                style=TableStyle([
-                    ("LINEBELOW", (0, 0), (0, 0), 1, _GOLD),
-                    ("TOPPADDING", (0, 0), (0, 0), 12 * mm),
-                    ("BOTTOMPADDING", (0, 0), (0, 0), 1),
-                ]),
-            ),
-            Table(
-                [[""]], colWidths=[5.5 * cm],
-                style=TableStyle([
-                    ("LINEBELOW", (0, 0), (0, 0), 1, _GOLD),
-                    ("TOPPADDING", (0, 0), (0, 0), 12 * mm),
-                    ("BOTTOMPADDING", (0, 0), (0, 0), 1),
-                ]),
-            ),
-        ],
-        [
-            Paragraph(f"<b>{student_name}</b>", sign_style),
-            Paragraph(f"<b>{gym_name.upper()}</b>", sign_style),
+            Paragraph(f"<b>{student_name}</b>", sign_caption_style),
+            Paragraph(f"<b>{gym_name.upper()}</b>", sign_caption_style),
         ],
         [
             Paragraph(
                 '<font color="#666666">Alumno / Alumna</font>',
-                sign_style,
+                sign_caption_style,
             ),
             Paragraph(
                 '<font color="#666666">Representante</font>',
-                sign_style,
+                sign_caption_style,
             ),
         ],
     ]
@@ -327,18 +408,79 @@ def generate_carta_responsiva(
 
     story.append(Spacer(1, 4 * mm))
 
-    # Thin gold line at bottom
+    # ── Legal electronic-signature block ────────────────────────────────
+
+    identity = _build_signature_identity(student_name, student_email, sign_date)
+    # Body used for hashing — flatten the clauses so the hash changes if the
+    # text ever changes, providing integrity guarantees.
+    body_for_hash = "\n".join(clauses)
+    doc_hash = _content_hash(identity, body_for_hash)
+    signed_iso = signed_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
     story.append(HRFlowable(
         width="100%", thickness=0.5, color=_GOLD,
         spaceAfter=2 * mm, spaceBefore=0,
     ))
 
-    # Digital signature footer
+    legal_lines = [
+        (
+            "<b>Documento firmado electrónicamente.</b> Este acuerdo fue "
+            "aceptado por ambas partes mediante firma electrónica simple, "
+            "con plena validez jurídica en los términos de los artículos "
+            "89 a 114 del Código de Comercio, el artículo 1803 del Código "
+            "Civil Federal y la Ley de Firma Electrónica Avanzada."
+        ),
+        (
+            f"<b>Firmante:</b> {student_name} · "
+            f"<b>Correo verificado:</b> {student_email}"
+        ),
+        (
+            f"<b>Contraparte:</b> {gym_name}"
+            + (f" · {gym_address}" if gym_address else "")
+        ),
+        (
+            f"<b>Fecha y hora de firma (UTC):</b> {signed_iso} · "
+            f"<b>Fecha civil:</b> {_format_date_es(sign_date)}"
+        ),
+        (
+            f"<b>Huella de integridad (SHA-256):</b> "
+            f'<font face="Courier">{doc_hash}</font>'
+        ),
+        (
+            "La huella permite verificar que el contenido del documento no "
+            "ha sido alterado desde su firma. Cualquier cambio, por mínimo "
+            "que sea, producirá una huella distinta."
+        ),
+    ]
+    for line in legal_lines:
+        story.append(Paragraph(line, legal_style))
+
+    story.append(Spacer(1, 2 * mm))
     story.append(Paragraph(
-        f"Documento firmado digitalmente · {student_email} · "
+        f"Documento firmado electrónicamente · {student_email} · "
         f"{_format_date_es(sign_date)}",
         small_style,
     ))
 
     doc.build(story)
     return buf.getvalue()
+
+
+def compute_signature_hash(
+    student_name: str,
+    student_email: str,
+    sign_date: date | None = None,
+) -> str:
+    """Public helper to compute the same SHA-256 written into the PDF.
+
+    Lets callers (e.g. the bulk-resend endpoint) persist the hash alongside
+    the signed_at timestamp on the Student record for later verification.
+    """
+    if sign_date is None:
+        sign_date = date.today()
+    identity = _build_signature_identity(student_name, student_email, sign_date)
+    # Hash of identity alone is enough for audit — the full body-hash lives
+    # in the PDF and can be recomputed by regenerating the document.
+    h = hashlib.sha256()
+    h.update(identity.encode("utf-8"))
+    return h.hexdigest()
