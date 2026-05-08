@@ -87,4 +87,42 @@ export const studentService = {
     const response = await apiClient.get(`/students/${studentId}/qr`);
     return response.data;
   },
+  /** Resend welcome email + carta responsiva PDF. */
+  async resendWelcome(studentId: string): Promise<ResendResponse> {
+    const response = await apiClient.post<ResendResponse>(
+      `/students/${studentId}/resend-welcome`
+    );
+    return response.data;
+  },
+
+  /** Reset Cognito password and resend portal credentials. */
+  async resendCredentials(
+    studentId: string,
+    skipPasswordChange = false
+  ): Promise<ResendResponse> {
+    const response = await apiClient.post<ResendResponse>(
+      `/students/${studentId}/resend-credentials`,
+      null,
+      { params: { skip_password_change: skipPasswordChange } }
+    );
+    return response.data;
+  },
+
+  /** Update email/phone in DynamoDB + sync to Cognito. */
+  async updateContact(
+    studentId: string,
+    data: { email?: string; phone?: string; skip_password_change?: boolean }
+  ): Promise<Student> {
+    const response = await apiClient.post<Student>(
+      `/students/${studentId}/update-contact`,
+      data
+    );
+    return response.data;
+  },
 } as const;
+
+export interface ResendResponse {
+  message: string;
+  delivery_status: string | null;
+  delivery_detail: string | null;
+}

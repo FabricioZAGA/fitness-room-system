@@ -48,6 +48,7 @@ function UsersPage(): React.JSX.Element {
     type: "disable" | "delete" | "resend";
     user: CognitoUser;
   } | null>(null);
+  const [resendSkipPwd, setResendSkipPwd] = useState(true);
 
   const { data: users, isLoading } = useUsers();
   const { mutate: disableUser } = useDisableUser();
@@ -122,7 +123,7 @@ function UsersPage(): React.JSX.Element {
               onEnable={() => enableUser(user.username)}
               onDelete={() => setConfirmAction({ type: "delete", user })}
               onResend={() => setConfirmAction({ type: "resend", user })}
-              resending={isResending && resendingFor === user.username}
+              resending={isResending && resendingFor?.username === user.username}
             />
           ))}
         </div>
@@ -163,18 +164,32 @@ function UsersPage(): React.JSX.Element {
         open={confirmAction?.type === "resend"}
         onClose={() => setConfirmAction(null)}
         onConfirm={() => {
-          if (confirmAction?.user) resendInvite(confirmAction.user.username);
+          if (confirmAction?.user)
+            resendInvite({ username: confirmAction.user.username, skipPasswordChange: resendSkipPwd });
           setConfirmAction(null);
         }}
         title="Reenviar invitación"
         description={
-          `Se generará una nueva contraseña temporal para ${confirmUserName} ` +
+          `Se generará una nueva contraseña para ${confirmUserName} ` +
           `y se enviará al correo ${confirmAction?.user.email}. ` +
           `La contraseña anterior dejará de funcionar inmediatamente.`
         }
         confirmLabel="Reenviar"
         variant="warning"
-      />
+      >
+        <label className="mt-3 flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={resendSkipPwd}
+            onChange={(e) => setResendSkipPwd(e.target.checked)}
+            className="h-4 w-4 rounded accent-[--gold]"
+          />
+          <div>
+            <span className="text-sm text-[--tx-primary]">Contraseña permanente (sin cambio forzado)</span>
+            <p className="text-xs text-[--tx-disabled]">Recomendado para personas mayores que se equivocan al cambiar contraseña.</p>
+          </div>
+        </label>
+      </ConfirmDialog>
     </PageWrapper>
   );
 }

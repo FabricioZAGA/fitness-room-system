@@ -134,7 +134,20 @@
     "emergencyContactSection": "Contacto de emergencia",
     "ecPhone": "Teléfono de emergencia",
     "ecRelationship": "Parentesco",
-    "saveChanges": "Guardar Cambios"
+    "saveChanges": "Guardar Cambios",
+    "resendWelcome": "Reenviar Bienvenida + Responsiva",
+    "resendCredentials": "Reenviar Credenciales del Portal",
+    "resendCredentialsDesc": "Reinicia la contraseña y envía las nuevas credenciales de acceso al portal.",
+    "skipPasswordChange": "Contraseña permanente (sin cambio forzado al iniciar sesión)",
+    "skipPasswordChangeHint": "Recomendado para personas mayores o que se equivocan al cambiar contraseña.",
+    "updateContact": "Actualizar Datos de Contacto",
+    "updateContactDesc": "Cambia el correo o teléfono del alumno. Se sincroniza con Cognito y se reenvían credenciales.",
+    "newEmail": "Nuevo correo electrónico",
+    "newPhone": "Nuevo teléfono",
+    "confirmUpdateContact": "Guardar y Reenviar Credenciales",
+    "actions": "Acciones",
+    "notifications": "Notificaciones",
+    "sending": "Enviando..."
   },
   "classes": {
     "title": "Clases",

@@ -13,6 +13,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   variant?: "danger" | "warning";
   loading?: boolean;
+  children?: React.ReactNode;
 }
 
 export function ConfirmDialog({
@@ -25,6 +26,7 @@ export function ConfirmDialog({
   cancelLabel = "Cancelar",
   variant = "danger",
   loading = false,
+  children,
 }: ConfirmDialogProps): React.JSX.Element | null {
   const isDanger = variant === "danger";
 
@@ -45,6 +47,7 @@ export function ConfirmDialog({
           />
         </div>
         <p className="text-sm text-[--tx-muted]">{description}</p>
+        {children}
       </div>
       <div className="mt-6 flex gap-3">
         <button

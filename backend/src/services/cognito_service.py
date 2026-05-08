@@ -239,3 +239,41 @@ class CognitoService:
                 )
 
         logger.info("User groups updated", extra={"username": username, "groups": groups})
+
+    def update_user_email(self, old_email: str, new_email: str) -> None:
+        """Update a Cognito user's email address.
+
+        Args:
+            old_email: Current email / username.
+            new_email: New email to set.
+        """
+        self._cognito.admin_update_user_attributes(
+            UserPoolId=self._pool_id,
+            Username=old_email,
+            UserAttributes=[
+                {"Name": "email", "Value": new_email},
+                {"Name": "email_verified", "Value": "true"},
+            ],
+        )
+        logger.info(
+            "Cognito user email updated",
+            extra={"old_email": old_email, "new_email": new_email},
+        )
+
+    def set_permanent_password(self, username: str) -> str:
+        """Reset a user's password to a new permanent one (no forced change on login).
+
+        Use for elderly or non-tech-savvy users who struggle with password change flow.
+
+        Returns:
+            The new permanent password.
+        """
+        password = self.generate_password()
+        self._cognito.admin_set_user_password(
+            UserPoolId=self._pool_id,
+            Username=username,
+            Password=password,
+            Permanent=True,
+        )
+        logger.info("Set permanent password for user", extra={"username": username})
+        return password

@@ -3,9 +3,15 @@ import {
   ArrowLeft, CreditCard, Calendar, Plus, Power, PowerOff,
   Pencil, Mail, Phone, User, CheckCircle2, XCircle, Clock,
   Snowflake, QrCode, Download, ShieldBan, ShieldCheck,
+  Send, KeyRound, RefreshCw,
 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useStudent, useActivateStudent, useDeactivateStudent, useSuspendStudent, useUnsuspendStudent, useStudentQr } from "@/hooks/useStudents";
+import { useTranslation } from "react-i18next";
+import {
+  useStudent, useActivateStudent, useDeactivateStudent,
+  useSuspendStudent, useUnsuspendStudent, useStudentQr,
+  useResendWelcome, useResendCredentials, useUpdateContact,
+} from "@/hooks/useStudents";
 import { useMembershipsForStudent, useFreezeMembership, useUnfreezeMembership } from "@/hooks/useMemberships";
 import { useReservationsForStudent } from "@/hooks/useReservations";
 import { useClasses } from "@/hooks/useClasses";
@@ -54,6 +60,17 @@ function StudentDetailPage(): React.JSX.Element {
   const { mutate: freeze, isPending: freezing } = useFreezeMembership();
   const { mutate: unfreeze, isPending: unfreezing } = useUnfreezeMembership();
   const { data: qrData } = useStudentQr(qrOpen ? studentId : "");
+  const { mutate: resendWelcome, isPending: sendingWelcome } = useResendWelcome();
+  const { mutate: resendCreds, isPending: sendingCreds } = useResendCredentials();
+  const updateContact = useUpdateContact(studentId);
+
+  const [contactOpen, setContactOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [skipPwdChange, setSkipPwdChange] = useState(true);
+  const [credSkipPwd, setCredSkipPwd] = useState(true);
+
+  const { t } = useTranslation();
 
   const classMap = useMemo(() => {
     const map: Record<string, { type: string; date: string; instructor: string }> = {};
@@ -236,6 +253,58 @@ function StudentDetailPage(): React.JSX.Element {
             sub={student.notes ?? "Sin notas"}
             color="slate"
           />
+        </div>
+
+        {/* Notifications & Contact section */}
+        <div className="mb-8 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
+          <h2 className="mb-4 text-base font-semibold text-[--tx-primary]">
+            {t("students.notifications")}
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => resendWelcome(studentId)}
+              disabled={sendingWelcome}
+              className="flex items-center gap-2 rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold] disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+              {sendingWelcome ? t("students.sending") : t("students.resendWelcome")}
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => resendCreds({ studentId, skipPasswordChange: credSkipPwd })}
+                disabled={sendingCreds}
+                className="flex items-center gap-2 rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold] disabled:opacity-50"
+              >
+                <KeyRound className="h-4 w-4" />
+                {sendingCreds ? t("students.sending") : t("students.resendCredentials")}
+              </button>
+              <label className="flex items-center gap-1.5 text-xs text-[--tx-disabled] cursor-pointer" title={t("students.skipPasswordChangeHint")}>
+                <input
+                  type="checkbox"
+                  checked={credSkipPwd}
+                  onChange={(e) => setCredSkipPwd(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded accent-[--gold]"
+                />
+                {t("students.skipPasswordChange")}
+              </label>
+            </div>
+
+            <button
+              onClick={() => {
+                setNewEmail(student.email);
+                setNewPhone(student.phone ?? "");
+                setContactOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl border border-[--color-info-bd] bg-[--color-info-bg] px-4 py-2.5 text-sm font-medium text-[--color-info] transition-all hover:opacity-80"
+            >
+              <RefreshCw className="h-4 w-4" />
+              {t("students.updateContact")}
+            </button>
+          </div>
+          <p className="mt-3 text-xs text-[--tx-disabled]">
+            {t("students.updateContactDesc")}
+          </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -478,6 +547,79 @@ function StudentDetailPage(): React.JSX.Element {
         variant="warning"
         loading={suspending}
       />
+
+      {/* Update Contact modal */}
+      <Dialog open={contactOpen} onClose={() => setContactOpen(false)} title={t("students.updateContact")}>
+        <div className="space-y-5">
+          <p className="text-sm text-[--tx-muted]">
+            {t("students.updateContactDesc")}
+          </p>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-[--tx-muted]">
+              {t("students.newEmail")}
+            </label>
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              className="w-full rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-[--tx-muted]">
+              {t("students.newPhone")}
+            </label>
+            <input
+              type="tel"
+              value={newPhone}
+              onChange={(e) => setNewPhone(e.target.value)}
+              placeholder="+52 1234567890"
+              className="w-full rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]"
+            />
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={skipPwdChange}
+              onChange={(e) => setSkipPwdChange(e.target.checked)}
+              className="h-4 w-4 rounded accent-[--gold]"
+            />
+            <div>
+              <span className="text-sm text-[--tx-primary]">{t("students.skipPasswordChange")}</span>
+              <p className="text-xs text-[--tx-disabled]">{t("students.skipPasswordChangeHint")}</p>
+            </div>
+          </label>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => setContactOpen(false)}
+              className="rounded-xl border border-[--bd-default] px-4 py-2.5 text-sm text-[--tx-muted] transition-all hover:border-[--bd-subtle] hover:text-[--tx-primary]"
+            >
+              Cancelar
+            </button>
+            <button
+              disabled={updateContact.isPending}
+              onClick={() => {
+                updateContact.mutate(
+                  {
+                    email: newEmail !== student.email ? newEmail : undefined,
+                    phone: newPhone !== (student.phone ?? "") ? newPhone : undefined,
+                    skip_password_change: skipPwdChange,
+                  },
+                  { onSuccess: () => setContactOpen(false) }
+                );
+              }}
+              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
+              style={{
+                background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                color: "var(--gold-fg)",
+              }}
+            >
+              <RefreshCw className="h-4 w-4" />
+              {updateContact.isPending ? t("students.sending") : t("students.confirmUpdateContact")}
+            </button>
+          </div>
+        </div>
+      </Dialog>
 
       {/* QR modal */}
       <Dialog open={qrOpen} onClose={() => setQrOpen(false)} title={`Código QR — ${student.full_name}`}>

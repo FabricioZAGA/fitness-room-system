@@ -62,9 +62,11 @@ export const userService = {
     await apiClient.delete(`/users/${encodeURIComponent(username)}`);
   },
 
-  async resendInvite(username: string): Promise<CognitoUser> {
+  async resendInvite(username: string, skipPasswordChange = false): Promise<CognitoUser> {
     const response = await apiClient.post<CognitoUser>(
       `/users/${encodeURIComponent(username)}/resend-invite`,
+      null,
+      { params: { skip_password_change: skipPasswordChange } },
     );
     return response.data;
   },

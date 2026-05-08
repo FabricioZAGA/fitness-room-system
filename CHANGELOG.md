@@ -5,6 +5,25 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.7.3] — 2026-05-08
+
+### Added
+- `POST /students/{id}/resend-welcome` — reenvía email de bienvenida + carta responsiva PDF
+- `POST /students/{id}/resend-credentials` — resetea contraseña Cognito y reenvía credenciales del portal, con opción `skip_password_change` para contraseña permanente
+- `POST /students/{id}/update-contact` — actualiza email/teléfono en DynamoDB + sincroniza Cognito + reenvía credenciales al nuevo correo
+- `CognitoService.update_user_email` — actualiza email en Cognito con `email_verified=true`
+- `CognitoService.set_permanent_password` — genera contraseña permanente (sin cambio forzado al primer login)
+- Sección "Notificaciones" en detalle de alumno con botones de reenvío
+- Modal "Actualizar Datos de Contacto" con cambio de email/teléfono + sync Cognito
+- Checkbox "Contraseña permanente" en reenvío de credenciales e invitaciones de usuarios
+- `ConfirmDialog` ahora acepta `children` para contenido adicional
+- i18n: claves `students.resendWelcome`, `students.resendCredentials`, `students.updateContact`, etc. en ES y EN
+
+### Changed
+- `POST /users/{username}/resend-invite` ahora acepta `?skip_password_change=true` para contraseña permanente
+
+---
+
 ## [1.7.2] — 2026-05-01
 
 ### Changed

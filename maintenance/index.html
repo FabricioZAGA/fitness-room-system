@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fitness Room — En Mantenimiento</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --bg-card: #141414;
+      --gold: #d4a853;
+      --gold-glow: rgba(212, 168, 83, 0.15);
+      --gold-border: rgba(212, 168, 83, 0.25);
+      --text: #f5f5f5;
+      --text-muted: #888;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .bg-glow {
+      position: fixed;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--gold-glow) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: pulse 4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .container {
+      position: relative; z-index: 1;
+      text-align: center;
+      padding: 2rem;
+      max-width: 520px;
+      animation: fadeUp 0.8s ease-out;
+    }
+    .logo {
+      width: 80px; height: 80px;
+      margin: 0 auto 2rem;
+      border-radius: 1.25rem;
+      background: linear-gradient(135deg, var(--gold) 0%, #b8912e 100%);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 20px 60px rgba(212, 168, 83, 0.25);
+    }
+    .logo svg { width: 40px; height: 40px; fill: #0a0a0a; }
+    h1 {
+      font-size: 2rem; font-weight: 800;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--gold), #f0d78c);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      font-size: 1.1rem; color: var(--text-muted);
+      margin-bottom: 2.5rem; line-height: 1.6;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-border);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(212, 168, 83, 0.2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1.25rem;
+    }
+    .card p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+    .card strong { color: var(--text); }
+    .eta {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      margin-top: 1rem;
+      padding: 0.5rem 1.25rem;
+      border-radius: 2rem;
+      background: var(--gold-glow);
+      border: 1px solid var(--gold-border);
+      color: var(--gold);
+      font-size: 0.85rem; font-weight: 600;
+    }
+    .eta svg { width: 16px; height: 16px; fill: none; stroke: var(--gold); stroke-width: 2; }
+    .footer {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    .footer a { color: var(--gold); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <div class="container">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/></svg>
+    </div>
+    <h1>En Mantenimiento</h1>
+    <p class="subtitle">Estamos mejorando tu experiencia.<br>Volveremos muy pronto.</p>
+    <div class="card">
+      <div class="spinner"></div>
+      <p><strong>Actualizaciones en progreso</strong></p>
+      <p>Estamos realizando mejoras en el sistema para brindarte un mejor servicio.</p>
+      <div class="eta">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Tiempo estimado: menos de 1 hora
+      </div>
+    </div>
+    <p class="footer">¿Necesitas ayuda? Contáctanos en <a href="mailto:noreply@fitnessroom.mx">noreply@fitnessroom.mx</a></p>
+  </div>
+</body>
+</html>

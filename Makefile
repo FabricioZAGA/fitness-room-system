@@ -274,6 +274,14 @@ deploy-portal:
 	AWS_PROFILE=$(AWS_PROFILE) aws cloudfront create-invalidation --distribution-id $(PORTAL_DIST_ID) --paths "/*"
 	@echo "✅ Portal deployed"
 
+# ── Maintenance mode ─────────────────────────────────────────────────────────
+
+maintenance-on: ## Activate maintenance page (admin + portal)
+	@./scripts/maintenance.sh on
+
+maintenance-off: ## Restore live sites (admin + portal)
+	@./scripts/maintenance.sh off
+
 # ── Admin user management ─────────────────────────────────────────────────────
 
 create-admin:

@@ -134,7 +134,20 @@
     "emergencyContactSection": "Emergency contact",
     "ecPhone": "Emergency phone",
     "ecRelationship": "Relationship",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "resendWelcome": "Resend Welcome + Waiver",
+    "resendCredentials": "Resend Portal Credentials",
+    "resendCredentialsDesc": "Resets the password and sends new portal access credentials.",
+    "skipPasswordChange": "Permanent password (no forced change on first login)",
+    "skipPasswordChangeHint": "Recommended for elderly users or those who struggle with password change.",
+    "updateContact": "Update Contact Info",
+    "updateContactDesc": "Change the student's email or phone. Syncs with Cognito and resends credentials.",
+    "newEmail": "New email address",
+    "newPhone": "New phone number",
+    "confirmUpdateContact": "Save & Resend Credentials",
+    "actions": "Actions",
+    "notifications": "Notifications",
+    "sending": "Sending..."
   },
   "classes": {
     "title": "Classes",

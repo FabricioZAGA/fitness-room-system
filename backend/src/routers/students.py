@@ -12,6 +12,7 @@ import qrcode.image.svg
 from aws_lambda_powertools import Logger
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, EmailStr, Field
 
 from src.config import get_settings
 from src.models.checkin import CheckinResponse
@@ -263,6 +264,185 @@ def delete_student(
     """Delete a student by ID."""
     service.delete_student(student_id)
     return MessageResponse(message=f"Student '{student_id}' deleted successfully.")
+
+
+# ── Resend / Contact Update endpoints ─────────────────────────────────────────
+
+
+class ResendResponse(BaseModel):
+    """Response for resend operations."""
+
+    message: str
+    delivery_status: str | None = None
+    delivery_detail: str | None = None
+
+
+class UpdateContactRequest(BaseModel):
+    """Request to update a student's contact info (email/phone) and sync Cognito."""
+
+    email: EmailStr | None = None
+    phone: str | None = None
+    skip_password_change: bool = Field(
+        default=False,
+        description="If true, set a permanent password (no forced change on first login).",
+    )
+
+
+@router.post(
+    "/{student_id}/resend-welcome",
+    response_model=ResendResponse,
+    summary="Resend Welcome Email + Carta Responsiva",
+    description="Re-generate the carta responsiva PDF and resend the welcome email to the student.",
+)
+def resend_welcome(
+    student_id: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: StudentService = Depends(get_service),
+) -> ResendResponse:
+    """Resend welcome email with carta responsiva PDF."""
+    student = service.get_student(student_id)
+    name = f"{student.first_name} {student.last_name}".strip()
+    try:
+        EventNotifier().notify_welcome_carta_responsiva(
+            student_name=name,
+            student_email=student.email,
+            student_phone=student.phone,
+        )
+        return ResendResponse(
+            message=f"Welcome email resent to {student.email}",
+            delivery_status="sent",
+        )
+    except Exception as exc:
+        logger.exception("Resend welcome failed", extra={"student_id": student_id})
+        return ResendResponse(
+            message="Failed to resend welcome email",
+            delivery_status="failed",
+            delivery_detail=str(exc),
+        )
+
+
+@router.post(
+    "/{student_id}/resend-credentials",
+    response_model=ResendResponse,
+    summary="Resend Portal Credentials",
+    description=(
+        "Reset the student's Cognito password and resend the portal credentials email. "
+        "Use skip_password_change=true for elderly users who struggle with forced change."
+    ),
+)
+def resend_credentials(
+    student_id: str,
+    skip_password_change: bool = Query(
+        default=False,
+        description="Set permanent password (no forced change on first login)",
+    ),
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: StudentService = Depends(get_service),
+) -> ResendResponse:
+    """Reset Cognito password and resend portal credentials."""
+    student = service.get_student(student_id)
+    name = f"{student.first_name} {student.last_name}".strip()
+    settings = get_settings()
+
+    svc = CognitoService()
+    try:
+        if skip_password_change:
+            password = svc.set_permanent_password(student.email)
+        else:
+            password = svc.generate_password()
+            svc._cognito.admin_set_user_password(  # noqa: SLF001
+                UserPoolId=svc._pool_id,
+                Username=student.email,
+                Password=password,
+                Permanent=False,
+            )
+    except Exception as exc:
+        logger.exception("Cognito password reset failed", extra={"student_id": student_id})
+        return ResendResponse(
+            message="Failed to reset Cognito password — user may not exist in Cognito",
+            delivery_status="failed",
+            delivery_detail=str(exc),
+        )
+
+    delivery = EventNotifier().notify_portal_credentials(
+        student_name=name,
+        student_email=student.email,
+        password=password,
+        portal_url=settings.portal_url,
+    )
+    return ResendResponse(
+        message=f"Credentials resent to {student.email}"
+        + (" (permanent password)" if skip_password_change else " (temp password)"),
+        delivery_status=delivery.get("status"),
+        delivery_detail=delivery.get("detail") or None,
+    )
+
+
+@router.post(
+    "/{student_id}/update-contact",
+    response_model=StudentResponse,
+    summary="Update Contact Info + Sync Cognito",
+    description=(
+        "Update a student's email and/or phone in DynamoDB and sync the change to Cognito. "
+        "Optionally resend portal credentials to the new email."
+    ),
+)
+def update_contact(
+    student_id: str,
+    data: UpdateContactRequest,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: StudentService = Depends(get_service),
+) -> StudentResponse:
+    """Update contact info and sync with Cognito."""
+    student = service.get_student(student_id)
+    old_email = student.email
+    settings = get_settings()
+
+    # Build update payload
+    update_data = StudentUpdate()
+    if data.email and data.email != old_email:
+        update_data.email = data.email
+    if data.phone is not None:
+        update_data.phone = data.phone
+
+    # Update DynamoDB first
+    updated = service.update_student(student_id, update_data)
+
+    # Sync email change to Cognito
+    if data.email and data.email != old_email:
+        try:
+            svc = CognitoService()
+            svc.update_user_email(old_email, data.email)
+            logger.info(
+                "Cognito email synced",
+                extra={"student_id": student_id, "new_email": data.email},
+            )
+
+            # Resend credentials to new email
+            if data.skip_password_change:
+                password = svc.set_permanent_password(old_email)
+            else:
+                password = svc.generate_password()
+                svc._cognito.admin_set_user_password(  # noqa: SLF001
+                    UserPoolId=svc._pool_id,
+                    Username=old_email,
+                    Password=password,
+                    Permanent=False,
+                )
+
+            EventNotifier().notify_portal_credentials(
+                student_name=f"{updated.first_name} {updated.last_name}".strip(),
+                student_email=data.email,
+                password=password,
+                portal_url=settings.portal_url,
+            )
+        except Exception:
+            logger.exception(
+                "Cognito sync failed after email update",
+                extra={"student_id": student_id, "new_email": data.email},
+            )
+
+    return updated
 
 
 @router.post(

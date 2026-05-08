@@ -3,7 +3,7 @@
 from typing import Any
 
 from aws_lambda_powertools import Logger
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, EmailStr, Field
 
 from src.config import get_settings
@@ -141,6 +141,10 @@ def create_user(
 )
 def resend_invite(
     username: str,
+    skip_password_change: bool = Query(
+        default=False,
+        description="Set permanent password (no forced change on first login)",
+    ),
     _current_user: dict[str, Any] = Depends(get_current_user),
 ) -> CognitoUserResponse:
     """Reset temp password and resend the welcome email."""
@@ -151,15 +155,17 @@ def resend_invite(
     groups = user.get("groups", [])
     group = groups[0] if groups else "student"
 
-    # Generate a fresh password and set it (non-permanent → user must change on login).
-    password = svc.generate_password()
-    svc._cognito.admin_set_user_password(  # noqa: SLF001 — intentional, same service boundary
-        UserPoolId=svc._pool_id,
-        Username=username,
-        Password=password,
-        Permanent=False,
-    )
-    logger.info("Reset temporary password for resend-invite", extra={"username": username})
+    if skip_password_change:
+        password = svc.set_permanent_password(username)
+    else:
+        password = svc.generate_password()
+        svc._cognito.admin_set_user_password(  # noqa: SLF001 — intentional, same service boundary
+            UserPoolId=svc._pool_id,
+            Username=username,
+            Password=password,
+            Permanent=False,
+        )
+    logger.info("Reset password for resend-invite", extra={"username": username, "permanent": skip_password_change})
 
     portal_url = settings.portal_url if group != "admin" else settings.frontend_url
     delivery = EventNotifier().notify_portal_credentials(

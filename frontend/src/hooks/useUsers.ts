@@ -120,10 +120,11 @@ export function useDeleteUser(): UseMutationResult<void, Error, string> {
   });
 }
 
-export function useResendInvite(): UseMutationResult<CognitoUser, unknown, string> {
+export function useResendInvite(): UseMutationResult<CognitoUser, unknown, { username: string; skipPasswordChange?: boolean }> {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (username: string) => userService.resendInvite(username),
+    mutationFn: ({ username, skipPasswordChange }: { username: string; skipPasswordChange?: boolean }) =>
+      userService.resendInvite(username, skipPasswordChange),
     onSuccess: (user) => {
       qc.invalidateQueries({ queryKey: [USERS_KEY] });
       const status = user.email_delivery_status;

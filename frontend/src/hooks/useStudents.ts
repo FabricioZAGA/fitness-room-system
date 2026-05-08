@@ -190,6 +190,63 @@ export function useUploadStudentPhoto(studentId: string) {
   });
 }
 
+export function useResendWelcome() {
+  return useMutation({
+    mutationFn: (studentId: string) => studentService.resendWelcome(studentId),
+    onSuccess: (res) => {
+      if (res.delivery_status === "sent") {
+        toast.success("Email de bienvenida + carta responsiva reenviado.");
+      } else {
+        toast.warning(`No se pudo enviar: ${res.delivery_detail ?? res.message}`);
+      }
+    },
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Error al reenviar email de bienvenida."));
+    },
+  });
+}
+
+export function useResendCredentials() {
+  return useMutation({
+    mutationFn: ({
+      studentId,
+      skipPasswordChange = false,
+    }: {
+      studentId: string;
+      skipPasswordChange?: boolean;
+    }) => studentService.resendCredentials(studentId, skipPasswordChange),
+    onSuccess: (res) => {
+      if (res.delivery_status === "sent") {
+        toast.success("Credenciales del portal reenviadas.");
+      } else {
+        toast.warning(`No se pudo enviar: ${res.delivery_detail ?? res.message}`);
+      }
+    },
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Error al reenviar credenciales."));
+    },
+  });
+}
+
+export function useUpdateContact(studentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      email?: string;
+      phone?: string;
+      skip_password_change?: boolean;
+    }) => studentService.updateContact(studentId, data),
+    onSuccess: (student) => {
+      qc.invalidateQueries({ queryKey: [STUDENTS_KEY] });
+      qc.setQueryData([STUDENTS_KEY, studentId], student);
+      toast.success("Datos de contacto actualizados y sincronizados con Cognito.");
+    },
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Error al actualizar datos de contacto."));
+    },
+  });
+}
+
 export function useStudentQr(studentId: string) {
   return useQuery({
     queryKey: [STUDENTS_KEY, studentId, "qr"],

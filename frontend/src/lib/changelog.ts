@@ -12,9 +12,20 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.7.2";
+export const APP_VERSION = "1.7.3";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.7.3",
+    date: "2026-05-08",
+    title: "Reenvío de correos, actualización de contacto y contraseña permanente",
+    items: [
+      { icon: "📧", text: "Reenviar email de bienvenida + carta responsiva PDF desde el detalle del alumno" },
+      { icon: "🔑", text: "Reenviar credenciales del portal con opción de contraseña permanente (sin cambio forzado)" },
+      { icon: "✏️", text: "Actualizar correo/teléfono del alumno — sincroniza con Cognito y reenvía credenciales" },
+      { icon: "👥", text: "Reenviar invitación de usuarios (admin/staff) ahora también soporta contraseña permanente" },
+    ],
+  },
   {
     version: "1.7.2",
     date: "2026-05-01",
