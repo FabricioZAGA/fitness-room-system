@@ -235,6 +235,7 @@ export function useUpdateContact(studentId: string) {
       email?: string;
       phone?: string;
       skip_password_change?: boolean;
+      resend_all?: boolean;
     }) => studentService.updateContact(studentId, data),
     onSuccess: (student) => {
       qc.invalidateQueries({ queryKey: [STUDENTS_KEY] });

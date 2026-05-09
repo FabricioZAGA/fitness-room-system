@@ -286,6 +286,10 @@ class UpdateContactRequest(BaseModel):
         default=False,
         description="If true, set a permanent password (no forced change on first login).",
     )
+    resend_all: bool = Field(
+        default=True,
+        description="Resend credentials + carta responsiva to the (new) email.",
+    )
 
 
 @router.post(
@@ -408,38 +412,60 @@ def update_contact(
     # Update DynamoDB first
     updated = service.update_student(student_id, update_data)
 
+    email_changed = data.email is not None and data.email != old_email
+    target_email = data.email if email_changed else old_email
+    full_name = f"{updated.first_name} {updated.last_name}".strip()
+    svc = CognitoService()
+    notifier = EventNotifier()
+
     # Sync email change to Cognito
-    if data.email and data.email != old_email:
+    if email_changed:
         try:
-            svc = CognitoService()
-            svc.update_user_email(old_email, data.email)
+            svc.update_user_email(old_email, data.email)  # type: ignore[arg-type]
             logger.info(
                 "Cognito email synced",
                 extra={"student_id": student_id, "new_email": data.email},
-            )
-
-            # Resend credentials to new email
-            if data.skip_password_change:
-                password = svc.set_permanent_password(old_email)
-            else:
-                password = svc.generate_password()
-                svc._cognito.admin_set_user_password(  # noqa: SLF001
-                    UserPoolId=svc._pool_id,
-                    Username=old_email,
-                    Password=password,
-                    Permanent=False,
-                )
-
-            EventNotifier().notify_portal_credentials(
-                student_name=f"{updated.first_name} {updated.last_name}".strip(),
-                student_email=data.email,
-                password=password,
-                portal_url=settings.portal_url,
             )
         except Exception:
             logger.exception(
                 "Cognito sync failed after email update",
                 extra={"student_id": student_id, "new_email": data.email},
+            )
+
+    # Resend credentials + carta responsiva
+    if data.resend_all:
+        try:
+            # After email update, Cognito still accepts old_email as username lookup
+            cognito_username = old_email
+            if data.skip_password_change:
+                password = svc.set_permanent_password(cognito_username)
+            else:
+                password = svc.generate_password()
+                svc._cognito.admin_set_user_password(  # noqa: SLF001
+                    UserPoolId=svc._pool_id,
+                    Username=cognito_username,
+                    Password=password,
+                    Permanent=False,
+                )
+
+            # Send credentials to the target email
+            notifier.notify_portal_credentials(
+                student_name=full_name,
+                student_email=target_email,
+                password=password,
+                portal_url=settings.portal_url,
+            )
+
+            # Also send carta responsiva PDF
+            notifier.notify_welcome_carta_responsiva(
+                student_name=full_name,
+                student_email=target_email,
+                student_phone=updated.phone,
+            )
+        except Exception:
+            logger.exception(
+                "Resend notifications failed after contact update",
+                extra={"student_id": student_id, "target_email": target_email},
             )
 
     return updated

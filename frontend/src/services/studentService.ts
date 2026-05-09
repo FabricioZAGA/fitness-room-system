@@ -111,7 +111,7 @@ export const studentService = {
   /** Update email/phone in DynamoDB + sync to Cognito. */
   async updateContact(
     studentId: string,
-    data: { email?: string; phone?: string; skip_password_change?: boolean }
+    data: { email?: string; phone?: string; skip_password_change?: boolean; resend_all?: boolean }
   ): Promise<Student> {
     const response = await apiClient.post<Student>(
       `/students/${studentId}/update-contact`,

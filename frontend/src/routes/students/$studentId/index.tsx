@@ -604,6 +604,7 @@ function StudentDetailPage(): React.JSX.Element {
                     email: newEmail !== student.email ? newEmail : undefined,
                     phone: newPhone !== (student.phone ?? "") ? newPhone : undefined,
                     skip_password_change: skipPwdChange,
+                    resend_all: true,
                   },
                   { onSuccess: () => setContactOpen(false) }
                 );
