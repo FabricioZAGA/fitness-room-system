@@ -10,7 +10,7 @@ from src.config import get_settings
 from src.models.common import MessageResponse
 from src.services.cognito_service import VALID_GROUPS, CognitoService
 from src.services.event_notifier import EventNotifier
-from src.utils.auth import get_current_user, require_admin_only
+from src.utils.auth import get_current_user, require_admin_only, require_any_admin_group
 
 logger = Logger()
 
@@ -59,7 +59,7 @@ class CognitoUserResponse(BaseModel):
     response_model=list[CognitoUserResponse],
     summary="List Users",
     description="List all Cognito users with their groups.",
-    dependencies=[Depends(require_admin_only())],
+    dependencies=[Depends(require_any_admin_group())],
 )
 def list_users(
     _current_user: dict[str, Any] = Depends(get_current_user),
@@ -188,7 +188,7 @@ def resend_invite(
     response_model=CognitoUserResponse,
     summary="Get User",
     description="Get a Cognito user by username.",
-    dependencies=[Depends(require_admin_only())],
+    dependencies=[Depends(require_any_admin_group())],
 )
 def get_user(
     username: str,

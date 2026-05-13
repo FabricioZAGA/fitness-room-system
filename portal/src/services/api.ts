@@ -70,6 +70,7 @@ export interface StudentProfile {
   last_name: string
   email: string
   phone?: string
+  photo_url?: string | null
   status: string
   created_at: string
   updated_at: string
@@ -82,6 +83,7 @@ export interface StaffProfile {
   last_name: string
   email: string
   phone?: string
+  photo_url?: string | null
   status: string
   specialties?: string[]
   bio?: string

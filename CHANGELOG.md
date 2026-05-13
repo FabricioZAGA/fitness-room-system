@@ -5,6 +5,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.8.1] — 2026-05-13
+
+### Fixed
+- Foto del instructor ahora se muestra en la lista de instructores (antes solo mostraba iniciales)
+- Foto del alumno ahora aparece en la lista de reservaciones por clase
+- Foto del alumno visible en la vista de membresías por vencer
+- Avatar en modal de edición de alumno muestra iniciales doradas cuando no hay foto (antes mostraba un ícono genérico)
+- Portal: Dashboard y pantalla de Perfil ahora muestran la foto del usuario; fallback a iniciales
+
+### Changed
+- Recepcionista ahora tiene acceso a las pestañas de **Clases**, **Reservaciones** y **Usuarios** (lectura)
+- Backend: endpoints `GET /users` y `GET /users/{username}` ahora permiten `receptionist` (antes solo `admin`)
+
+---
+
 ## [1.8.0] — 2026-05-13
 
 ### Added

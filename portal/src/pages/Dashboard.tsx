@@ -101,17 +101,34 @@ export default function Dashboard(): React.JSX.Element {
               width: '80px',
               height: '80px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #d4af37 0%, #f59e0b 100%)',
               margin: '0 auto 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '32px',
-              fontWeight: 'bold',
-              color: '#000000',
+              overflow: 'hidden',
+              flexShrink: 0,
             }}
           >
-            {displayProfile?.first_name?.[0]?.toUpperCase()}
+            {displayProfile?.photo_url ? (
+              <img
+                src={displayProfile.photo_url}
+                alt={displayProfile.first_name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(135deg, #d4af37 0%, #f59e0b 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '32px',
+                  fontWeight: 'bold',
+                  color: '#000000',
+                }}
+              >
+                {displayProfile?.first_name?.[0]?.toUpperCase()}
+              </div>
+            )}
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#ffffff', margin: '0 0 8px 0' }}>
             Hola, {displayProfile?.first_name} 👋

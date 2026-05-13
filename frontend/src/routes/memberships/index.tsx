@@ -30,8 +30,8 @@ function MembershipsPage(): React.JSX.Element {
   );
 
   const studentMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const s of studentsData?.items ?? []) map[s.student_id] = s.full_name;
+    const map: Record<string, { name: string; photo_url: string | null }> = {};
+    for (const s of studentsData?.items ?? []) map[s.student_id] = { name: s.full_name, photo_url: s.photo_url };
     return map;
   }, [studentsData]);
 
@@ -124,7 +124,7 @@ function MembershipsPage(): React.JSX.Element {
                 </h2>
                 <div className="space-y-3">
                   {critical.map((m) => (
-                    <MembershipCard key={m.membership_id} membership={m} urgency="critical" studentName={studentMap[m.student_id]} onRenew={() => setRenewStudentId(m.student_id)}
+                    <MembershipCard key={m.membership_id} membership={m} urgency="critical" student={studentMap[m.student_id]} onRenew={() => setRenewStudentId(m.student_id)}
                     onNotify={() => notifyMutation.mutate({
                       studentId: m.student_id,
                       data: {
@@ -146,7 +146,7 @@ function MembershipsPage(): React.JSX.Element {
                 </h2>
                 <div className="space-y-3">
                   {warning.map((m) => (
-                    <MembershipCard key={m.membership_id} membership={m} urgency="warning" studentName={studentMap[m.student_id]} onRenew={() => setRenewStudentId(m.student_id)}
+                    <MembershipCard key={m.membership_id} membership={m} urgency="warning" student={studentMap[m.student_id]} onRenew={() => setRenewStudentId(m.student_id)}
                     onNotify={() => notifyMutation.mutate({
                       studentId: m.student_id,
                       data: {
@@ -177,13 +177,13 @@ function MembershipsPage(): React.JSX.Element {
 function MembershipCard({
   membership: m,
   urgency,
-  studentName,
+  student,
   onRenew,
   onNotify,
 }: {
   membership: Membership;
   urgency: "critical" | "warning";
-  studentName?: string;
+  student?: { name: string; photo_url: string | null };
   onRenew?: () => void;
   onNotify?: () => void;
 }): React.JSX.Element {
@@ -216,9 +216,19 @@ function MembershipCard({
         {/* Info */}
         <div>
           <div className="flex items-center gap-3 mb-1">
-            {studentName && (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[--color-success-bg] text-xs font-bold text-[--color-success]">
-                {getInitials(studentName)}
+            {student && (
+              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full">
+                {student.photo_url ? (
+                  <img
+                    src={student.photo_url}
+                    alt={student.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[--color-success-bg] text-xs font-bold text-[--color-success]">
+                    {getInitials(student.name)}
+                  </div>
+                )}
               </div>
             )}
             <Link
@@ -226,7 +236,7 @@ function MembershipCard({
               params={{ studentId: m.student_id }}
               className="text-lg font-semibold text-[--tx-primary] hover:text-[--color-success] transition-colors"
             >
-              {studentName ?? "Ver miembro →"}
+              {student?.name ?? "Ver miembro →"}
             </Link>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-[--tx-muted]">

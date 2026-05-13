@@ -35,11 +35,12 @@ function ReservationsPage(): React.JSX.Element {
 
   const { data: studentsData } = useStudents({ limit: 200 });
   const studentMap = useMemo(() => {
-    const map: Record<string, { name: string; initials: string }> = {};
+    const map: Record<string, { name: string; initials: string; photo_url: string | null }> = {};
     for (const s of studentsData?.items ?? []) {
       map[s.student_id] = {
         name: s.full_name,
         initials: getInitials(s.full_name),
+        photo_url: s.photo_url,
       };
     }
     return map;
@@ -216,8 +217,18 @@ function ReservationsPage(): React.JSX.Element {
                     className="flex items-center justify-between rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-5"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[--color-success-bg] text-sm font-bold text-[--color-success]">
-                        {member ? member.initials : res.student_id.slice(0, 2).toUpperCase()}
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
+                        {member?.photo_url ? (
+                          <img
+                            src={member.photo_url}
+                            alt={member.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-[--color-success-bg] text-sm font-bold text-[--color-success]">
+                            {member ? member.initials : res.student_id.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <p className="text-lg font-semibold text-[--tx-primary]">

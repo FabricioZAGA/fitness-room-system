@@ -93,12 +93,22 @@ function InstructorsPage(): React.JSX.Element {
               {/* Header row */}
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-lg font-bold"
-                    style={{
-                      background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-                      color: "var(--gold-fg)"
-                    }}>
-                    {instructor.first_name.charAt(0)}{instructor.last_name.charAt(0)}
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl">
+                    {instructor.photo_url ? (
+                      <img
+                        src={instructor.photo_url}
+                        alt={`${instructor.first_name} ${instructor.last_name}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-lg font-bold"
+                        style={{
+                          background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                          color: "var(--gold-fg)"
+                        }}>
+                        {instructor.first_name.charAt(0)}{instructor.last_name.charAt(0)}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <h3 className="font-bold text-[--tx-primary]">

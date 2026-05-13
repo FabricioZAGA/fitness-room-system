@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Camera, User } from "lucide-react";
+import { Camera } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { CameraCapture } from "./CameraCapture";
 import { PhoneInput } from "./PhoneInput";
@@ -139,8 +139,12 @@ export function EditStudentModal({
               ) : student.photo_url ? (
                 <img src={student.photo_url} alt={student.full_name} className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-[--tx-disabled]">
-                  <User className="h-8 w-8" />
+                <div className="flex h-full w-full items-center justify-center text-sm font-bold"
+                  style={{
+                    background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                    color: "var(--gold-fg)"
+                  }}>
+                  {student.first_name.charAt(0)}{student.last_name.charAt(0)}
                 </div>
               )}
             </div>

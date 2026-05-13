@@ -12,9 +12,22 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.8.0";
+export const APP_VERSION = "1.8.1";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.8.1",
+    date: "2026-05-13",
+    title: "Fotos de perfil en todas las pantallas",
+    items: [
+      { icon: "🖼️", text: "Foto del instructor visible en la lista de instructores (fallback a iniciales doradas)" },
+      { icon: "👤", text: "Foto del alumno en la lista de reservaciones por clase" },
+      { icon: "💳", text: "Foto del alumno en la vista de membresías por vencer" },
+      { icon: "✏️", text: "Foto (o iniciales) al editar el perfil de un alumno" },
+      { icon: "📱", text: "Foto de perfil en el portal: Dashboard y pantalla de Perfil" },
+      { icon: "🔓", text: "Recepción ahora tiene acceso a Clases, Reservaciones y Usuarios (lectura)" },
+    ],
+  },
   {
     version: "1.8.0",
     date: "2026-05-13",

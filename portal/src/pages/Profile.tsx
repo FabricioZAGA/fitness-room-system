@@ -49,6 +49,47 @@ export default function Profile(): React.JSX.Element {
       <div style={{ maxWidth: '448px', margin: '0 auto' }}>
         <PageHeader title="Mi Perfil" onBack={() => navigate('/dashboard')} />
 
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div
+            style={{
+              width: '88px',
+              height: '88px',
+              borderRadius: '50%',
+              margin: '0 auto',
+              overflow: 'hidden',
+              flexShrink: 0,
+            }}
+          >
+            {displayProfile?.photo_url ? (
+              <img
+                src={displayProfile.photo_url}
+                alt={displayProfile?.first_name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(135deg, #d4af37 0%, #f59e0b 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '32px',
+                  fontWeight: 'bold',
+                  color: '#000000',
+                }}
+              >
+                {displayProfile?.first_name?.[0]?.toUpperCase()}
+                {displayProfile?.last_name?.[0]?.toUpperCase()}
+              </div>
+            )}
+          </div>
+          <p style={{ color: '#ffffff', fontWeight: 600, fontSize: '18px', margin: '12px 0 0' }}>
+            {displayProfile?.first_name} {displayProfile?.last_name}
+          </p>
+        </div>
+
         <Card>
           <div>
             <label style={{ fontSize: '14px', color: '#9ca3af', display: 'block', marginBottom: '4px' }}>
