@@ -36,7 +36,7 @@ const defaults: GymInfo & NotifSettings = {
   website: "",
   criticalDays: 7,
   warningDays: 30,
-  inactiveDays: 14,
+  inactiveDays: 30,
 };
 
 export const useGymStore = create<GymState>()(

@@ -49,7 +49,7 @@ function StudentPanel({
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
   const todayReservations = (reservationsData?.items ?? []).filter(
     (r) => r.class_date === today && (r.status === "confirmed" || r.status === "waitlisted")
   );
@@ -125,15 +125,23 @@ function StudentPanel({
     return (
       <div className="flex flex-col items-center gap-6 text-center">
         {/* Avatar */}
-        <div
-          className="flex h-20 w-20 items-center justify-center rounded-3xl text-2xl font-bold shadow-xl"
-          style={{
-            background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-            color: "var(--gold-fg)",
-          }}
-        >
-          {getInitials(student.full_name)}
-        </div>
+        {student.photo_url ? (
+          <img
+            src={student.photo_url}
+            alt={student.full_name}
+            className="h-20 w-20 rounded-3xl object-cover shadow-xl"
+          />
+        ) : (
+          <div
+            className="flex h-20 w-20 items-center justify-center rounded-3xl text-2xl font-bold shadow-xl"
+            style={{
+              background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+              color: "var(--gold-fg)",
+            }}
+          >
+            {getInitials(student.full_name)}
+          </div>
+        )}
         <p className="text-2xl font-bold text-[--tx-primary]">{student.full_name}</p>
 
         {isSuccess && canEnter ? (
@@ -180,15 +188,23 @@ function StudentPanel({
   return (
     <div className="flex flex-col items-center gap-5 text-center">
       {/* Avatar + name */}
-      <div
-        className="flex h-20 w-20 items-center justify-center rounded-3xl text-2xl font-bold shadow-xl"
-        style={{
-          background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-          color: "var(--gold-fg)",
-        }}
-      >
-        {getInitials(student.full_name)}
-      </div>
+      {student.photo_url ? (
+        <img
+          src={student.photo_url}
+          alt={student.full_name}
+          className="h-20 w-20 rounded-3xl object-cover shadow-xl"
+        />
+      ) : (
+        <div
+          className="flex h-20 w-20 items-center justify-center rounded-3xl text-2xl font-bold shadow-xl"
+          style={{
+            background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+            color: "var(--gold-fg)",
+          }}
+        >
+          {getInitials(student.full_name)}
+        </div>
+      )}
       <div>
         <p className="text-2xl font-bold text-[--tx-primary]">{student.full_name}</p>
         {activeMembership && (

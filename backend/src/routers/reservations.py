@@ -37,7 +37,7 @@ def create_reservation(
     service: ReservationService = Depends(get_service),
 ) -> ReservationResponse:
     """Create a reservation or add to waitlist."""
-    result = service.create_reservation(data)
+    result = service.create_reservation(data, staff_override=True)
     # Send notifications
     try:
         notifier = EventNotifier()

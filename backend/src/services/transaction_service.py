@@ -1,9 +1,10 @@
 """Transaction service — business logic for payments and cash cuts."""
 
-from datetime import date
 from typing import Any
 
 from aws_lambda_powertools import Logger
+
+from src.models.common import mexico_today
 
 from src.models.transaction import (
     CashCutCreate,
@@ -100,7 +101,7 @@ class TransactionService:
 
     def get_today_summary(self) -> dict[str, Any]:
         """Quick daily income summary for the dashboard cash register view."""
-        today = date.today().isoformat()
+        today = mexico_today().isoformat()
         transactions, _ = self._repo.list_transactions_by_date(today, limit=500)
 
         total_cash = sum(

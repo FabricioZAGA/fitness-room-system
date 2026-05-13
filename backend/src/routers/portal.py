@@ -8,6 +8,8 @@ from io import BytesIO
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from src.models.common import mexico_today
+
 import qrcode
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
@@ -26,8 +28,8 @@ from ..utils.exceptions import ResourceNotFoundException
 
 router = APIRouter(prefix="/portal", tags=["portal"])
 
-# Minimum hours before class start to allow self-service cancellation
-CANCELLATION_CUTOFF_HOURS = 2
+# Minimum minutes before class start to allow self-service cancellation
+CANCELLATION_CUTOFF_MINUTES = 15
 
 
 # ---------------------------------------------------------------------------
@@ -109,16 +111,16 @@ def _resolve_student(
 def _can_cancel_reservation(
     class_item: ClassDynamoItem,
 ) -> tuple[bool, str]:
-    """Check if a reservation can be cancelled (2-hour cutoff before class start)."""
+    """Check if a reservation can be cancelled (15-min cutoff before class start)."""
     try:
         class_datetime_str = f"{class_item.class_date}T{class_item.start_time}"
         mx_tz = ZoneInfo("America/Mexico_City")
         class_start = datetime.fromisoformat(class_datetime_str).replace(tzinfo=mx_tz)
         now = datetime.now(tz=mx_tz)
-        hours_until_class = (class_start - now).total_seconds() / 3600
+        minutes_until_class = (class_start - now).total_seconds() / 60
 
-        if hours_until_class < CANCELLATION_CUTOFF_HOURS:
-            return False, f"No puedes cancelar con menos de {CANCELLATION_CUTOFF_HOURS} horas de anticipación"
+        if minutes_until_class < CANCELLATION_CUTOFF_MINUTES:
+            return False, f"No puedes cancelar con menos de {CANCELLATION_CUTOFF_MINUTES} minutos de anticipación"
         return True, ""
     except (ValueError, TypeError):
         return True, ""
@@ -204,7 +206,7 @@ def get_membership(
 
         days_until_expiry = None
         if membership.end_date:
-            days_until_expiry = (date.fromisoformat(membership.end_date) - date.today()).days
+            days_until_expiry = (date.fromisoformat(membership.end_date) - mexico_today()).days
 
         return JSONResponse(content={
             "role": "student",
@@ -560,7 +562,7 @@ def get_upcoming_classes(
     For students: includes whether they already have a reservation/waitlist.
     """
     role = get_user_role(current_user)
-    today = date.today()
+    today = mexico_today()
     end_date = today + timedelta(days=days)
 
     # Resolve student_id for reservation lookup
@@ -661,6 +663,37 @@ def create_reservation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Esta clase ha sido cancelada",
         )
+
+    # Booking window: at least 5 minutes before class start
+    try:
+        class_datetime_str = f"{class_item.class_date}T{class_item.start_time}"
+        mx_tz = ZoneInfo("America/Mexico_City")
+        class_start = datetime.fromisoformat(class_datetime_str).replace(tzinfo=mx_tz)
+        now = datetime.now(tz=mx_tz)
+        minutes_until = (class_start - now).total_seconds() / 60
+        if minutes_until < 5:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede reservar con menos de 5 minutos de anticipación",
+            )
+    except (ValueError, TypeError):
+        pass
+
+    # Daily limit: 1-session/day memberships
+    _ONE_SESSION_TYPES = {"founder", "room_daily", "room_pass", "founder_monthly"}
+    membership_repo = MembershipRepository()
+    active_mem = membership_repo.get_active_for_student(student_id)
+    if active_mem and active_mem.membership_type in _ONE_SESSION_TYPES:
+        stu_reservations, _ = reservation_repo.list_for_student(student_id, limit=200)
+        same_day = [
+            r for r in stu_reservations
+            if r.class_date == class_item.class_date and r.status in ("confirmed", "waitlisted")
+        ]
+        if same_day:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tu membresía solo permite 1 clase por día. Ya tienes una reservación para esta fecha.",
+            )
 
     # Check for existing reservation
     existing = reservation_repo.get_reservation(class_id, student_id)

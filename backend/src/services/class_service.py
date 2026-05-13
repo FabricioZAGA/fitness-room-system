@@ -89,9 +89,9 @@ class ClassService:
         responses = [i.to_response() for i in items]
 
         if upcoming_only:
-            from datetime import date
+            from src.models.common import mexico_today
 
-            today = date.today().isoformat()
+            today = mexico_today().isoformat()
             responses = [r for r in responses if str(r.class_date) >= today]
 
         return responses, next_key

@@ -105,11 +105,9 @@ function DayPill({
 function ReportesPage(): React.JSX.Element {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("income");
-  const today = new Date();
-  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+  const todayParts = todayStr.split("-");
+  const firstOfMonth = `${todayParts[0]}-${todayParts[1]}-01`;
 
   const defaultInactiveDays = useGymStore((s) => s.inactiveDays);
   const gymName = useGymStore((s) => s.name);
@@ -302,6 +300,30 @@ function ReportesPage(): React.JSX.Element {
                 onClick={() => setAttendanceDays(d)}
               />
             ))}
+            {attendance && (
+              <div className="ml-auto flex gap-2">
+                <button
+                  onClick={async () => {
+                    const m = await loadExportReports();
+                    m.exportAttendanceExcel(attendance, attendanceDays, gymName);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Excel
+                </button>
+                <button
+                  onClick={async () => {
+                    const m = await loadExportReports();
+                    m.exportAttendancePDF(attendance, attendanceDays, gymName);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
+                >
+                  <FileText className="h-4 w-4" />
+                  PDF
+                </button>
+              </div>
+            )}
           </div>
 
           {attendanceLoading ? (

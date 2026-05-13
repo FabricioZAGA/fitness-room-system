@@ -15,6 +15,8 @@ from typing import Any
 
 from aws_lambda_powertools import Logger
 
+from src.models.common import mexico_today
+
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.reservation_repository import ReservationRepository
 from src.repositories.student_repository import StudentRepository
@@ -110,7 +112,7 @@ class ReportService:
         Returns totals per status (attended, no_show, confirmed, cancelled)
         across all students.
         """
-        since = (date.today() - timedelta(days=days)).isoformat()
+        since = (mexico_today() - timedelta(days=days)).isoformat()
 
         # Fetch all students and iterate their reservations
         students, _ = self._students.list_all(limit=500)
@@ -146,7 +148,7 @@ class ReportService:
         For each active student, queries their checkins and counts those
         within the time window. Acceptable for small gym (< 500 students).
         """
-        since = (date.today() - timedelta(days=days)).isoformat()
+        since = (mexico_today() - timedelta(days=days)).isoformat()
 
         students, _ = self._students.list_all(limit=500)
         active_students = [
@@ -188,7 +190,7 @@ class ReportService:
 
         Fetches all active students and checks their recent checkins.
         """
-        cutoff = (date.today() - timedelta(days=inactive_days)).isoformat()
+        cutoff = (mexico_today() - timedelta(days=inactive_days)).isoformat()
 
         students, _ = self._students.list_all(limit=500)
         active_students = [

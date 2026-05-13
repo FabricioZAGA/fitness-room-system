@@ -99,6 +99,53 @@ export function exportInactiveExcel(
   XLSX.writeFile(wb, `inactivos_${days}dias.xlsx`);
 }
 
+export function exportAttendanceExcel(
+  attendance: { period_days: number; attended: number; no_show: number; confirmed: number; cancelled: number; total: number },
+  days: number,
+  gymName: string
+): void {
+  const wb = XLSX.utils.book_new();
+  const rows = [
+    [`${gymName} — Reporte de Asistencia (últimos ${days} días)`],
+    [],
+    ["Métrica", "Cantidad"],
+    ["Total Reservaciones", attendance.total],
+    ["Asistieron", attendance.attended],
+    ["No Show", attendance.no_show],
+    ["Confirmadas (pendientes)", attendance.confirmed],
+    ["Canceladas", attendance.cancelled],
+    [],
+    ["Tasa de Asistencia", attendance.total > 0 ? `${((attendance.attended / attendance.total) * 100).toFixed(1)}%` : "N/A"],
+    ["Tasa de No Show", attendance.total > 0 ? `${((attendance.no_show / attendance.total) * 100).toFixed(1)}%` : "N/A"],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, "Asistencia");
+  XLSX.writeFile(wb, `asistencia_${days}dias.xlsx`);
+}
+
+export function exportUsersExcel(
+  users: { username: string; email: string; name: string; status: string; enabled: boolean; groups: string[]; created_at: string }[],
+  gymName: string
+): void {
+  const wb = XLSX.utils.book_new();
+  const rows = [
+    [`${gymName} — Reporte de Usuarios (${users.length})`],
+    [],
+    ["Nombre", "Email", "Status", "Habilitado", "Grupos", "Creado"],
+    ...users.map((u) => [
+      u.name,
+      u.email,
+      u.status,
+      u.enabled ? "Sí" : "No",
+      u.groups.join(", "),
+      u.created_at ? u.created_at.slice(0, 10) : "",
+    ]),
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, "Usuarios");
+  XLSX.writeFile(wb, "usuarios.xlsx");
+}
+
 // ─── PDF ──────────────────────────────────────────────────────────────────────
 
 function createPdfBase(title: string): jsPDF {
@@ -195,6 +242,55 @@ export function exportRankingsPDF(
     theme: "grid",
   });
   doc.save(`rankings_${days}dias.pdf`);
+}
+
+export function exportAttendancePDF(
+  attendance: { period_days: number; attended: number; no_show: number; confirmed: number; cancelled: number; total: number },
+  days: number,
+  gymName: string
+): void {
+  const doc = createPdfBase(gymTitle(gymName, `Reporte de Asistencia (${days} días)`));
+  const rate = attendance.total > 0 ? `${((attendance.attended / attendance.total) * 100).toFixed(1)}%` : "N/A";
+  const noShowRate = attendance.total > 0 ? `${((attendance.no_show / attendance.total) * 100).toFixed(1)}%` : "N/A";
+  autoTable(doc, {
+    startY: 34,
+    head: [["Métrica", "Cantidad"]],
+    body: [
+      ["Total Reservaciones", String(attendance.total)],
+      ["Asistieron", String(attendance.attended)],
+      ["No Show", String(attendance.no_show)],
+      ["Confirmadas (pendientes)", String(attendance.confirmed)],
+      ["Canceladas", String(attendance.cancelled)],
+      ["Tasa de Asistencia", rate],
+      ["Tasa de No Show", noShowRate],
+    ],
+    headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
+    theme: "grid",
+  });
+  doc.save(`asistencia_${days}dias.pdf`);
+}
+
+export function exportUsersPDF(
+  users: { username: string; email: string; name: string; status: string; enabled: boolean; groups: string[]; created_at: string }[],
+  gymName: string
+): void {
+  const doc = createPdfBase(gymTitle(gymName, `Reporte de Usuarios (${users.length})`));
+  autoTable(doc, {
+    startY: 34,
+    head: [["Nombre", "Email", "Status", "Habilitado", "Grupos", "Creado"]],
+    body: users.map((u) => [
+      u.name,
+      u.email,
+      u.status,
+      u.enabled ? "Sí" : "No",
+      u.groups.join(", "),
+      u.created_at ? u.created_at.slice(0, 10) : "",
+    ]),
+    headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
+    styles: { fontSize: 8 },
+    theme: "grid",
+  });
+  doc.save("usuarios.pdf");
 }
 
 export function exportInactivePDF(

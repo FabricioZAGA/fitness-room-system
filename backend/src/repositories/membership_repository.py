@@ -3,7 +3,7 @@
 from datetime import date, timedelta
 from typing import Any
 
-from src.models.common import utc_now
+from src.models.common import mexico_today, utc_now
 from src.models.membership import (
     MembershipCreate,
     MembershipDynamoItem,
@@ -86,7 +86,7 @@ class MembershipRepository(DynamoRepository):
         Access pattern: GSI1 PK=MEMBERSHIPS, SK between today and today+N.
         Used for renewal alerts.
         """
-        today = date.today()
+        today = mexico_today()
         target_date = date.fromordinal(today.toordinal() + days)
         items, next_key = self.query_gsi(
             index_name="GSI1",
@@ -141,7 +141,7 @@ class MembershipRepository(DynamoRepository):
     def freeze(self, student_id: str, membership_id: str, days: int) -> MembershipDynamoItem:
         """Freeze a membership for N days, extending end_date accordingly."""
         item = self.get_by_id(student_id, membership_id)
-        today = date.today()
+        today = mexico_today()
         freeze_end = today + timedelta(days=days)
         new_end = date.fromisoformat(item.end_date) + timedelta(days=days)
         accumulated = item.frozen_days_accumulated + days

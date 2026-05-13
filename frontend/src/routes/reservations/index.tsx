@@ -22,8 +22,8 @@ function ReservationsPage(): React.JSX.Element {
   const [modalOpen, setModalOpen] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");
 
-  const today = new Date().toISOString().slice(0, 10);
-  const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+  const weekEnd = new Date(Date.now() + 7 * 86400000).toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 
   const { data: classesData, isLoading: classesLoading } = useClasses({
     upcoming_only: false,

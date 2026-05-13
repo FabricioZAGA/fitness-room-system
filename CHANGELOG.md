@@ -5,6 +5,25 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.8.0] — 2026-05-13
+
+### Added
+- Calendario con 4 vistas: **Mes**, **Semana**, **3 Días** y **Hoy** — navegación con flechas y cambio de vista instantáneo
+- Restricción de 1 clase por día para membresías Fundador, Room Daily y Room Pass
+- Ventana mínima de reservación: 5 minutos antes del inicio de la clase
+- Ventana mínima de cancelación: 15 minutos antes del inicio de la clase
+- Walk-in: recepción puede registrar alumnos aunque la clase ya haya iniciado (`staff_override`)
+- Foto del alumno visible en el kiosco de check-in (cuando tiene foto cargada)
+- Exportar reporte de **asistencia** a Excel y PDF
+- Exportar reporte de **usuarios** (Cognito) a Excel y PDF
+- Calendario filtra clases por rango de fecha visible (optimización de API)
+
+### Changed
+- Alertas de inactividad ahora envían un solo correo resumen al administrador (umbral: 30 días)
+- Cancelación en portal: ventana reducida de 2 horas a 15 minutos
+
+---
+
 ## [1.7.3] — 2026-05-08
 
 ### Added

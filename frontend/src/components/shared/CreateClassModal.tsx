@@ -4,23 +4,23 @@ import { useState } from "react";
 import { Dialog } from "./Dialog";
 import { useCreateClass } from "@/hooks/useClasses";
 import { useInstructors } from "@/hooks/useInstructors";
-import type { ClassType, ClassMode, CreateClassRequest } from "@/types/class";
-import { CLASS_TYPE_LABELS, CLASS_MODE_LABELS } from "@/types/class";
+import { useClassTypes } from "@/hooks/useCatalogs";
+import type { ClassMode, CreateClassRequest } from "@/types/class";
+import { CLASS_MODE_LABELS } from "@/types/class";
 
 interface CreateClassModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-const CLASS_TYPES = Object.entries(CLASS_TYPE_LABELS) as [ClassType, string][];
 const CLASS_MODES = Object.entries(CLASS_MODE_LABELS) as [ClassMode, string][];
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 }
 
 const INITIAL: CreateClassRequest = {
-  class_type: "zumba",
+  class_type: "",
   instructor_name: "",
   class_date: todayStr(),
   start_time: "07:00",
@@ -39,6 +39,7 @@ export function CreateClassModal({
   const { mutate, isPending } = useCreateClass();
   const { data: instructorsData } = useInstructors({ status: "active" });
   const instructors = instructorsData?.items ?? [];
+  const { data: classTypes = [] } = useClassTypes();
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -82,11 +83,13 @@ export function CreateClassModal({
               name="class_type"
               value={form.class_type}
               onChange={handleChange}
+              required
               className={inputCls}
             >
-              {CLASS_TYPES.map(([val, label]) => (
-                <option key={val} value={val}>
-                  {label}
+              <option value="">— Selecciona tipo —</option>
+              {classTypes.map((ct) => (
+                <option key={ct.slug} value={ct.slug}>
+                  {ct.label}
                 </option>
               ))}
             </select>

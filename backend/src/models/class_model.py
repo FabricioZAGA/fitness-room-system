@@ -21,8 +21,10 @@ from pydantic import BaseModel, Field
 from src.models.common import TimestampedModel, new_id, utc_now
 
 
+# Legacy ClassType enum kept for backward compatibility with existing data.
+# New classes use any slug from the dynamic CATALOG#class_types catalog.
 class ClassType(StrEnum):
-    """Available fitness class types (Fitness Room León catalog)."""
+    """Legacy fitness class types — new types are stored in the catalog."""
 
     HYROX = "hyrox"
     STRONG_NATION = "strong_nation"
@@ -55,7 +57,7 @@ class DayOfWeek(StrEnum):
 class ClassCreate(BaseModel):
     """Schema for creating a single class session."""
 
-    class_type: ClassType = Field(..., description="Type of fitness class")
+    class_type: str = Field(..., min_length=1, max_length=100, description="Class type slug from catalog")
     instructor_name: str = Field(..., min_length=1, max_length=100, description="Instructor name")
     class_date: date = Field(..., description="Date of the class")
     start_time: time = Field(..., description="Class start time (24h format)")
@@ -88,7 +90,7 @@ class ClassResponse(TimestampedModel):
     """Schema returned in API responses."""
 
     class_id: str
-    class_type: ClassType
+    class_type: str
     instructor_name: str
     class_date: date
     start_time: time
@@ -150,7 +152,7 @@ class ClassDynamoItem(BaseModel):
             GSI2PK=f"INSTRUCTOR#{data.instructor_name.lower().replace(' ', '_')}",
             GSI2SK=f"DATE#{date_str}#CLASS#{class_id}",
             class_id=class_id,
-            class_type=data.class_type.value,
+            class_type=data.class_type,
             instructor_name=data.instructor_name,
             class_date=date_str,
             start_time=data.start_time.isoformat(),
@@ -168,7 +170,7 @@ class ClassDynamoItem(BaseModel):
         """Convert DynamoDB item to API response schema."""
         return ClassResponse(
             class_id=self.class_id,
-            class_type=ClassType(self.class_type),
+            class_type=self.class_type,
             instructor_name=self.instructor_name,
             class_date=date.fromisoformat(self.class_date),
             start_time=time.fromisoformat(self.start_time),

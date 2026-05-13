@@ -79,8 +79,12 @@ class Settings(BaseSettings):
         description="Days before expiry for standard reminder",
     )
     notification_inactive_days: int = Field(
-        default=14,
+        default=30,
         description="Days without check-in before inactivity alert",
+    )
+    admin_email: str = Field(
+        default="",
+        description="Admin email address for inactivity summary reports",
     )
 
     # ── S3 / Media ──────────────────────────────────────────────────────────────

@@ -3,7 +3,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Plus, Shield } from "lucide-react";
+import { Loader2, Plus, Shield, FileSpreadsheet, FileText } from "lucide-react";
+import { useGymStore } from "@/store/useGymStore";
+
+const loadExportReports = (): Promise<typeof import("@/lib/exportReports")> =>
+  import("@/lib/exportReports");
 
 import { PageWrapper } from "@/components/shared/PageWrapper";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -41,6 +45,7 @@ const FILTER_OPTIONS = USER_GROUP_FILTER_OPTIONS.map((o) => ({
 
 function UsersPage(): React.JSX.Element {
   const { t } = useTranslation();
+  const gymName = useGymStore((s) => s.name);
   const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState<GroupFilterValue>("all");
@@ -104,6 +109,30 @@ function UsersPage(): React.JSX.Element {
           value={groupFilter}
           onChange={setGroupFilter}
         />
+        {filtered.length > 0 && (
+          <div className="ml-auto flex gap-2">
+            <button
+              onClick={async () => {
+                const m = await loadExportReports();
+                m.exportUsersExcel(filtered, gymName);
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel
+            </button>
+            <button
+              onClick={async () => {
+                const m = await loadExportReports();
+                m.exportUsersPDF(filtered, gymName);
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
+            >
+              <FileText className="h-4 w-4" />
+              PDF
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Users list */}

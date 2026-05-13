@@ -1,9 +1,11 @@
 """Reservation service — business logic for class reservations and waitlist."""
 
+from datetime import datetime, timedelta
 from typing import Any
 
 from aws_lambda_powertools import Logger
 
+from src.models.common import MX_TZ, mexico_now
 from src.models.reservation import ReservationCreate, ReservationResponse
 from src.repositories.class_repository import ClassRepository
 from src.repositories.membership_repository import MembershipRepository
@@ -13,6 +15,9 @@ from src.utils.exceptions import (
     raise_bad_request,
     raise_conflict,
 )
+
+MIN_BOOKING_MINUTES = 5
+MIN_CANCEL_MINUTES = 15
 
 logger = Logger()
 
@@ -32,7 +37,9 @@ class ReservationService:
         self._student_repo = student_repo or StudentRepository()
         self._membership_repo = membership_repo or MembershipRepository()
 
-    def create_reservation(self, data: ReservationCreate) -> ReservationResponse:
+    def create_reservation(
+        self, data: ReservationCreate, *, staff_override: bool = False,
+    ) -> ReservationResponse:
         """Reserve a spot in a class for a student.
 
         Business rules:
@@ -44,6 +51,7 @@ class ReservationService:
 
         Args:
             data: Reservation creation payload.
+            staff_override: If True, skip booking window and daily limit (walk-in).
 
         Returns:
             The created reservation (confirmed or waitlisted).
@@ -59,6 +67,10 @@ class ReservationService:
 
         if class_item.is_cancelled:
             raise_bad_request(f"Class '{data.class_id}' has been cancelled.")
+
+        if not staff_override:
+            self._check_booking_window(class_item)
+            self._check_daily_limit(data.student_id, class_item.class_date)
 
         existing = self._reservation_repo.get_reservation(data.class_id, data.student_id)
         if existing and existing.status in ("confirmed", "waitlisted"):
@@ -111,6 +123,9 @@ class ReservationService:
             raise_bad_request(
                 f"No reservation found for student '{student_id}' in class '{class_id}'."
             )
+
+        class_item = self._class_repo.get_by_id(class_id)
+        self._check_cancel_window(class_item)
 
         cancelled = self._reservation_repo.cancel_reservation(class_id, student_id)
         self._class_repo.decrement_reservations_count(class_id)
@@ -227,3 +242,62 @@ class ReservationService:
         self._class_repo.get_by_id(class_id)
         items, _ = self._reservation_repo.get_waitlist_for_class(class_id, limit=limit)
         return [i.to_response() for i in items]
+
+    # ------------------------------------------------------------------
+    # Daily limit per membership type
+    # ------------------------------------------------------------------
+
+    ONE_SESSION_MEMBERSHIPS = {"founder", "room_daily", "room_pass", "founder_monthly"}
+
+    def _check_daily_limit(self, student_id: str, class_date: str) -> None:
+        """Raise 400 if a 1-session/day member already has a confirmed reservation on the same day."""
+        active = self._membership_repo.get_active_for_student(student_id)
+        if active is None:
+            return
+        if active.membership_type not in self.ONE_SESSION_MEMBERSHIPS:
+            return
+
+        reservations, _ = self._reservation_repo.list_for_student(student_id, limit=200)
+        same_day_confirmed = [
+            r for r in reservations
+            if r.class_date == class_date and r.status in ("confirmed", "waitlisted")
+        ]
+        if same_day_confirmed:
+            raise_bad_request(
+                "Tu membresía solo permite 1 clase por día. "
+                "Ya tienes una reservación para esta fecha."
+            )
+
+    # ------------------------------------------------------------------
+    # Time window checks
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _class_start_datetime(class_item: Any) -> datetime:
+        """Build a timezone-aware datetime from class_date + start_time strings."""
+        date_str = str(class_item.class_date)
+        time_str = str(class_item.start_time)[:5]  # "HH:MM"
+        naive = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        return naive.replace(tzinfo=MX_TZ)
+
+    def _check_booking_window(self, class_item: Any) -> None:
+        """Raise 400 if booking is attempted less than MIN_BOOKING_MINUTES before class start."""
+        class_start = self._class_start_datetime(class_item)
+        now = mexico_now()
+        diff = class_start - now
+        if diff < timedelta(minutes=MIN_BOOKING_MINUTES):
+            raise_bad_request(
+                f"No se puede reservar con menos de {MIN_BOOKING_MINUTES} minutos de anticipación. "
+                f"La clase inicia a las {str(class_item.start_time)[:5]}."
+            )
+
+    def _check_cancel_window(self, class_item: Any) -> None:
+        """Raise 400 if cancellation is attempted less than MIN_CANCEL_MINUTES before class start."""
+        class_start = self._class_start_datetime(class_item)
+        now = mexico_now()
+        diff = class_start - now
+        if diff < timedelta(minutes=MIN_CANCEL_MINUTES):
+            raise_bad_request(
+                f"No se puede cancelar con menos de {MIN_CANCEL_MINUTES} minutos de anticipación. "
+                f"La clase inicia a las {str(class_item.start_time)[:5]}."
+            )

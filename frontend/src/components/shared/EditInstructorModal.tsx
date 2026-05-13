@@ -6,8 +6,8 @@ import { Plus } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { PhoneInput } from "./PhoneInput";
 import { useUpdateInstructor } from "@/hooks/useInstructors";
+import { useSpecialties } from "@/hooks/useCatalogs";
 import { EMAIL_REGEX } from "@/lib/phone";
-import { SPECIALTIES } from "@/lib/specialties";
 import type { Instructor, UpdateInstructorRequest } from "@/types/instructor";
 
 interface EditInstructorModalProps {
@@ -47,6 +47,8 @@ export function EditInstructorModal({
   }, [instructor]);
 
   const { mutate, isPending } = useUpdateInstructor(instructor.instructor_id);
+  const { data: specialtyCatalog = [] } = useSpecialties();
+  const SPECIALTIES = specialtyCatalog.map((s) => s.label);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

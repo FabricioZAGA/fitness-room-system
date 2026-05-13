@@ -12,9 +12,23 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.7.3";
+export const APP_VERSION = "1.8.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.8.0",
+    date: "2026-05-13",
+    title: "Calendario mejorado, reglas de reservación y reportes exportables",
+    items: [
+      { icon: "📅", text: "Calendario con 4 vistas: Mes, Semana, 3 Días y Hoy — navega con flechas y cambia de vista al instante" },
+      { icon: "⏱️", text: "Reservaciones requieren al menos 5 minutos de anticipación; cancelaciones al menos 15 minutos antes" },
+      { icon: "1️⃣", text: "Socios Fundador, Room Daily y Room Pass ahora solo pueden reservar 1 clase por día" },
+      { icon: "🚶", text: "Walk-in permitido: recepción puede registrar alumnos aunque la clase ya haya iniciado" },
+      { icon: "📸", text: "Foto del alumno visible en el kiosco de check-in (si tiene foto cargada)" },
+      { icon: "📊", text: "Exportar reportes de asistencia y usuarios a Excel y PDF" },
+      { icon: "📧", text: "Alertas de inactividad ahora envían un solo resumen al admin (umbral: 30 días)" },
+    ],
+  },
   {
     version: "1.7.3",
     date: "2026-05-08",

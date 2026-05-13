@@ -194,7 +194,7 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
   const { data: classesData } = useClasses({ limit: 200 });
 
   const allMemberships = membershipsData?.items ?? [];
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 
   const todayReservations = (reservationsData?.items ?? []).filter(
     (r) => r.class_date === today && r.status === "confirmed"

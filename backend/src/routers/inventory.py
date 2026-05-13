@@ -159,7 +159,7 @@ def list_sales(
     _current_user: dict[str, Any] = Depends(get_current_user),
     service: InventoryService = Depends(get_service),
 ) -> list[ProductSaleResponse]:
-    from datetime import date as dt_date
-    date_str = date or dt_date.today().isoformat()
+    from src.models.common import mexico_today
+    date_str = date or mexico_today().isoformat()
     items, _ = service.list_sales_by_date(date_str)
     return items

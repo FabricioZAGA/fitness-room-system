@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 
+from src.models.common import mexico_today
 from src.services.report_service import ReportService
 from src.utils.auth import get_current_user
 
@@ -35,7 +36,7 @@ def income_report(
     _current_user: dict[str, Any] = Depends(get_current_user),
     service: ReportService = Depends(get_service),
 ) -> dict[str, Any]:
-    today = date.today()
+    today = mexico_today()
     actual_end = end_date or today
     actual_start = start_date or today.replace(day=1)
     return service.income_by_date_range(actual_start, actual_end)

@@ -43,18 +43,17 @@ export function getInitials(name: string): string {
     .toUpperCase();
 }
 
+/** Return today's date as YYYY-MM-DD in America/Mexico_City timezone. */
+export function todayMX(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+}
+
 /** Return true if the ISO date string is in the past. */
 export function isPast(isoDate: string): boolean {
   return parseISO(isoDate) < new Date();
 }
 
-/** Return true if the ISO date string is today. */
+/** Return true if the ISO date string is today (Mexico City timezone). */
 export function isToday(isoDate: string): boolean {
-  const date = parseISO(isoDate);
-  const today = new Date();
-  return (
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate()
-  );
+  return isoDate.slice(0, 10) === todayMX();
 }

@@ -18,7 +18,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from src.models.common import TimestampedModel, new_id, utc_now
+from src.models.common import TimestampedModel, mexico_today, new_id, utc_now
 from src.utils.phone import validate_phone_optional, validate_phone_required
 
 
@@ -123,7 +123,7 @@ class StudentResponse(TimestampedModel):
         if not self.full_name:
             self.full_name = f"{self.first_name} {self.last_name}"
         if self.birth_date:
-            today = date.today()
+            today = mexico_today()
             self.age = (
                 today.year - self.birth_date.year
                 - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))

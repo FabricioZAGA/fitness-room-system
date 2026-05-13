@@ -21,6 +21,8 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+from src.models.common import mexico_today
+
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import letter
@@ -118,7 +120,7 @@ def generate_carta_responsiva(
         PDF file content as bytes.
     """
     if sign_date is None:
-        sign_date = date.today()
+        sign_date = mexico_today()
     if signed_at is None:
         signed_at = datetime.now(timezone.utc)
 
@@ -487,7 +489,7 @@ def compute_signature_hash(
     the signed_at timestamp on the Student record for later verification.
     """
     if sign_date is None:
-        sign_date = date.today()
+        sign_date = mexico_today()
     identity = _build_signature_identity(student_name, student_email, sign_date)
     # Hash of identity alone is enough for audit — the full body-hash lives
     # in the PDF and can be recomputed by regenerating the document.

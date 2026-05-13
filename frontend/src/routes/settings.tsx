@@ -18,6 +18,15 @@ import {
   XCircle,
   Clock,
   Globe,
+  Layers,
+  Plus,
+  Trash2,
+  GripVertical,
+  ToggleLeft,
+  ToggleRight,
+  Pencil,
+  Dumbbell,
+  BookOpen,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -33,6 +42,15 @@ import {
 import { NOTIFICATION_TYPE_LABELS } from "@/types/notification";
 import type { NotificationResponse } from "@/types/notification";
 import { SuppressionCard } from "@/components/shared/SuppressionCard";
+import {
+  useCatalog,
+  useCreateCatalogItem,
+  useUpdateCatalogItem,
+  useDeleteCatalogItem,
+  useSeedCatalogs,
+} from "@/hooks/useCatalogs";
+import { CATALOG_CLASS_TYPES, CATALOG_SPECIALTIES } from "@/types/catalog";
+import type { CatalogItem, CatalogName } from "@/types/catalog";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -523,6 +541,15 @@ function SettingsPage(): React.JSX.Element {
         {/* Email delivery health / suppression list */}
         <SuppressionCard />
 
+        {/* Catalogs */}
+        <SettingSection
+          icon={Layers}
+          title={t("settings.catalogs")}
+          description={t("settings.catalogsDesc")}
+        >
+          <CatalogManager />
+        </SettingSection>
+
         {/* Security */}
         <SettingSection
           icon={ShieldCheck}
@@ -702,6 +729,238 @@ function SettingsPage(): React.JSX.Element {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Catalog Management ─────────────────────────────────────────────────────
+
+type CatalogTab = "class_types" | "specialties";
+
+function CatalogManager(): React.JSX.Element {
+  const { t } = useTranslation();
+  const [tab, setTab] = useState<CatalogTab>("class_types");
+  const catalogName: CatalogName = tab === "class_types" ? CATALOG_CLASS_TYPES : CATALOG_SPECIALTIES;
+
+  const { data: items = [], isLoading } = useCatalog(catalogName, true);
+  const createMut = useCreateCatalogItem(catalogName);
+  const updateMut = useUpdateCatalogItem(catalogName);
+  const deleteMut = useDeleteCatalogItem(catalogName);
+  const seedMut = useSeedCatalogs();
+
+  const [newLabel, setNewLabel] = useState("");
+  const [newColor, setNewColor] = useState("");
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  const [editColor, setEditColor] = useState("");
+
+  function handleAdd(): void {
+    const trimmed = newLabel.trim();
+    if (!trimmed) return;
+    createMut.mutate(
+      { label: trimmed, color: newColor.trim(), sort_order: items.length },
+      {
+        onSuccess: () => {
+          setNewLabel("");
+          setNewColor("");
+        },
+      },
+    );
+  }
+
+  function startEdit(item: CatalogItem): void {
+    setEditingSlug(item.slug);
+    setEditLabel(item.label);
+    setEditColor(item.color);
+  }
+
+  function handleSaveEdit(slug: string): void {
+    updateMut.mutate(
+      { slug, data: { label: editLabel.trim() || undefined, color: editColor.trim() } },
+      { onSuccess: () => setEditingSlug(null) },
+    );
+  }
+
+  function handleToggleActive(item: CatalogItem): void {
+    updateMut.mutate({ slug: item.slug, data: { is_active: !item.is_active } });
+  }
+
+  function handleDelete(slug: string): void {
+    if (!confirm(t("settings.confirmDelete"))) return;
+    deleteMut.mutate(slug);
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Tab toggle */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setTab("class_types")}
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all"
+          style={
+            tab === "class_types"
+              ? goldActiveStyle
+              : { border: "1px solid var(--bd-default)", background: "var(--bg-surface)", color: "var(--tx-muted)" }
+          }
+        >
+          <Dumbbell className="h-4 w-4" />
+          {t("settings.classTypes")}
+        </button>
+        <button
+          onClick={() => setTab("specialties")}
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all"
+          style={
+            tab === "specialties"
+              ? goldActiveStyle
+              : { border: "1px solid var(--bd-default)", background: "var(--bg-surface)", color: "var(--tx-muted)" }
+          }
+        >
+          <BookOpen className="h-4 w-4" />
+          {t("settings.specialties")}
+        </button>
+        <div className="ml-auto">
+          <button
+            onClick={() => seedMut.mutate()}
+            disabled={seedMut.isPending}
+            className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] bg-[--bg-muted] px-3 py-2 text-xs font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold] disabled:opacity-50"
+          >
+            <Layers className="h-3.5 w-3.5" />
+            {seedMut.isPending ? "..." : t("settings.seedCatalogs")}
+          </button>
+        </div>
+      </div>
+
+      <p className="text-xs text-[--tx-disabled]">
+        {tab === "class_types" ? t("settings.classTypesDesc") : t("settings.specialtiesDesc")}
+      </p>
+
+      {/* Add new item */}
+      <div className="flex items-end gap-2">
+        <div className="flex-1">
+          <label className="mb-1 block text-xs font-medium text-[--tx-muted]">{t("settings.itemLabel")}</label>
+          <input
+            className={inputCls}
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
+            placeholder={tab === "class_types" ? "Ej: Spinning" : "Ej: CrossFit"}
+          />
+        </div>
+        {tab === "class_types" && (
+          <div className="w-48">
+            <label className="mb-1 block text-xs font-medium text-[--tx-muted]">{t("settings.itemColor")}</label>
+            <input
+              className={inputCls}
+              value={newColor}
+              onChange={(e) => setNewColor(e.target.value)}
+              placeholder="bg-... text-... border-..."
+            />
+          </div>
+        )}
+        <button
+          onClick={handleAdd}
+          disabled={!newLabel.trim() || createMut.isPending}
+          className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-40"
+          style={goldActiveStyle}
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Items list */}
+      {isLoading ? (
+        <div className="flex justify-center py-6">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[--gold] border-t-transparent" />
+        </div>
+      ) : items.length === 0 ? (
+        <p className="py-6 text-center text-sm text-[--tx-disabled]">{t("settings.noItems")}</p>
+      ) : (
+        <div className="space-y-1.5">
+          {items.map((item) => (
+            <div
+              key={item.slug}
+              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-all ${
+                item.is_active
+                  ? "border-[--bd-default] bg-[--bg-muted]/40"
+                  : "border-[--bd-subtle] bg-[--bg-muted]/20 opacity-50"
+              }`}
+            >
+              <GripVertical className="h-4 w-4 shrink-0 text-[--tx-disabled]" />
+
+              {editingSlug === item.slug ? (
+                <>
+                  <input
+                    className="flex-1 rounded-lg border border-[--gold-bd] bg-[--bg-muted] px-2 py-1 text-sm text-[--tx-primary] focus:outline-none"
+                    value={editLabel}
+                    onChange={(e) => setEditLabel(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit(item.slug); if (e.key === "Escape") setEditingSlug(null); }}
+                    autoFocus
+                  />
+                  {tab === "class_types" && (
+                    <input
+                      className="w-36 rounded-lg border border-[--bd-subtle] bg-[--bg-muted] px-2 py-1 text-xs text-[--tx-muted] focus:outline-none"
+                      value={editColor}
+                      onChange={(e) => setEditColor(e.target.value)}
+                      placeholder="CSS classes"
+                    />
+                  )}
+                  <button
+                    onClick={() => handleSaveEdit(item.slug)}
+                    disabled={updateMut.isPending}
+                    className="rounded-lg px-2 py-1 text-xs font-medium text-[--gold] hover:bg-[--gold-bg] transition-colors"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setEditingSlug(null)}
+                    className="rounded-lg px-2 py-1 text-xs text-[--tx-disabled] hover:text-[--tx-muted] transition-colors"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Color preview */}
+                  {item.color && (
+                    <span className={`rounded-md border px-2 py-0.5 text-xs font-medium ${item.color}`}>
+                      {item.label}
+                    </span>
+                  )}
+                  <span className="flex-1 text-sm font-medium text-[--tx-primary]">
+                    {!item.color && item.label}
+                  </span>
+                  <span className="text-xs text-[--tx-disabled] font-mono">{item.slug}</span>
+                  <button
+                    onClick={() => startEdit(item)}
+                    className="rounded-lg p-1.5 text-[--tx-disabled] hover:text-[--gold] transition-colors"
+                    title={t("settings.editItem")}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleToggleActive(item)}
+                    className="rounded-lg p-1.5 transition-colors"
+                    title={item.is_active ? "Desactivar" : "Activar"}
+                  >
+                    {item.is_active ? (
+                      <ToggleRight className="h-4 w-4 text-[--color-success]" />
+                    ) : (
+                      <ToggleLeft className="h-4 w-4 text-[--tx-disabled]" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.slug)}
+                    disabled={deleteMut.isPending}
+                    className="rounded-lg p-1.5 text-[--tx-disabled] hover:text-[--color-danger] transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

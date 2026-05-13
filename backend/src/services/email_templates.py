@@ -170,6 +170,54 @@ def inactivity_alert_html(
     )
 
 
+def inactivity_admin_summary_html(
+    inactive_students: list[dict[str, str]],
+    inactive_days: int,
+    gym_name: str = "Fitness Room",
+) -> str:
+    """Email template for admin — summary of inactive students."""
+    rows = ""
+    for s in inactive_students:
+        rows += f"""
+        <tr>
+          <td style="padding:8px 12px;border-bottom:1px solid #2a2a2a;color:#cccccc;font-size:14px;">{s.get("student_name","—")}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #2a2a2a;color:#888888;font-size:14px;">{s.get("email","—")}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #2a2a2a;color:#888888;font-size:14px;">{s.get("phone","—")}</td>
+        </tr>
+        """
+
+    content = f"""
+      <p style="margin:0 0 8px;font-size:13px;color:#d4af37;font-weight:600;text-transform:uppercase;letter-spacing:1px;">
+        Reporte de Inactividad
+      </p>
+      <h1 style="margin:0 0 24px;font-size:24px;font-weight:700;color:#ffffff;line-height:1.3;">
+        {len(inactive_students)} alumno{"s" if len(inactive_students) != 1 else ""} sin asistir en {inactive_days}+ días
+      </h1>
+
+      <table style="width:100%;border-collapse:collapse;margin-bottom:28px;">
+        <thead>
+          <tr>
+            <th style="padding:10px 12px;text-align:left;border-bottom:2px solid #d4af37;color:#d4af37;font-size:13px;text-transform:uppercase;">Nombre</th>
+            <th style="padding:10px 12px;text-align:left;border-bottom:2px solid #d4af37;color:#d4af37;font-size:13px;text-transform:uppercase;">Email</th>
+            <th style="padding:10px 12px;text-align:left;border-bottom:2px solid #d4af37;color:#d4af37;font-size:13px;text-transform:uppercase;">Teléfono</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows}
+        </tbody>
+      </table>
+
+      <p style="margin:0;font-size:14px;color:#888888;">
+        Considera contactarlos para motivar su regreso.
+      </p>
+    """
+    return _base_layout(
+        title=f"Reporte de Inactividad — {gym_name}",
+        content=content,
+        gym_name=gym_name,
+    )
+
+
 def custom_notification_html(
     student_name: str,
     message: str,

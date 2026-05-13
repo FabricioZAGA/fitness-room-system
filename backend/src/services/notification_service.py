@@ -13,6 +13,8 @@ logged at INFO level so the flow can be tested without SES credentials.
 from datetime import date, timedelta
 
 import boto3
+
+from src.models.common import mexico_today
 from aws_lambda_powertools import Logger
 from botocore.exceptions import ClientError
 
@@ -31,6 +33,7 @@ from src.repositories.student_repository import StudentRepository
 from src.services.email_templates import (
     custom_notification_html,
     expiry_reminder_html,
+    inactivity_admin_summary_html,
     inactivity_alert_html,
     low_stock_alert_html,
 )
@@ -106,7 +109,7 @@ class NotificationService:
                 )
                 email = student_item["email"]
                 end_date = date.fromisoformat(membership.end_date)
-                days_left = (end_date - date.today()).days
+                days_left = (end_date - mexico_today()).days
                 membership_label = MEMBERSHIP_TYPE_LABELS.get(
                     membership.membership_type, membership.membership_type
                 )
@@ -152,23 +155,25 @@ class NotificationService:
 
     def send_inactivity_alerts(
         self,
-        inactive_days: int = 14,
+        inactive_days: int = 30,
         dry_run: bool = False,
     ) -> BulkNotificationResult:
-        """Send inactivity alerts to active students who haven't checked in recently."""
+        """Send a single inactivity summary email **to admin** with inactive students.
+
+        Instead of emailing each student, we collect the list of active students
+        who haven't checked in for ``inactive_days`` and send one digest to
+        ``settings.admin_email`` (or ``ses_sender_email`` as fallback).
+        """
         result = BulkNotificationResult()
-        cutoff = (date.today() - timedelta(days=inactive_days)).isoformat()
+        cutoff = (mexico_today() - timedelta(days=inactive_days)).isoformat()
 
         students, _ = self._student_repo.list_all(limit=500)
         active_students = [s for s in students if s.status == "active"]
 
+        inactive_list: list[dict[str, str]] = []
         for student in active_students:
             sid = student.student_id
             try:
-                if not student.email:
-                    result.skipped += 1
-                    continue
-
                 checkin_items, _ = self._student_repo.query_by_pk(
                     pk=f"STUDENT#{sid}",
                     sk_begins_with="CHECKIN#",
@@ -182,37 +187,44 @@ class NotificationService:
                     result.skipped += 1
                     continue
 
-                student_name = f"{student.first_name} {student.last_name}".strip()
-                subject = f"¡Te extrañamos en {self._settings.ses_sender_name}!"
-                html_body = inactivity_alert_html(
-                    student_name=student_name,
-                    inactive_days=inactive_days,
-                    gym_name=self._settings.ses_sender_name,
-                    gym_phone=self._settings.gym_phone,
-                )
-
-                notif = self._send_and_log(
-                    student_id=sid,
-                    student_name=student_name,
-                    recipient_email=student.email,
-                    subject=subject,
-                    html_body=html_body,
-                    notification_type=NotificationType.INACTIVITY_ALERT,
-                    dry_run=dry_run,
-                )
-                result.notifications.append(notif)
-                if notif.status == NotificationStatus.SENT:
-                    result.sent += 1
-                else:
-                    result.failed += 1
-
+                inactive_list.append({
+                    "student_id": sid,
+                    "student_name": f"{student.first_name} {student.last_name}".strip(),
+                    "email": student.email or "—",
+                    "phone": student.phone or "—",
+                })
             except Exception as exc:
-                logger.warning(
-                    "Failed to send inactivity alert",
-                    student_id=sid,
-                    error=str(exc),
-                )
-                result.failed += 1
+                logger.warning("Failed to check inactivity", student_id=sid, error=str(exc))
+                result.skipped += 1
+
+        if not inactive_list:
+            logger.info("No inactive students found", inactive_days=inactive_days)
+            return result
+
+        admin_email = self._settings.admin_email or self._settings.ses_sender_email
+        gym_name = self._settings.ses_sender_name
+
+        subject = f"Reporte de Inactividad — {len(inactive_list)} alumno{'s' if len(inactive_list) != 1 else ''} ({inactive_days}+ días)"
+        html_body = inactivity_admin_summary_html(
+            inactive_students=inactive_list,
+            inactive_days=inactive_days,
+            gym_name=gym_name,
+        )
+
+        notif = self._send_and_log(
+            student_id="ADMIN",
+            student_name="Admin",
+            recipient_email=admin_email,
+            subject=subject,
+            html_body=html_body,
+            notification_type=NotificationType.INACTIVITY_ALERT,
+            dry_run=dry_run,
+        )
+        result.notifications.append(notif)
+        if notif.status == NotificationStatus.SENT:
+            result.sent = 1
+        else:
+            result.failed = 1
 
         return result
 

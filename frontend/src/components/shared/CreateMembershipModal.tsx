@@ -28,7 +28,7 @@ const SESSION_PACK_TOTALS: Partial<Record<MembershipType, number>> = {
 };
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 }
 
 function addDays(date: string, days: number): string {

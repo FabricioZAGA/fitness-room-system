@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -35,7 +35,31 @@ function ClassesPage(): React.JSX.Element {
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
-  const { data, isLoading } = useClasses({ upcoming_only: false, limit: 200 });
+  // Date range for API — defaults to current month ±7 days
+  const buildRange = useCallback((year: number, month: number) => {
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    first.setDate(first.getDate() - 7);
+    last.setDate(last.getDate() + 7);
+    return {
+      start: first.toISOString().slice(0, 10),
+      end: last.toISOString().slice(0, 10),
+    };
+  }, []);
+
+  const now = new Date();
+  const [dateRange, setDateRange] = useState(() => buildRange(now.getFullYear(), now.getMonth()));
+
+  const handleMonthChange = useCallback((year: number, month: number) => {
+    setDateRange(buildRange(year, month));
+  }, [buildRange]);
+
+  const { data, isLoading } = useClasses({
+    upcoming_only: false,
+    start_date: dateRange.start,
+    end_date: dateRange.end,
+    limit: 200,
+  });
   const { mutate: cancelClass, isPending: cancelling } = useCancelClass();
   const classes = data?.items ?? [];
 
@@ -143,6 +167,7 @@ function ClassesPage(): React.JSX.Element {
           <ClassCalendar
             classes={classes}
             onClassClick={handleClassClick}
+            onMonthChange={handleMonthChange}
           />
 
           {/* Detail panel */}

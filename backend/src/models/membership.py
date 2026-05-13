@@ -22,7 +22,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field, model_validator
 
-from src.models.common import TimestampedModel, new_id, utc_now
+from src.models.common import TimestampedModel, mexico_today, new_id, utc_now
 
 
 class MembershipType(StrEnum):
@@ -116,7 +116,7 @@ class MembershipResponse(TimestampedModel):
 
     def model_post_init(self, __context: object) -> None:
         """Compute days until expiry."""
-        today = date.today()
+        today = mexico_today()
         if self.end_date >= today:
             self.days_until_expiry = (self.end_date - today).days
         else:

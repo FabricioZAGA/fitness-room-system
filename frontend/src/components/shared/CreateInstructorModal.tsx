@@ -6,8 +6,8 @@ import { Plus } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { PhoneInput } from "./PhoneInput";
 import { useCreateInstructor } from "@/hooks/useInstructors";
+import { useSpecialties } from "@/hooks/useCatalogs";
 import { EMAIL_REGEX } from "@/lib/phone";
-import { SPECIALTIES } from "@/lib/specialties";
 import type { CreateInstructorRequest } from "@/types/instructor";
 
 interface CreateInstructorModalProps {
@@ -31,6 +31,8 @@ export function CreateInstructorModal({
   const [customSpecialty, setCustomSpecialty] = useState("");
 
   const { mutate, isPending } = useCreateInstructor();
+  const { data: specialtyCatalog = [] } = useSpecialties();
+  const SPECIALTIES = specialtyCatalog.map((s) => s.label);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -161,7 +163,6 @@ export function CreateInstructorModal({
                 {specialty}
               </button>
             ))}
-            {/* Custom specialties not in default list */}
             {form.specialties?.filter((s) => !SPECIALTIES.includes(s)).map((s) => (
               <button
                 key={s}

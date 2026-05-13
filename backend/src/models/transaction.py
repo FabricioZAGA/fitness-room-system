@@ -25,7 +25,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from src.models.common import TimestampedModel, new_id, utc_now
+from src.models.common import TimestampedModel, mexico_today, new_id, utc_now
 
 
 class PaymentMethod(StrEnum):
@@ -104,7 +104,7 @@ class TransactionDynamoItem(BaseModel):
     def from_create(cls, data: TransactionCreate) -> "TransactionDynamoItem":
         tx_id = new_id()
         now = utc_now()
-        today = date.today().isoformat()
+        today = mexico_today().isoformat()
         student_pk = f"STUDENT#{data.student_id}" if data.student_id else "STUDENT#ANONYMOUS"
 
         return cls(

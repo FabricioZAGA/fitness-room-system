@@ -1,13 +1,7 @@
 /** TypeScript types for the Class entity — mirrors backend Pydantic models. */
 
-export type ClassType =
-  | "hyrox"
-  | "strong_nation"
-  | "entrenamiento_funcional"
-  | "yoga"
-  | "mat"
-  | "zumba"
-  | "other";
+/** Class type slug — now a free string sourced from the dynamic catalog. */
+export type ClassType = string;
 
 export type ClassMode = "presencial" | "virtual";
 
@@ -18,7 +12,7 @@ export const CLASS_MODE_LABELS: Record<ClassMode, string> = {
 
 export interface FitnessClass {
   class_id: string;
-  class_type: ClassType;
+  class_type: string;
   instructor_name: string;
   class_date: string;
   start_time: string;
@@ -37,7 +31,7 @@ export interface FitnessClass {
 }
 
 export interface CreateClassRequest {
-  class_type: ClassType;
+  class_type: string;
   instructor_name: string;
   class_date: string;
   start_time: string;
@@ -77,7 +71,7 @@ export interface ClassAttendee {
 
 export interface ClassAttendees {
   class_id: string;
-  class_type: ClassType;
+  class_type: string;
   instructor_name: string;
   class_date: string;
   start_time: string;
@@ -93,7 +87,8 @@ export interface ClassAttendees {
   waitlisted: ClassAttendee[];
 }
 
-export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
+/** Fallback label map for legacy class types (used when catalog is not yet loaded). */
+export const CLASS_TYPE_LABELS: Record<string, string> = {
   hyrox: "Hyrox",
   strong_nation: "Strong Nation",
   entrenamiento_funcional: "Entrenamiento Funcional",
@@ -103,12 +98,39 @@ export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
   other: "Otra",
 };
 
-export const CLASS_TYPE_COLORS: Record<ClassType, string> = {
+/** Fallback color map for legacy class types (used when catalog is not yet loaded). */
+export const CLASS_TYPE_COLORS: Record<string, string> = {
   hyrox: "bg-[--color-danger-bg] text-[--color-danger] border-[--color-danger-bd]",
   strong_nation: "bg-[--color-warning-bg] text-[--color-warning] border-[--color-warning-bd]",
   entrenamiento_funcional: "bg-[--color-primary-bg] text-[--color-primary] border-[--color-primary-bd]",
   yoga: "bg-[--color-success-bg] text-[--color-success] border-[--color-success-bd]",
   mat: "bg-[--color-info-bg] text-[--color-info] border-[--color-info-bd]",
   zumba: "bg-[--color-info-bg] text-[--color-info] border-[--color-info-bd]",
-  other: "bg-[--tx-disabled-bg] text-[--tx-disabled] border-[--tx-disabled-bd]",
+  other: "bg-[--bg-muted] text-[--tx-muted] border-[--bd-subtle]",
 };
+
+/**
+ * Get label for a class type slug — resolves from catalog items first, then fallback.
+ * @param slug  The class_type slug
+ * @param catalogItems  Optional catalog items from useClassTypes()
+ */
+export function getClassTypeLabel(
+  slug: string,
+  catalogItems?: { slug: string; label: string }[],
+): string {
+  const fromCatalog = catalogItems?.find((c) => c.slug === slug);
+  if (fromCatalog) return fromCatalog.label;
+  return CLASS_TYPE_LABELS[slug] ?? slug;
+}
+
+/**
+ * Get color CSS classes for a class type slug — resolves from catalog first.
+ */
+export function getClassTypeColor(
+  slug: string,
+  catalogItems?: { slug: string; color: string }[],
+): string {
+  const fromCatalog = catalogItems?.find((c) => c.slug === slug);
+  if (fromCatalog?.color) return fromCatalog.color;
+  return CLASS_TYPE_COLORS[slug] ?? "bg-[--bg-muted] text-[--tx-muted] border-[--bd-subtle]";
+}

@@ -20,6 +20,7 @@ from mangum import Mangum
 
 from src.config import get_settings
 from src.routers import (
+    catalogs,
     classes,
     email_admin,
     health,
@@ -183,6 +184,7 @@ app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(portal.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(email_admin.router, prefix="/api/v1")
+app.include_router(catalogs.router, prefix="/api/v1")
 
 
 @logger.inject_lambda_context(log_event=True)

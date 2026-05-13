@@ -1,6 +1,5 @@
 """Stats router — single endpoint for dashboard metrics."""
 
-from datetime import date
 from typing import Any
 
 from aws_lambda_powertools import Logger
@@ -57,7 +56,8 @@ def get_dashboard_stats(
     (e.g. one corrupt membership row) returns a degraded payload instead of
     a blank 500 error that would leave the dashboard empty.
     """
-    today = date.today().isoformat()
+    from src.models.common import mexico_today
+    today = mexico_today().isoformat()
 
     student_repo = StudentRepository()
     class_repo = ClassRepository()

@@ -49,7 +49,7 @@ interface ProductSaleForm {
 
 function CajaPage(): React.JSX.Element {
   const { t } = useTranslation();
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
   const [showRegister, setShowRegister] = useState(false);
   const [showCutConfirm, setShowCutConfirm] = useState(false);
   const [cutNotes, setCutNotes] = useState("");
