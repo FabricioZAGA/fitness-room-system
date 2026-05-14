@@ -17,8 +17,9 @@ import { CreateClassModal } from "@/components/shared/CreateClassModal";
 import { ClassCalendar } from "@/components/shared/ClassCalendar";
 import { AddToClassModal } from "@/components/shared/AddToClassModal";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { CLASS_TYPE_COLORS, CLASS_TYPE_LABELS } from "@/types/class";
+import { getClassTypeLabel, getClassTypeColor } from "@/types/class";
 import type { FitnessClass } from "@/types/class";
+import { useClassTypes } from "@/hooks/useCatalogs";
 import { formatDate, formatTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/classes/")({
@@ -34,6 +35,8 @@ function ClassesPage(): React.JSX.Element {
   const [selectedClass, setSelectedClass] = useState<FitnessClass | null>(null);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+
+  const { data: classTypes = [] } = useClassTypes();
 
   // Date range for API — defaults to current month ±7 days
   const buildRange = useCallback((year: number, month: number) => {
@@ -174,6 +177,7 @@ function ClassesPage(): React.JSX.Element {
           {selectedClass ? (
             <ClassDetailPanel
               cls={selectedClass}
+              classTypes={classTypes}
               onAddMember={() => handleAddMember(selectedClass)}
               onCancel={() => setCancelConfirmOpen(true)}
               onClose={() => setSelectedClass(null)}
@@ -201,8 +205,8 @@ function ClassesPage(): React.JSX.Element {
             >
               <div className="flex items-center gap-5">
                 {/* Type badge */}
-                <div className={`rounded-xl border px-3 py-2 text-sm font-semibold ${CLASS_TYPE_COLORS[cls.class_type]}`}>
-                  {CLASS_TYPE_LABELS[cls.class_type]}
+                <div className={`rounded-xl border px-3 py-2 text-sm font-semibold ${getClassTypeColor(cls.class_type, classTypes)}`}>
+                  {getClassTypeLabel(cls.class_type, classTypes)}
                 </div>
                 <div>
                   <p className="text-lg font-semibold text-[--tx-primary]">
@@ -272,11 +276,13 @@ function ClassesPage(): React.JSX.Element {
 
 function ClassDetailPanel({
   cls,
+  classTypes,
   onAddMember,
   onCancel,
   onClose,
 }: {
   cls: FitnessClass;
+  classTypes: { slug: string; label: string; color: string }[];
   onAddMember: () => void;
   onCancel: () => void;
   onClose: () => void;
@@ -290,8 +296,8 @@ function ClassDetailPanel({
       <div className="p-6">
         {/* Header */}
         <div className="mb-5 flex items-start justify-between">
-          <span className={`rounded-xl border px-3 py-1.5 text-sm font-semibold ${CLASS_TYPE_COLORS[cls.class_type]}`}>
-            {CLASS_TYPE_LABELS[cls.class_type]}
+          <span className={`rounded-xl border px-3 py-1.5 text-sm font-semibold ${getClassTypeColor(cls.class_type, classTypes)}`}>
+            {getClassTypeLabel(cls.class_type, classTypes)}
           </span>
           <button
             onClick={onClose}

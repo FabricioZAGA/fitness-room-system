@@ -34,6 +34,16 @@ export function useExpiringSoon(days: number = 7) {
   });
 }
 
+export function useAllMemberships(params?: {
+  status_filter?: "active" | "frozen" | "expired" | "cancelled";
+  limit?: number;
+}) {
+  return useQuery({
+    queryKey: [MEMBERSHIPS_KEY, "all", params],
+    queryFn: () => membershipService.listAll(params),
+  });
+}
+
 export function useAssignMembership() {
   const qc = useQueryClient();
   return useMutation({

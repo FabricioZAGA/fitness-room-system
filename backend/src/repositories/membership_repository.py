@@ -75,6 +75,25 @@ class MembershipRepository(DynamoRepository):
             return None
         return MembershipDynamoItem.model_validate(items[0])
 
+    def list_all(
+        self,
+        limit: int = 200,
+        last_evaluated_key: dict[str, Any] | None = None,
+    ) -> tuple[list[MembershipDynamoItem], dict[str, Any] | None]:
+        """List all memberships across all students (latest expiry first).
+
+        Access pattern: GSI1 PK=MEMBERSHIPS, sorted by expiry date.
+        """
+        items, next_key = self.query_gsi(
+            index_name="GSI1",
+            pk_name="GSI1PK",
+            pk_value="MEMBERSHIPS",
+            limit=limit,
+            last_evaluated_key=last_evaluated_key,
+            scan_index_forward=False,
+        )
+        return [MembershipDynamoItem.model_validate(i) for i in items], next_key
+
     def list_expiring_soon(
         self,
         days: int = 7,

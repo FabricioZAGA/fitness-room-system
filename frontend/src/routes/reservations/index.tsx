@@ -5,7 +5,8 @@ import { useClasses } from "@/hooks/useClasses";
 import { useStudents } from "@/hooks/useStudents";
 import { useReservationsForClass, useCancelReservation, useMarkAttendance } from "@/hooks/useReservations";
 import { ReservationStatusBadge } from "@/components/shared/StatusBadge";
-import { CLASS_TYPE_LABELS } from "@/types/class";
+import { getClassTypeLabel } from "@/types/class";
+import { useClassTypes } from "@/hooks/useCatalogs";
 import { formatDate, formatTime, getInitials } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { AddToClassModal } from "@/components/shared/AddToClassModal";
@@ -25,6 +26,7 @@ function ReservationsPage(): React.JSX.Element {
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
   const weekEnd = new Date(Date.now() + 7 * 86400000).toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 
+  const { data: classTypes = [] } = useClassTypes();
   const { data: classesData, isLoading: classesLoading } = useClasses({
     upcoming_only: false,
     limit: 200,
@@ -122,7 +124,7 @@ function ReservationsPage(): React.JSX.Element {
             <option value="">— Selecciona una clase —</option>
             {classes.map((cls) => (
               <option key={cls.class_id} value={cls.class_id}>
-                {CLASS_TYPE_LABELS[cls.class_type]} · {cls.instructor_name} ·{" "}
+                {getClassTypeLabel(cls.class_type, classTypes)} · {cls.instructor_name} ·{" "}
                 {formatDate(cls.class_date)} {formatTime(cls.start_time)} ({cls.reservations_count}/{cls.capacity})
               </option>
             ))}

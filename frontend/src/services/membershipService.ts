@@ -47,6 +47,16 @@ export const membershipService = {
     return response.data;
   },
 
+  async listAll(params?: {
+    status_filter?: "active" | "frozen" | "expired" | "cancelled";
+    limit?: number;
+  }): Promise<PaginatedResponse<Membership>> {
+    const response = await apiClient.get<PaginatedResponse<Membership>>("/memberships", {
+      params,
+    });
+    return response.data;
+  },
+
   async update(
     studentId: string,
     membershipId: string,

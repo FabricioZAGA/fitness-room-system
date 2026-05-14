@@ -80,21 +80,19 @@ class ClassRepository(DynamoRepository):
     ) -> tuple[list[ClassDynamoItem], dict[str, Any] | None]:
         """List all classes within a date range.
 
-        Access pattern: GSI1 PK=CLASSES, SK between DATE#{start} and DATE#{end}.
+        Access pattern: GSI1 PK=CLASSES, SK between DATE#{start} and DATE#{end}~.
+        The tilde ensures the upper bound includes all items for end_date.
         """
         items, next_key = self.query_gsi(
             index_name="GSI1",
             pk_name="GSI1PK",
             pk_value="CLASSES",
             sk_name="GSI1SK",
-            sk_begins_with=f"DATE#{start_date}",
+            sk_between=(f"DATE#{start_date}", f"DATE#{end_date}~"),
             limit=limit,
             last_evaluated_key=last_evaluated_key,
         )
-        filtered = [
-            ClassDynamoItem.model_validate(i) for i in items if i.get("class_date", "") <= end_date
-        ]
-        return filtered, next_key
+        return [ClassDynamoItem.model_validate(i) for i in items], next_key
 
     def update(self, class_id: str, data: ClassUpdate) -> ClassDynamoItem:
         """Update a class session's attributes.

@@ -51,6 +51,7 @@ import {
 } from "@/hooks/useCatalogs";
 import { CATALOG_CLASS_TYPES, CATALOG_SPECIALTIES } from "@/types/catalog";
 import type { CatalogItem, CatalogName } from "@/types/catalog";
+import { APP_VERSION, changelog } from "@/lib/changelog";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -65,65 +66,11 @@ const goldActiveStyle = {
   border: "1px solid transparent",
 } as const;
 
-const APP_VERSION = "1.5.0";
-const CHANGELOG: { version: string; date: string; changes: string[] }[] = [
-  {
-    version: "1.5.0",
-    date: "2026-04-23",
-    changes: [
-      "Cursor pointer en todos los elementos interactivos",
-      "Pantalla de configuración 100% funcional",
-      "Info del sistema con versión y cambios reales",
-      "Gestión de WAF y costos AWS optimizados",
-    ],
-  },
-  {
-    version: "1.4.0",
-    date: "2026-04",
-    changes: [
-      "Rediseño UI de miembros y membresías",
-      "Modelo de estados de membresía con lógica en cascada",
-      "Teléfono E.164, dirección estructurada",
-      "Gestión de usuarios con RBAC",
-    ],
-  },
-  {
-    version: "1.3.0",
-    date: "2026-03",
-    changes: [
-      "Fotos de perfil de alumnos",
-      "Modo de clase (presencial/virtual)",
-      "Control de acceso por roles (admin/staff)",
-    ],
-  },
-  {
-    version: "1.2.0",
-    date: "2026-02",
-    changes: [
-      "Portal de alumnos e instructores",
-      "Código QR personal para check-in",
-      "Congelamiento de membresías",
-      "Exportación de reportes a PDF y Excel",
-    ],
-  },
-  {
-    version: "1.1.0",
-    date: "2026-01",
-    changes: [
-      "Notificaciones por email (SES)",
-      "Reportes financieros y de asistencia",
-      "Módulo de caja e inventario",
-    ],
-  },
-  {
-    version: "1.0.0",
-    date: "2025-12",
-    changes: [
-      "Lanzamiento inicial — Alumnos, Membresías, Clases",
-      "Reservaciones, Instructores, Check-in, Dashboard",
-    ],
-  },
-];
+/**
+ * System info pulls version and history straight from `lib/changelog.ts`,
+ * which is also the source of the "What's New" popup. Single source of truth.
+ */
+const LATEST_DATE = changelog[0]?.date ?? "—";
 
 function getEnvironmentLabel(): { label: string; color: string } {
   const env = import.meta.env.VITE_ENV ?? import.meta.env.MODE ?? "development";
@@ -689,7 +636,7 @@ function SettingsPage(): React.JSX.Element {
               <dt className="text-[--tx-disabled]">Última actualización</dt>
               <dd className="flex items-center gap-1.5 text-[--tx-muted]">
                 <Clock className="h-3 w-3" />
-                23 abr 2026
+                {LATEST_DATE}
               </dd>
             </div>
           </dl>
@@ -705,20 +652,28 @@ function SettingsPage(): React.JSX.Element {
             </button>
 
             {showChangelog && (
-              <div className="mt-3 space-y-3 max-h-64 overflow-y-auto pr-1">
-                {CHANGELOG.map((entry) => (
+              <div className="mt-3 max-h-72 space-y-3 overflow-y-auto pr-1">
+                {changelog.map((entry) => (
                   <div key={entry.version} className="rounded-xl bg-[--bg-muted] p-3">
-                    <div className="flex items-center gap-2 mb-1.5">
+                    <div className="mb-1.5 flex items-center gap-2">
                       <span className="font-mono text-xs font-semibold text-[--gold]">
                         v{entry.version}
                       </span>
                       <span className="text-xs text-[--tx-disabled]">{entry.date}</span>
                     </div>
-                    <ul className="space-y-0.5">
-                      {entry.changes.map((c, i) => (
-                        <li key={i} className="flex items-start gap-1.5 text-xs text-[--tx-muted]">
-                          <span className="mt-0.5 text-[--gold] shrink-0">·</span>
-                          {c}
+                    {entry.title && (
+                      <p className="mb-1.5 text-sm font-medium text-[--tx-primary]">
+                        {entry.title}
+                      </p>
+                    )}
+                    <ul className="space-y-1">
+                      {entry.items.map((item, i) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 text-xs text-[--tx-muted]"
+                        >
+                          <span className="shrink-0 leading-tight">{item.icon}</span>
+                          <span>{item.text}</span>
                         </li>
                       ))}
                     </ul>

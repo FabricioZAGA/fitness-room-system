@@ -5,7 +5,8 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Users, Clock, MapPin } from "lucide-react";
-import { CLASS_TYPE_COLORS, CLASS_TYPE_LABELS } from "@/types/class";
+import { getClassTypeLabel, getClassTypeColor } from "@/types/class";
+import { useClassTypes } from "@/hooks/useCatalogs";
 import type { FitnessClass } from "@/types/class";
 import { formatTime } from "@/lib/utils";
 
@@ -80,6 +81,7 @@ export function ClassCalendar({
   onDayClick,
   onMonthChange,
 }: ClassCalendarProps): React.JSX.Element {
+  const { data: classTypes = [] } = useClassTypes();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -304,7 +306,7 @@ export function ClassCalendar({
                       </div>
                       <div className="space-y-1">
                         {dayClasses.slice(0, 3).map((cls) => (
-                          <MonthClassPill key={cls.class_id} cls={cls} onClick={onClassClick} />
+                          <MonthClassPill key={cls.class_id} cls={cls} classTypes={classTypes} onClick={onClassClick} />
                         ))}
                         {dayClasses.length > 3 && (
                           <div className="pl-1 text-xs text-[--tx-disabled]">+{dayClasses.length - 3} más</div>
@@ -359,7 +361,7 @@ export function ClassCalendar({
                     <p className="py-8 text-center text-xs text-[--tx-disabled]">Sin clases</p>
                   ) : (
                     dayClasses.map((cls) => (
-                      <ColumnClassCard key={cls.class_id} cls={cls} onClick={onClassClick} expanded={calView === "day"} />
+                      <ColumnClassCard key={cls.class_id} cls={cls} classTypes={classTypes} onClick={onClassClick} expanded={calView === "day"} />
                     ))
                   )}
                 </div>
@@ -383,9 +385,11 @@ function colsClass(n: number): string {
 /** Compact pill used in month view cells */
 function MonthClassPill({
   cls,
+  classTypes,
   onClick,
 }: {
   cls: FitnessClass;
+  classTypes: { slug: string; label: string; color: string }[];
   onClick?: (c: FitnessClass) => void;
 }): React.JSX.Element {
   return (
@@ -393,10 +397,10 @@ function MonthClassPill({
       onClick={(e) => { e.stopPropagation(); onClick?.(cls); }}
       className={`w-full rounded-md px-1.5 py-1 text-left text-xs transition-opacity hover:opacity-80
         ${cls.is_cancelled ? "opacity-40 line-through" : ""}
-        ${CLASS_TYPE_COLORS[cls.class_type] || "bg-[--bg-muted] text-[--tx-primary] border-[--bd-subtle]"}`}
+        ${getClassTypeColor(cls.class_type, classTypes)}`}
     >
       <div className="font-semibold truncate">
-        {formatTime(cls.start_time)} {CLASS_TYPE_LABELS[cls.class_type] ?? cls.class_type}
+        {formatTime(cls.start_time)} {getClassTypeLabel(cls.class_type, classTypes)}
       </div>
       <div className="flex items-center gap-0.5 truncate opacity-75">
         <Users className="h-2.5 w-2.5" />
@@ -409,14 +413,16 @@ function MonthClassPill({
 /** Richer card used in week/3-day/day column views */
 function ColumnClassCard({
   cls,
+  classTypes,
   onClick,
   expanded,
 }: {
   cls: FitnessClass;
+  classTypes: { slug: string; label: string; color: string }[];
   onClick?: (c: FitnessClass) => void;
   expanded?: boolean;
 }): React.JSX.Element {
-  const typeColor = CLASS_TYPE_COLORS[cls.class_type] || "bg-[--bg-muted] text-[--tx-primary] border-[--bd-subtle]";
+  const typeColor = getClassTypeColor(cls.class_type, classTypes);
   return (
     <button
       onClick={() => onClick?.(cls)}
@@ -425,7 +431,7 @@ function ColumnClassCard({
         ${typeColor} ${expanded ? "p-4" : "p-2.5"}`}
     >
       <div className={`font-semibold ${cls.is_cancelled ? "line-through" : ""} ${expanded ? "text-sm" : "text-xs"}`}>
-        {CLASS_TYPE_LABELS[cls.class_type] ?? cls.class_type}
+        {getClassTypeLabel(cls.class_type, classTypes)}
       </div>
       <div className={`mt-1 flex items-center gap-1.5 opacity-80 ${expanded ? "text-xs" : "text-[10px]"}`}>
         <Clock className="h-3 w-3" />

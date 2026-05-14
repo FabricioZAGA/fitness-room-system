@@ -5,6 +5,26 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.8.2] — 2026-05-14
+
+### Added
+- Pantalla de Membresías rediseñada: pestañas Activas / Por vencer / Vencidas / Congeladas / Canceladas / Todas
+- KPI "Ingreso del mes" calculado a partir de membresías iniciadas en el mes en curso
+- Búsqueda por nombre de alumno y filtro por estado en Membresías
+- Cada tarjeta muestra foto del alumno, plan, fechas (inicio + vencimiento), precio pagado, sesiones restantes y badge de estado
+- Endpoint backend `GET /api/v1/memberships` con filtro por status (`active | frozen | expired | cancelled`)
+- Service auto-clasifica como `expired` cualquier membresía con `end_date < hoy` aunque su status almacenado siga `active`
+
+### Fixed
+- Calendario de Clases: la query de rango por fecha en GSI1 dejaba fuera clases del último día (ahora usa `BETWEEN DATE#{start}` y `DATE#{end}~`)
+- Configuración → Información del Sistema: versión y "Última actualización" desfasadas (mostraban v1.5.0 hardcodeado); ahora se leen de `lib/changelog.ts`, misma fuente que el popup "Novedades"
+- Notas de versión históricas en Configuración ahora muestran título e iconos consistentes con el popup
+
+### Changed
+- Frontend `useReservations` invalida también el query key `classes` en `onSuccess` para sincronizar contadores tras reservar/cancelar
+
+---
+
 ## [1.8.1] — 2026-05-13
 
 ### Fixed

@@ -10,7 +10,8 @@ import { useCreateReservation } from "@/hooks/useReservations";
 import { Search, User, CheckCircle2, Clock } from "lucide-react";
 import type { Student } from "@/types/student";
 import type { FitnessClass } from "@/types/class";
-import { CLASS_TYPE_LABELS } from "@/types/class";
+import { getClassTypeLabel } from "@/types/class";
+import { useClassTypes } from "@/hooks/useCatalogs";
 import { formatDate, formatTime } from "@/lib/utils";
 
 interface AddToClassModalProps {
@@ -30,6 +31,7 @@ export function AddToClassModal({
 
   const { data: studentsData } = useStudents({ status: "active", limit: 100 });
   const { mutate: createReservation, isPending } = useCreateReservation();
+  const { data: classTypes = [] } = useClassTypes();
 
   // Filter students by search term
   const filteredStudents = useMemo(() => {
@@ -87,14 +89,14 @@ export function AddToClassModal({
       open={open}
       onClose={handleClose}
       title="Añadir Miembro a Clase"
-      description={`${CLASS_TYPE_LABELS[selectedClass.class_type]} · ${selectedClass.instructor_name}`}
+      description={`${getClassTypeLabel(selectedClass.class_type, classTypes)} · ${selectedClass.instructor_name}`}
     >
       {/* Class Info Banner */}
       <div className="mb-6 rounded-xl border border-[--bd-subtle] bg-[--bg-muted]/50 p-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium text-[--tx-primary]">
-              {CLASS_TYPE_LABELS[selectedClass.class_type]}
+              {getClassTypeLabel(selectedClass.class_type, classTypes)}
             </p>
             <p className="text-sm text-[--tx-muted]">
               {formatDate(selectedClass.class_date)} · {formatTime(selectedClass.start_time)}

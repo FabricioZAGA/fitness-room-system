@@ -12,9 +12,22 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.8.1";
+export const APP_VERSION = "1.8.2";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.8.2",
+    date: "2026-05-14",
+    title: "Membresías rediseñadas, calendario arreglado y notas reales en Configuración",
+    items: [
+      { icon: "📋", text: "Pantalla de Membresías ahora muestra activas, por vencer, vencidas, congeladas y canceladas — con foto, nombre, plan, fechas y precio del alumno" },
+      { icon: "🔍", text: "Búsqueda por nombre y filtro por estado en Membresías" },
+      { icon: "💰", text: "KPI 'Ingreso del mes' real (suma de membresías iniciadas este mes), reemplaza al $0.00 sin sentido" },
+      { icon: "📅", text: "Calendario de Clases — arreglada la query de rango de fechas que dejaba clases fuera del último día visible" },
+      { icon: "🆕", text: "Nuevo endpoint `GET /memberships` para listar todas las membresías con filtro por estado" },
+      { icon: "ℹ️", text: "Información del Sistema en Configuración ahora lee la versión y notas reales (mismas que el popup), ya no quedan desfasadas" },
+    ],
+  },
   {
     version: "1.8.1",
     date: "2026-05-13",

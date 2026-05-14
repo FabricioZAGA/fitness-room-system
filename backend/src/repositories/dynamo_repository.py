@@ -147,6 +147,7 @@ class DynamoRepository:
         pk_value: str,
         sk_name: str | None = None,
         sk_begins_with: str | None = None,
+        sk_between: tuple[str, str] | None = None,
         limit: int | None = None,
         last_evaluated_key: dict[str, Any] | None = None,
         scan_index_forward: bool = True,
@@ -159,6 +160,7 @@ class DynamoRepository:
             pk_value: GSI partition key value.
             sk_name: GSI sort key attribute name (optional).
             sk_begins_with: Optional prefix filter on sort key.
+            sk_between: Optional (low, high) range for sort key.
             limit: Maximum number of items to return.
             last_evaluated_key: Pagination token.
             scan_index_forward: False for descending order.
@@ -167,7 +169,9 @@ class DynamoRepository:
             Tuple of (items list, next pagination key or None).
         """
         key_condition: Any = Key(pk_name).eq(pk_value)
-        if sk_name and sk_begins_with:
+        if sk_name and sk_between:
+            key_condition = key_condition & Key(sk_name).between(*sk_between)
+        elif sk_name and sk_begins_with:
             key_condition = key_condition & Key(sk_name).begins_with(sk_begins_with)
 
         kwargs: dict[str, Any] = {

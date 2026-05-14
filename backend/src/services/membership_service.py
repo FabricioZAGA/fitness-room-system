@@ -148,6 +148,40 @@ class MembershipService:
         items, next_key = self._membership_repo.list_expiring_soon(days=days)
         return [i.to_response() for i in items], next_key
 
+    def list_all_memberships(
+        self,
+        status_filter: str | None = None,
+        limit: int = 200,
+        last_evaluated_key: dict[str, Any] | None = None,
+    ) -> tuple[list[MembershipResponse], dict[str, Any] | None]:
+        """List all memberships (admin overview).
+
+        Args:
+            status_filter: Optional MembershipStatus value to filter by
+                (e.g. 'active', 'frozen', 'expired', 'cancelled').
+            limit: Max items to return.
+            last_evaluated_key: Pagination token.
+
+        Note: items with end_date < today are auto-classified as 'expired' in the
+        response even if their stored status is still 'active', so callers do not
+        need to run a nightly job to flip statuses.
+        """
+        from src.models.common import mexico_today
+
+        items, next_key = self._membership_repo.list_all(
+            limit=limit, last_evaluated_key=last_evaluated_key
+        )
+        today = mexico_today()
+        responses: list[MembershipResponse] = []
+        for i in items:
+            r = i.to_response()
+            if r.status == MembershipStatus.ACTIVE and r.end_date < today:
+                r.status = MembershipStatus.EXPIRED
+            responses.append(r)
+        if status_filter:
+            responses = [r for r in responses if r.status.value == status_filter]
+        return responses, next_key
+
     def freeze_membership(
         self, student_id: str, membership_id: str, data: FreezeMembershipRequest
     ) -> MembershipResponse:

@@ -57,6 +57,43 @@ def assign_membership(
 
 
 @router.get(
+    "",
+    response_model=PaginatedResponse[MembershipResponse],
+    summary="List All Memberships",
+    description=(
+        "List all memberships across all students. "
+        "Optionally filter by status (active, frozen, expired, cancelled). "
+        "Items with end_date < today are auto-classified as 'expired'."
+    ),
+)
+def list_all_memberships(
+    status_filter: str | None = Query(
+        default=None,
+        description="Optional status filter: active | frozen | expired | cancelled",
+    ),
+    limit: int = Query(default=200, ge=1, le=500),
+    last_key: str | None = Query(default=None, description="Pagination token"),
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: MembershipService = Depends(get_service),
+) -> PaginatedResponse[MembershipResponse]:
+    """List all memberships with optional status filter."""
+    last_evaluated_key = {"PK": last_key} if last_key else None
+    items, next_key = service.list_all_memberships(
+        status_filter=status_filter,
+        limit=limit,
+        last_evaluated_key=last_evaluated_key,
+    )
+    return PaginatedResponse(
+        items=items,
+        total=len(items),
+        page=1,
+        page_size=limit,
+        has_more=next_key is not None,
+        last_evaluated_key=next_key.get("PK") if next_key else None,
+    )
+
+
+@router.get(
     "/expiring-soon",
     response_model=list[MembershipResponse],
     summary="List Expiring Memberships",
