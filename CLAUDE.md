@@ -1,73 +1,60 @@
 # CLAUDE.md — Fitness Room System
 
 Guía para IAs y desarrolladores que trabajen en este proyecto.
-**Lee esto antes de modificar cualquier cosa.**
+**Lee esto antes de modificar cualquier cosa.** Para detalle de operaciones (deploy, versionado, infra) ver [`.claude/CLAUDE.md`](.claude/CLAUDE.md).
+
+> **Versión actual:** 1.8.5 — Operación en producción desde 2026-05-01.
 
 ---
 
 ## Qué es este proyecto
 
-Sistema de gestión integral para **Fitness Room**, un estudio de fitness en México.
-Permite gestionar alumnos, membresías, clases, instructores y check-in de acceso.
+Sistema de gestión integral para **Fitness Room**, un estudio de fitness en León, México.
+Gestiona alumnos, membresías, clases, instructores, check-in, caja, inventario y reportes.
 
-**Stack:**
-- **Frontend** — React 19 + TypeScript + Vite 6 + Tailwind CSS 4 (`/frontend/`) — panel de administración
-- **Portal** — React 19 + TypeScript + Vite 6 + Tailwind CSS 3 (`/portal/`) — app para alumnos e instructores
-- **Backend** — Python 3.12 + FastAPI + DynamoDB + AWS Lambda (`/backend/`)
-- **Infra** — AWS CDK v2 Python (`/infrastructure/`)
-- **Landing** — Next.js 15 + Tailwind CSS 4 (`/landing/`)
+**Stack** (resumen — detalle en [README.md](README.md)):
+
+| Capa | Tech |
+|---|---|
+| **Admin** (`/frontend/`) | React 19 + TypeScript + Vite 6 + Tailwind 4 + TanStack Router/Query |
+| **Portal** (`/portal/`) | React 19 + TypeScript + Vite 6 + Tailwind 3.4 + React Router DOM 7 |
+| **Backend** (`/backend/`) | Python 3.12 + FastAPI + Pydantic v2 + DynamoDB + AWS Lambda |
+| **Infra** (`/infrastructure/`) | AWS CDK v2 (Python) |
+| **Landings** (`/landing/`, `/gym-landing/`) | Next.js 15 + Tailwind 4 |
 
 ---
 
 ## Arquitectura de alto nivel
 
 ```
-Browser → CloudFront → S3 (React SPA)
+Browser → CloudFront → S3 (React SPAs)
         → API Gateway v2 → Lambda (FastAPI+Mangum) → DynamoDB
               ↑
          Cognito JWT
 ```
 
-**Regla de oro:** El backend es serverless puro. Toda la lógica vive en servicios (`/backend/src/services/`). Los routers solo validan y delegan.
+**Regla de oro:** El backend es serverless puro. Toda la lógica vive en `services/`. Los routers solo validan y delegan. Los repositories son la única capa que toca DynamoDB.
 
 ---
 
 ## Cómo correr en local
 
-### Backend
 ```bash
-cd backend
-uv sync
-cp .env.example .env   # edita los valores
-uv run uvicorn src.main:app --reload --port 8000
-# Swagger: http://localhost:8000/docs
+# Bootstrap inicial (una sola vez)
+bash setup.sh
+
+# Levantar todo en paralelo
+make dev
 ```
 
-### Frontend (admin)
-```bash
-cd frontend
-pnpm install
-cp .env.example .env
-pnpm dev
-# App: http://localhost:5173
-```
+Apps individuales:
 
-### Portal (alumnos/instructores)
-```bash
-cd portal
-npm install
-cp .env.example .env
-npm run dev
-# Portal: http://localhost:5174
-```
-
-### Landing
-```bash
-cd landing
-npm install
-npm run dev
-# Landing: http://localhost:3000
-```
+| App | Comando | URL |
+|---|---|---|
+| Backend | `cd backend && uv run uvicorn src.main:app --reload --port 8000` | http://localhost:8000/docs |
+| Admin | `cd frontend && pnpm dev` | http://localhost:5173 |
+| Portal | `cd portal && npm run dev` | http://localhost:5174 |
+| Landing | `cd landing && npm run dev` | http://localhost:3000 |
 
 ---
 
@@ -75,80 +62,70 @@ npm run dev
 
 ```
 frontend/src/
-  routes/          # Pages — TanStack Router (file-based routing)
-    index.tsx           # Dashboard (/)
-    checkin.tsx         # Check-in (/checkin)
-    checkin-kiosk.tsx   # Modo kiosco pantalla grande (/checkin-kiosk)
-    login.tsx           # Login (/login)
-    students/           # /students y /students/$studentId
-    classes/            # /classes
-    memberships/        # /memberships
-    reservations/       # /reservations
-    instructors/        # /instructors
-    reportes/           # /reportes (ingresos, asistencia, rankings, inactivos)
-    caja/               # /caja (corte de caja, historial)
-    inventario/         # /inventario (productos, ventas)
-    settings.tsx        # Settings (/settings)
+  routes/              # Pages — TanStack Router (file-based)
+    index.tsx              # Dashboard (/)
+    checkin.tsx            # Check-in (/checkin)
+    checkin-kiosk.tsx      # Modo kiosco pantalla grande
+    login.tsx              # Login (/login) — con badge "Panel Administrativo"
+    students/              # /students y /students/$studentId
+    classes/               # /classes — calendario + detalle
+    memberships/           # /memberships — pestañas activas/vencidas/etc
+    reservations/          # /reservations
+    instructors/           # /instructors
+    reportes/              # /reportes — 5 tabs (income/memberships/attendance/rankings/inactive)
+    caja/                  # /caja — cobros y corte de caja
+    inventario/            # /inventario — productos y ventas
+    settings.tsx           # /settings
   components/
-    layout/        # Sidebar, AppLayout
-    shared/        # Modals, StatusBadge, Dialog, ErrorBoundary
-  hooks/           # TanStack Query hooks (useStudents, useClasses, etc.)
-  services/        # Axios API calls (studentService, classService, etc.)
-  types/           # TypeScript interfaces for all entities
-  i18n/            # react-i18next — locales/es.json + locales/en.json
-  store/           # Zustand stores (useThemeStore)
-  config/          # theme.ts (applyTheme function)
-  lib/             # utils.ts (cn, formatDate, formatCurrency, getInitials)
-  index.css        # CSS design tokens (CSS variables)
+    layout/                # Sidebar, AppLayout
+    shared/                # Modals, StatusBadge, Dialog, ClassCalendar, etc.
+  hooks/                   # TanStack Query hooks (useStudents, useClasses, useReports, ...)
+  services/                # Axios API calls
+  types/                   # TypeScript interfaces
+  i18n/locales/            # es.json + en.json (paridad 452 keys)
+  store/                   # Zustand (useThemeStore, useGymStore)
+  config/                  # theme.ts (applyTheme)
+  lib/                     # utils, exportReports, dateRangePresets, changelog
+  index.css                # CSS design tokens
 ```
 
-## Estructura del portal (alumnos/instructores)
+## Estructura del portal (alumnos / instructores)
 
-App React independiente en `/portal/`. Usa React Router DOM 7 (no TanStack Router).
+App React independiente con React Router DOM 7 (no TanStack).
 
 ```
 portal/src/
   pages/
-    Dashboard.tsx   # Bienvenida, acceso rápido, membresía actual
-    Profile.tsx     # Datos personales del usuario
-    QR.tsx          # Código QR personal para check-in
-    Schedule.tsx    # Clases disponibles, reservaciones propias
-    Login.tsx       # Autenticación con Cognito (AWS Amplify)
-  components/
-    BottomNav.tsx   # Navegación inferior móvil
-    Button.tsx      # Botón estilizado
-    Card.tsx        # Contenedor tarjeta
-    Container.tsx   # Wrapper de contenido
-    LoadingSpinner.tsx
-    LoadingState.tsx
-    PageHeader.tsx
-  contexts/
-    AuthContext.tsx  # Amplify auth — login, logout, estado de sesión
-  services/
-    api.ts          # Axios client para /api/v1/portal/*
-  lib/
-    amplify.ts      # Configuración de AWS Amplify
+    Dashboard.tsx          # Bienvenida, acceso rápido, membresía actual
+    Profile.tsx            # Datos personales del usuario
+    QR.tsx                 # Código QR personal para check-in
+    Schedule.tsx           # Clases disponibles, reservaciones propias
+    Login.tsx              # Login con Cognito + badge "Portal del Socio"
+  components/              # BottomNav, Button, Card, Container, etc.
+  contexts/AuthContext.tsx # Amplify auth — login, logout
+  services/api.ts          # Axios → /api/v1/portal/*
+  lib/amplify.ts           # Configuración de AWS Amplify
 ```
 
-**Endpoints del portal (todos bajo `/api/v1/portal/`):**
-- `GET /profile` — perfil del usuario (alumno o instructor)
-- `GET /membership` — membresía activa del alumno
-- `GET /qr` — código QR del alumno
-- `GET /classes` — clases disponibles próximas
-- `GET /reservations` — reservaciones del alumno
-- `POST /reservations` — reservar una clase
-- `DELETE /reservations/{class_id}` — cancelar reservación
-- `GET /checkins` — historial de check-ins
+**Endpoints del portal** (todos bajo `/api/v1/portal/`):
+
+```
+GET    /profile              perfil del usuario
+GET    /membership           membresía activa
+GET    /qr                   código QR personal
+GET    /classes              clases disponibles próximas
+GET    /classes/{id}/attendees   asistentes (estilo "first + L.")
+GET    /reservations         mis reservaciones
+POST   /reservations         reservar una clase
+DELETE /reservations/{class_id}  cancelar reservación
+GET    /checkins             historial de check-ins
+```
 
 ---
 
-## Sistema de diseño — MUY IMPORTANTE
+## Sistema de diseño — Negro & Dorado
 
-### Paleta: Negro/Dorado + Dark/Light mode
-
-El `data-theme="dark"` o `data-theme="light"` se setea en `<html>`.
-
-**Variables CSS (definidas en `index.css`):**
+**Variables CSS** (definidas en `frontend/src/index.css`). Toggle dark/light vía `data-theme="dark"|"light"` en `<html>`.
 
 | Variable | Uso |
 |---|---|
@@ -156,47 +133,44 @@ El `data-theme="dark"` o `data-theme="light"` se setea en `<html>`.
 | `--bg-surface` | Tarjetas y paneles |
 | `--bg-elevated` | Modals y dropdowns |
 | `--bg-muted` | Inputs, superficies sutiles |
-| `--bd-default` | Bordes normales |
-| `--bd-subtle` | Bordes muy sutiles |
-| `--tx-primary` | Texto principal |
-| `--tx-muted` | Texto secundario |
-| `--tx-disabled` | Texto placeholder/deshabilitado |
-| `--gold` | Dorado de marca |
-| `--gold-hover` | Dorado hover |
-| `--gold-bg` | Fondo dorado transparente |
-| `--gold-bd` | Borde dorado transparente |
-| `--gold-fg` | Texto sobre fondo dorado (negro/blanco) |
-| `--color-success/warning/danger/info` | Colores de estado |
-| `--color-*-bg / --color-*-bd` | Fondos/bordes de estado |
+| `--bd-default` / `--bd-subtle` | Bordes |
+| `--tx-primary` / `--tx-muted` / `--tx-disabled` | Texto |
+| `--gold` / `--gold-hover` / `--gold-bg` / `--gold-bd` / `--gold-fg` | Dorado de marca |
+| `--color-success` / `warning` / `danger` / `info` | Estados (+ `-bg`/`-bd`) |
 
 **Uso en Tailwind 4:**
 ```tsx
 className="bg-[--bg-surface] text-[--tx-primary] border-[--bd-default]"
 ```
 
-**Botón primario (siempre inline style para el color):**
+**Botón primario** (siempre inline style para el gradiente):
 ```tsx
 <button
-  style={{ background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)", color: "var(--gold-fg)" }}
+  style={{
+    background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+    color: "var(--gold-fg)",
+  }}
 >
 ```
 
 **NUNCA usar:**
 - `bg-slate-*`, `text-white`, `bg-emerald-*`, `text-green-*` — usar variables CSS
-- Colores hardcodeados como `#1a1a1a` en componentes JSX
+- Colores hardcodeados como `#1a1a1a` en JSX
 
 ---
 
 ## Patrones de backend
 
-### Estructura por módulo
+### Estructura por módulo (capas obligatorias)
 
 ```
-routers/students.py    → validación + HTTP → delega a service
-services/student_service.py → lógica de negocio → llama a repository
-repositories/student_repository.py → DynamoDB access
-models/student.py      → Pydantic v2 models (Request, Response, DynamoDB)
+routers/students.py           → validación + HTTP, delega a service
+services/student_service.py   → lógica de negocio, llama a repository
+repositories/student_repository.py  → único lugar que toca DynamoDB
+models/student.py             → Pydantic v2 (Create, Update, Response, DynamoItem)
 ```
+
+**NUNCA** llamar boto3/DynamoDB directamente desde un service o router.
 
 ### DynamoDB single-table
 
@@ -204,38 +178,31 @@ models/student.py      → Pydantic v2 models (Request, Response, DynamoDB)
 |---|---|---|
 | Student | `STUDENT#{id}` | `PROFILE` |
 | Membership | `STUDENT#{id}` | `MEMBERSHIP#{id}` |
-| Reservation | `STUDENT#{id}` | `RESERVATION#{id}` |
+| Reservation | `CLASS#{id}` | `RESERVATION#{student_id}` |
 | Class | `CLASS#{id}` | `METADATA` |
 | Instructor | `INSTRUCTOR#{id}` | `PROFILE` |
 | Checkin | `STUDENT#{id}` | `CHECKIN#{datetime}` |
+| Transaction | `TRANSACTION#{id}` | `METADATA` |
+| Product | `PRODUCT#{id}` | `METADATA` |
+| Sale | `SALE#{id}` | `METADATA` |
 
-**GSIs disponibles:**
-- `GSI1`: EntityType + SK (lista de entidades por tipo)
-- `GSI2`: InstructorId + ClassDate (clases por instructor)
-- `GSI3`: ClassDate + StartTime (clases por fecha)
-
-### Patrón de repositorio
-
-```python
-# Siempre usar self._table de DynamoDB resource
-# PutItem, GetItem, Query, UpdateItem
-# Raise ResourceNotFoundException para 404s
-# Raise ResourceAlreadyExistsException para 409s
-```
+**GSIs:**
+- `GSI1`: EntityType + SK — listar por tipo
+- `GSI2`: InstructorId + ClassDate — clases por instructor (también: GSI2 sobre transacciones por alumno)
+- `GSI3`: ClassDate + StartTime — clases por fecha; también flag de membresía activa por alumno
 
 ### Auth
 
-Todos los endpoints protegidos necesitan `_current_user: dict = Depends(get_current_user)`.
-El endpoint `/health` es público.
+Endpoints protegidos requieren `_current_user: dict = Depends(get_current_user)`.
+`/health` es público.
 
 ---
 
 ## Patrones de frontend
 
-### TanStack Query hooks
+### Hooks de TanStack Query
 
 ```tsx
-// hooks/useStudents.ts — patrón estándar
 export function useStudents(params?: { status?: StudentStatus; limit?: number }) {
   return useQuery({
     queryKey: ["students", params],
@@ -256,10 +223,9 @@ export function useCreateStudent() {
 }
 ```
 
-### Servicios API
+### Servicios API (Axios)
 
 ```tsx
-// services/studentService.ts — patrón estándar
 export const studentService = {
   list: (params?) => apiClient.get<PaginatedResponse<Student>>("/students", { params }),
   getById: (id) => apiClient.get<Student>(`/students/${id}`),
@@ -270,8 +236,7 @@ export const studentService = {
 
 ### Modals
 
-Todos los modals usan el componente `<Dialog>` base en `components/shared/Dialog.tsx`.
-Los inputs siempre usan la clase local `inputCls`:
+Usan `<Dialog>` de `components/shared/Dialog.tsx`. Los inputs siempre con la clase local:
 ```tsx
 const inputCls = "w-full rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]";
 ```
@@ -280,210 +245,145 @@ const inputCls = "w-full rounded-xl border border-[--bd-default] bg-[--bg-muted]
 
 ## i18n
 
-- Idiomas: Español (default) e Inglés
+- Idiomas: **español (default)** e **inglés**
 - Archivos: `frontend/src/i18n/locales/es.json` y `en.json`
+- **Paridad obligatoria**: 452 keys actualmente. Si agregas una clave en un archivo, agrégala en el otro.
 - Uso: `const { t } = useTranslation()` → `t("settings.title")`
 - Detección: localStorage → navigator, fallback a `"es"`
-- **Regla:** Toda string visible al usuario debe tener key en ambos archivos
+- Verificación rápida:
+  ```bash
+  cd frontend && python3 -c "
+  import json
+  es = set(open('src/i18n/locales/es.json').read())
+  en = set(open('src/i18n/locales/en.json').read())
+  # ... (script en .claude/CLAUDE.md sección i18n)
+  "
+  ```
+
+**Toasts** son una excepción consciente: están en español hardcoded en hooks (es la única lengua de operación real). UI visible sí usa i18n.
 
 ---
 
 ## Flujos críticos (contexto México)
 
-### Check-in (operación más frecuente — varias veces/día)
+### Check-in (operación más frecuente)
 
 1. Recepcionista abre `/checkin`
-2. Teclea 2+ letras del nombre
+2. Teclea ≥ 2 letras del nombre o escanea QR
 3. Dropdown con hasta 10 resultados
-4. Click en miembro → panel derecho muestra estado inmediatamente
-5. Verde ✅ = acceso, ámbar ⚠️ = acceso pero por vencer, rojo ❌ = denegado
-6. Click "Registrar Check-in" → POST /students/{id}/checkin
+4. Click → panel derecho muestra estado
+5. Verde ✅ acceso, ámbar ⚠️ acceso pero por vencer, rojo ❌ denegado
+6. "Registrar Check-in" → `POST /students/{id}/checkin`
 
 **Reglas de acceso:**
-- status `active` o `founder` ✓
-- Membresía activa existente ✓
-- `days_until_expiry > 0` ✓
+- status `active` ✓
+- Membresía activa con `days_until_expiry > 0` ✓
+- Para Founder/Room Daily/Room Pass: máx 1 clase/día (incluye `attended` ya marcadas)
 
-### Membresías en México
+### Membresías Fitness Room León (catálogo dinámico v1.7.0+)
 
-| Tipo | Duración | Clases |
-|---|---|---|
-| monthly | 1 mes | sin límite |
-| quarterly | 3 meses | sin límite |
-| semi_annual | 6 meses | sin límite |
-| annual | 12 meses | sin límite |
-| class_pack_5 | sin fecha | 5 clases |
-| class_pack_10 | sin fecha | 10 clases |
-| class_pack_20 | sin fecha | 20 clases |
-| day_pass | 1 día | sin límite |
+| Slug | Duración | Clases | Precio sugerido |
+|---|---|---|---|
+| `founder` | 1 mes | sin límite | (programa fundador) |
+| `room_daily` | 1 mes | 1/día | — |
+| `room_elite` | 1 mes | sin límite | — |
+| `room_flex` | 1 mes | sin límite + paseo | — |
+| `room_pass` | 1 día | 1 | — |
+| `class_pack_5/10/20` | sin fecha | 5/10/20 | — |
 
-Los packs de clases decrementan `classes_remaining` en cada asistencia.
+Todos editables desde **Configuración → Catálogos**.
 
 ### Alertas de vencimiento
 
-- El sistema alerta membresías que vencen en **7 días** (crítico) y **30 días** (aviso)
-- El dashboard muestra el conteo en tiempo real
+- 7 días (crítico) y 30 días (aviso) en el dashboard
 - `GET /api/v1/memberships/expiring?days=7` y `?days=30`
+- EventBridge dispara recordatorios SES diariamente
 
 ---
 
-## Endpoints API
+## Endpoints API (resumen)
 
 ```
-GET  /health                              Ping (público)
-
-GET  /api/v1/stats                        Dashboard stats (una llamada = todo)
+GET  /health                              ping (público)
+GET  /api/v1/stats                        dashboard
 
 # Alumnos
-GET  /api/v1/students                     Lista alumnos
-POST /api/v1/students                     Crear alumno
-GET  /api/v1/students/{id}               Detalle
-PATCH /api/v1/students/{id}              Actualizar
-DELETE /api/v1/students/{id}             Eliminar
-POST /api/v1/students/{id}/activate      Activar
-POST /api/v1/students/{id}/deactivate    Desactivar
-POST /api/v1/students/{id}/checkin       Registrar check-in
-GET  /api/v1/students/{id}/qr            Generar código QR (base64 PNG)
+GET/POST/PATCH/DELETE /api/v1/students[/{id}]
+POST /api/v1/students/{id}/activate|deactivate|suspend|unsuspend|checkin
+GET  /api/v1/students/{id}/qr             QR base64 PNG
 
 # Membresías
-GET  /api/v1/memberships                 Lista membresías
-POST /api/v1/memberships                 Asignar membresía
-GET  /api/v1/memberships/expiring        Membresías por vencer
-GET  /api/v1/memberships/{id}           Detalle
-PATCH /api/v1/memberships/{id}          Actualizar
-POST /api/v1/memberships/{id}/cancel    Cancelar membresía
-GET  /api/v1/memberships/student/{id}   Membresías de alumno
-GET  /api/v1/memberships/student/{id}/active  Membresía activa
-POST /api/v1/memberships/{id}/renew      Renovar
-POST /api/v1/memberships/student/{id}/{membership_id}/freeze    Congelar membresía
-POST /api/v1/memberships/student/{id}/{membership_id}/unfreeze  Descongelar membresía
+GET/POST/PATCH /api/v1/memberships[/{id}]
+GET  /api/v1/memberships/expiring         por vencer
+POST /api/v1/memberships/{id}/cancel|renew
+POST /api/v1/memberships/student/{id}/{mid}/freeze|unfreeze
 
 # Clases
-GET  /api/v1/classes                     Lista clases
-POST /api/v1/classes                     Crear clase
-GET  /api/v1/classes/{id}               Detalle
-PATCH /api/v1/classes/{id}              Actualizar
-POST /api/v1/classes/{id}/cancel        Cancelar clase
+GET/POST/PATCH /api/v1/classes[/{id}]
+GET  /api/v1/classes/{id}/attendees       inscritos confirmed+attended+waitlisted
+POST /api/v1/classes/{id}/cancel
 
 # Reservaciones
-GET  /api/v1/reservations               Lista reservaciones
-POST /api/v1/reservations               Crear reservación
-GET  /api/v1/reservations/{id}         Detalle
-DELETE /api/v1/reservations/{id}       Cancelar
-POST /api/v1/reservations/{id}/attend   Marcar asistencia
+GET/POST/DELETE /api/v1/reservations[/{id}]
+POST /api/v1/reservations/{id}/attend
 
 # Instructores
-GET  /api/v1/instructors                Lista instructores
-POST /api/v1/instructors               Crear instructor
-PATCH /api/v1/instructors/{id}         Actualizar
-POST /api/v1/instructors/{id}/activate  Activar
-POST /api/v1/instructors/{id}/deactivate Desactivar
+GET/POST/PATCH /api/v1/instructors[/{id}]
+POST /api/v1/instructors/{id}/activate|deactivate
 
-# Caja (Fase 2)
-POST /api/v1/transactions               Registrar transacción
-GET  /api/v1/transactions               Lista transacciones
-GET  /api/v1/transactions/{id}         Detalle transacción
-GET  /api/v1/transactions/student/{id} Transacciones del alumno
-GET  /api/v1/transactions/daily-summary Resumen del día
-POST /api/v1/transactions/cash-cut      Crear corte de caja
-GET  /api/v1/transactions/cash-cuts     Lista de cortes
-GET  /api/v1/transactions/cash-cuts/{id} Detalle de corte
+# Caja
+POST /api/v1/transactions, GET /api/v1/transactions
+GET  /api/v1/transactions/student/{id}
+GET  /api/v1/transactions/daily-summary
+POST /api/v1/transactions/cash-cut
 
-# Inventario (Fase 2)
-POST /api/v1/inventory/products         Crear producto
-GET  /api/v1/inventory/products         Lista productos
-GET  /api/v1/inventory/products/low-stock  Alerta stock bajo
-GET  /api/v1/inventory/products/{id}   Detalle producto
-PATCH /api/v1/inventory/products/{id}  Actualizar producto
-POST /api/v1/inventory/products/{id}/restock  Reabastecer
-POST /api/v1/inventory/products/{id}/sell     Registrar venta
-GET  /api/v1/inventory/sales            Lista ventas
+# Inventario
+POST/GET/PATCH /api/v1/inventory/products[/{id}]
+GET  /api/v1/inventory/products/low-stock
+POST /api/v1/inventory/products/{id}/restock|sell
+GET  /api/v1/inventory/sales
 
-# Reportes (Fase 2)
-GET  /api/v1/reports/income             Reporte de ingresos (rango de fechas)
-GET  /api/v1/reports/attendance         Reporte de asistencia
-GET  /api/v1/reports/rankings           Ranking de alumnos
-GET  /api/v1/reports/inactive           Alumnos inactivos
+# Reportes (v1.8.4+)
+GET  /api/v1/reports/income[?include_transactions=true]
+GET  /api/v1/reports/memberships-range
+GET  /api/v1/reports/attendance[?days|start_date+end_date]
+GET  /api/v1/reports/rankings[?days|start_date+end_date]
+GET  /api/v1/reports/inactive             (incluye last_checkin)
 
-# Portal — alumnos/instructores (Fase 2.5)
-GET  /api/v1/portal/profile             Perfil del usuario autenticado
-GET  /api/v1/portal/membership          Membresía activa
-GET  /api/v1/portal/qr                  Código QR personal
-GET  /api/v1/portal/classes             Clases disponibles próximas
-GET  /api/v1/portal/reservations        Mis reservaciones
-POST /api/v1/portal/reservations        Reservar clase
-DELETE /api/v1/portal/reservations/{class_id}  Cancelar reservación
-GET  /api/v1/portal/checkins            Historial de check-ins
+# Portal
+GET    /api/v1/portal/profile
+GET    /api/v1/portal/membership
+GET    /api/v1/portal/qr
+GET    /api/v1/portal/classes
+GET    /api/v1/portal/classes/{id}/attendees
+GET    /api/v1/portal/reservations
+POST   /api/v1/portal/reservations
+DELETE /api/v1/portal/reservations/{class_id}
+GET    /api/v1/portal/checkins
 ```
-
----
-
-## Fases del proyecto
-
-| Fase | Módulos | Estado |
-|---|---|---|
-| **Fase 1** | Alumnos, Membresías, Clases, Reservas, Instructores, Check-in, Dashboard | ✅ Completado |
-| **Fase 2** | Notificaciones Email (SES), Reportes financieros, Caja, Inventario | ✅ Completado |
-| **Fase 2.5** | QR Check-in, Freeze de membresía, Exportar reportes PDF/Excel, Portal alumnos | ✅ Completado |
-| **Fase 3** | WhatsApp Business API, Corte de caja avanzado | 🔜 Planeado |
-| **Fase 4** | Rankings de fidelización, Métricas de motivación, App móvil nativa | 🔜 Planeado |
-
-**Fase 3 — WhatsApp** es crítica para México. API de WhatsApp Business para recordatorios de renovación directos al celular.
 
 ---
 
 ## Variables de entorno
 
 ### Backend (`backend/.env`)
-
 ```bash
 ENVIRONMENT=local
 DYNAMODB_TABLE_NAME=fitness-room-dev
 DYNAMODB_ENDPOINT_URL=http://localhost:8000   # solo local
-COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX
+COGNITO_USER_POOL_ID=us-west-2_XXXXXXXXX
 COGNITO_CLIENT_ID=XXXXXXXXXXXXXXXXXXXXXXXXXX
 FRONTEND_URL=http://localhost:5173
-SES_SENDER_EMAIL=noreply@fitnessroom.mx       # notificaciones email
+SES_SENDER_EMAIL=noreply@fitnessroom.mx
 ```
 
-### Frontend admin (`frontend/.env`)
-
+### Frontend / Portal (`frontend/.env`, `portal/.env`)
 ```bash
 VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX
+VITE_COGNITO_USER_POOL_ID=us-west-2_XXXXXXXXX
 VITE_COGNITO_CLIENT_ID=XXXXXXXXXXXXXXXXXXXXXXXXXX
-VITE_COGNITO_REGION=us-east-1
+VITE_COGNITO_REGION=us-west-2
 VITE_ENV=development
-```
-
-### Portal (`portal/.env`)
-
-```bash
-VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX
-VITE_COGNITO_CLIENT_ID=XXXXXXXXXXXXXXXXXXXXXXXXXX
-VITE_COGNITO_REGION=us-east-1
-```
-
----
-
-## Infraestructura AWS
-
-Cinco stacks CDK en orden de despliegue:
-
-1. **DatabaseStack** — DynamoDB tabla única con GSIs
-2. **AuthStack** — Cognito User Pool + App Client (depende de DatabaseStack)
-3. **ApiStack** — Lambda + API Gateway v2 HTTP API (depende de AuthStack)
-4. **HostingStack** — S3 + CloudFront (frontend admin)
-5. **PortalHostingStack** — S3 + CloudFront (portal alumnos/instructores)
-
-```bash
-cd infrastructure/cdk
-cdk deploy DatabaseStack --profile salle-cajas
-cdk deploy AuthStack --profile salle-cajas
-cdk deploy ApiStack --profile salle-cajas
-cdk deploy HostingStack --profile salle-cajas
-cdk deploy PortalHostingStack --profile salle-cajas
 ```
 
 ---
@@ -491,40 +391,52 @@ cdk deploy PortalHostingStack --profile salle-cajas
 ## Convenciones de código
 
 ### Backend (Python)
-- `snake_case` para todo
-- Docstrings en todos los módulos, clases y funciones
-- `mypy` para type checking
-- `ruff` para linting
-- Tests en `backend/tests/` con `pytest`
+- `snake_case` para todo. Type hints obligatorios.
+- Docstrings en módulos, clases y funciones públicas.
+- `mypy` y `ruff` corren en `make lint`.
+- Tests en `backend/tests/` con `pytest`.
 
 ### Frontend (TypeScript)
-- `PascalCase` para componentes, `camelCase` para todo lo demás
-- Funciones con tipo de retorno explícito (`:React.JSX.Element`)
-- Imports: React built-ins → third-party → `@/` alias interno
-- No usar `any` sin comentario explicativo
+- `PascalCase` para componentes, `camelCase` para todo lo demás.
+- Funciones exportadas con tipo de retorno explícito (`: React.JSX.Element`).
+- Imports: React → third-party → `@/` interno.
+- **No usar `any`** sin comentario explicativo.
 
 ### Git
 - Rama: `fzacarias/fire-XXXX/descripcion`
-- Commits Conventional: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`
-- PR requiere pasar `type-check`, `lint`, `build` y `test`
+- Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`
+- PR requiere `type-check`, `lint`, `build` y `test` en verde.
+- **Nunca pushear sin OK explícito del usuario.**
+
+---
+
+## Versionado (5 lugares en sync)
+
+| # | Archivo | Campo |
+|---|---|---|
+| 1 | `VERSION` | texto plano |
+| 2 | `frontend/package.json` | `"version"` |
+| 3 | `frontend/src/lib/changelog.ts` | `APP_VERSION` + nueva entrada al inicio del array |
+| 4 | `backend/src/routers/health.py` | `version=` en `HealthResponse` |
+| 5 | `CHANGELOG.md` | nueva sección `## [x.y.z]` al inicio |
+
+```bash
+./scripts/bump-version.sh 1.9.0
+./scripts/check-version.sh
+```
 
 ---
 
 ## Advertencias conocidas
 
-1. **`useStats.ts`** — El endpoint `/api/v1/stats` hace N queries a DynamoDB internamente. Con bajo volumen es aceptable. Si el dashboard se pone lento, considerar ElastiCache o calcular stats con un job nocturno.
-
-2. **Paginación** — La mayoría de listas cargan `limit=200` en el cliente para filtrado local. Cuando el número de alumnos supere 500, implementar paginación server-side real.
-
-3. **Check-in** — No hay deduplicación de check-ins en el mismo día. Si se necesita, verificar `CHECKIN#{date}` existente antes de crear.
-
-4. **Cognito en local** — El `AuthContext` tiene un bypass para `VITE_ENV=development` que evita login real. **JAMÁS** en producción.
-
-5. **DynamoDB costos** — La tabla usa `PAY_PER_REQUEST`. Con bajo volumen es más barato. Revisar si supera 1M requests/mes para considerar `PROVISIONED`.
-
-6. **Portal vs Frontend** — Son dos apps React independientes con sus propios `package.json` y builds separados. El portal usa Tailwind 3.4 (no 4). No mezclar dependencias ni componentes entre ambos.
-
-7. **EventBridge notificaciones** — El backend tiene handlers para eventos programados de SES (alertas de vencimiento). Se configuran en `ApiStack` como reglas EventBridge → Lambda.
+1. **`/api/v1/stats`** hace N queries internas a DynamoDB. Aceptable con < 500 alumnos. Si el dashboard se pone lento → cache nocturno o ElastiCache.
+2. **Paginación** — la mayoría de listas cargan `limit=200` y filtran client-side. Implementar server-side cuando se superen 500 entidades.
+3. **Reservaciones con status `attended`**: cuentan en `reservations_count` y aparecen en el listado de inscritos (fix v1.8.5). La regla "1 clase/día" para Founder considera también `attended`.
+4. **Cognito en local** — `AuthContext` tiene un bypass cuando `VITE_ENV=development`. Jamás en producción.
+5. **DynamoDB billing** — `PAY_PER_REQUEST`. Revisar si supera 1M requests/mes.
+6. **Portal vs Frontend** — dos apps independientes con sus propios `package.json` y builds. Portal usa Tailwind 3.4, no 4. **No** mezclar componentes ni dependencias.
+7. **EventBridge** — handlers de notificaciones SES (alertas de vencimiento) configurados como reglas en `ApiStack`.
+8. **El bucket del portal y el del admin son distintos**: si por error desplegas el bundle de admin sobre el del portal (o viceversa), los socios verán la app del admin (que rechaza grupos `student`/`teacher`). Pasó en v1.8.x — fix en v1.8.3.
 
 ---
 
@@ -533,23 +445,23 @@ cdk deploy PortalHostingStack --profile salle-cajas
 1. **Backend:**
    - `backend/src/models/mi_modulo.py` — Pydantic models
    - `backend/src/repositories/mi_modulo_repository.py` — DynamoDB
-   - `backend/src/services/mi_modulo_service.py` — Lógica
+   - `backend/src/services/mi_modulo_service.py` — lógica
    - `backend/src/routers/mi_modulo.py` — FastAPI router
    - Registrar en `backend/src/main.py`: `app.include_router(mi_modulo.router, prefix="/api/v1")`
 
 2. **Frontend admin:**
-   - `frontend/src/types/mi_modulo.ts` — TypeScript types
-   - `frontend/src/services/miModuloService.ts` — API calls
-   - `frontend/src/hooks/useMiModulo.ts` — TanStack Query hooks
-   - `frontend/src/routes/mi_modulo/index.tsx` — Page
-   - Agregar al Sidebar en `frontend/src/components/layout/Sidebar.tsx`
-   - Agregar traducciones a `es.json` y `en.json`
+   - `frontend/src/types/miModulo.ts`
+   - `frontend/src/services/miModuloService.ts`
+   - `frontend/src/hooks/useMiModulo.ts`
+   - `frontend/src/routes/mi_modulo/index.tsx`
+   - Agregar al `Sidebar.tsx`
+   - Agregar traducciones a **ambos** `es.json` y `en.json`
 
-3. **Portal (si aplica para alumnos/instructores):**
-   - Agregar método en `portal/src/services/api.ts`
-   - Agregar página en `portal/src/pages/MiPagina.tsx`
-   - Agregar ruta en `portal/src/App.tsx` y link en `BottomNav.tsx`
+3. **Portal (si aplica):**
+   - Método en `portal/src/services/api.ts`
+   - Página en `portal/src/pages/MiPagina.tsx`
+   - Ruta en `App.tsx` y link en `BottomNav.tsx`
 
 ---
 
-*Actualizado: 2026-04-23 | v1.5.2 | Fase 2.5 completada — Guía detallada para AI en `.claude/CLAUDE.md`*
+*Última actualización: 2026-05-19 — v1.8.5 — Para detalle operativo (deploys, AWS account IDs, distribuciones CloudFront), ver [`.claude/CLAUDE.md`](.claude/CLAUDE.md)*

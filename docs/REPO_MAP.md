@@ -2,345 +2,225 @@
 
 Complete directory structure and purpose of each major component.
 
+> **Version:** 1.8.5 — last cleanup pass: 2026-05-19.
+
 ---
 
 ## Root Level
 
-```
+```text
 fitness-room-system/
-├── VERSION              # Single source of truth for version (1.5.5)
-├── CHANGELOG.md         # Keep-a-Changelog format history
-├── CLAUDE.md            # AI assistant instructions
-├── README.md            # Project overview
-├── MANUAL_USUARIO.md    # Spanish user manual
-├── Makefile             # Build/deploy shortcuts
-├── .envrc               # direnv config (auto-load env)
+├── VERSION                  # Single source of truth (currently 1.8.5)
+├── CHANGELOG.md             # Keep-a-Changelog history
+├── CLAUDE.md                # Technical guide (project-level — read first)
+├── README.md                # Public-facing project overview
+├── Makefile                 # make dev / make deploy / make tag / etc.
+├── setup.sh                 # Full bootstrap (deps for every app)
+├── .envrc                   # direnv hook
+├── .gitignore
+├── .nvmrc                   # node 22+
+├── .python-version          # 3.12
 │
-├── backend/             # Python FastAPI serverless API
-├── frontend/            # React admin panel (Vite + TanStack Router)
-├── portal/              # React student portal (Vite + React Router)
-├── landing/             # Next.js platform landing page
-├── gym-landing/         # Next.js gym landing page
-├── infrastructure/      # AWS CDK stacks
-├── docs/                # Technical documentation
-├── scripts/             # Utility scripts
-│
-├── .claude/             # Claude Code config
-├── .windsurf/           # Windsurf AI rules
-└── .github/             # GitHub workflows
+├── .claude/                 # AI operational config (CLAUDE.md)
+├── .windsurf/               # Windsurf rules + workflows
+└── .github/                 # placeholder for CI workflows
 ```
+
+There are no other docs at the root anymore. User-facing manuals (`MANUAL_USUARIO`, `TESTING_MANUAL_DUENOS`, `COST_ANALYSIS`) live under `docs/operacion/`.
 
 ---
 
-## Backend (`/backend/`)
+## Apps
 
-Python 3.12 + FastAPI + AWS Lambda serverless API.
+### `backend/` — Python FastAPI Lambda
 
-```
+```text
 backend/
-├── pyproject.toml       # Dependencies, ruff, mypy config
-├── .env.example         # Environment template
-│
-├── src/
-│   ├── main.py          # FastAPI app, Mangum handler
-│   ├── config.py        # Settings from environment
-│   │
-│   ├── models/          # Pydantic v2 schemas
-│   │   ├── student.py       # Student, StudentCreate, StudentResponse
-│   │   ├── membership.py    # Membership types, statuses
-│   │   ├── class_model.py   # Class scheduling
-│   │   ├── instructor.py    # Instructor profiles
-│   │   ├── reservation.py   # Class reservations
-│   │   ├── checkin.py       # Check-in records
-│   │   ├── transaction.py   # Payment records
-│   │   ├── inventory.py     # Products, sales
-│   │   ├── notification.py  # Email notification logs
-│   │   └── common.py        # Shared response types
-│   │
-│   ├── repositories/    # DynamoDB data access layer
-│   │   ├── dynamo_repository.py  # Base class with common ops
-│   │   ├── student_repository.py
-│   │   ├── membership_repository.py
-│   │   ├── class_repository.py
-│   │   ├── instructor_repository.py
-│   │   ├── reservation_repository.py
-│   │   ├── transaction_repository.py
-│   │   ├── inventory_repository.py
-│   │   └── notification_repository.py
-│   │
-│   ├── services/        # Business logic layer
-│   │   ├── student_service.py      # Student CRUD + status mgmt
-│   │   ├── membership_service.py   # Memberships, freeze/unfreeze
-│   │   ├── class_service.py        # Class scheduling
-│   │   ├── instructor_service.py   # Instructor mgmt
-│   │   ├── reservation_service.py  # Booking logic
-│   │   ├── checkin_service.py      # Check-in validation
-│   │   ├── transaction_service.py  # Payments, cash register
-│   │   ├── inventory_service.py    # Products, stock
-│   │   ├── cognito_service.py      # User creation, groups
-│   │   ├── event_notifier.py       # Email sending via SES
-│   │   ├── email_templates.py      # HTML email templates
-│   │   ├── carta_responsiva.py     # PDF generation
-│   │   ├── notification_service.py # Scheduled notifications
-│   │   ├── report_service.py       # Financial reports
-│   │   └── uniqueness_service.py   # Cross-entity validation
-│   │
-│   ├── routers/         # FastAPI route handlers
-│   │   ├── health.py        # GET /health (public)
-│   │   ├── stats.py         # GET /api/v1/stats (dashboard)
-│   │   ├── students.py      # /api/v1/students/*
-│   │   ├── memberships.py   # /api/v1/memberships/*
-│   │   ├── classes.py       # /api/v1/classes/*
-│   │   ├── instructors.py   # /api/v1/instructors/*
-│   │   ├── reservations.py  # /api/v1/reservations/*
-│   │   ├── transactions.py  # /api/v1/transactions/*
-│   │   ├── inventory.py     # /api/v1/inventory/*
-│   │   ├── reports.py       # /api/v1/reports/*
-│   │   ├── notifications.py # /api/v1/notifications/*
-│   │   ├── users.py         # /api/v1/users/* (Cognito mgmt)
-│   │   └── portal.py        # /api/v1/portal/* (student APIs)
-│   │
-│   ├── utils/           # Shared utilities
-│   │   ├── auth.py          # JWT validation, role checks
-│   │   ├── exceptions.py    # Custom HTTP exceptions
-│   │   └── phone.py         # Phone number formatting
-│   │
-│   └── assets/          # Static assets (email logos, etc.)
-│
+├── pyproject.toml, uv.lock, requirements.txt
+├── README.md
+├── .env.example
+├── .python-version
 ├── scripts/
-│   └── bootstrap_admin.py  # Create first admin user
-│
-└── tests/               # pytest tests
-    ├── conftest.py          # Fixtures, moto mocks
-    ├── test_students.py
-    ├── test_memberships.py
-    ├── test_classes.py
-    ├── test_reservations.py
-    └── test_checkin.py
+│   └── bootstrap_admin.py        # one-off: create the first admin Cognito user
+├── src/
+│   ├── main.py                   # FastAPI app + Mangum handler
+│   ├── config.py                 # pydantic-settings (env vars)
+│   ├── routers/                  # 13 routers
+│   │   ├── catalogs.py           #   /api/v1/catalogs
+│   │   ├── classes.py            #   /api/v1/classes (incl. /attendees)
+│   │   ├── email_admin.py        #   /api/v1/email-admin
+│   │   ├── health.py             #   /health (public, source of version field)
+│   │   ├── instructors.py
+│   │   ├── inventory.py
+│   │   ├── memberships.py
+│   │   ├── notifications.py
+│   │   ├── portal.py             #   /api/v1/portal/* (member-facing)
+│   │   ├── reports.py            #   income, memberships-range, attendance, rankings, inactive
+│   │   ├── reservations.py
+│   │   ├── stats.py              #   /api/v1/stats (dashboard, N internal queries)
+│   │   ├── students.py
+│   │   ├── transactions.py       #   caja
+│   │   └── users.py              #   Cognito user mgmt
+│   ├── services/                 # business logic (15 services)
+│   ├── repositories/             # DynamoDB access layer
+│   ├── models/                   # Pydantic v2 (Create, Update, Response, DynamoItem)
+│   └── utils/                    # auth, exceptions, phone
+└── tests/                        # pytest suite (checkin, classes, memberships, …)
 ```
 
----
+### `frontend/` — Admin Panel (admin.fitnessroom.mx)
 
-## Admin Frontend (`/frontend/`)
-
-React 19 admin panel with TanStack Router (file-based routing).
-
-```
+```text
 frontend/
-├── package.json         # v1.5.5, Vite 6, React 19
-├── vite.config.ts       # Vite + TanStack Router plugin
-├── tsconfig.json        # Strict TypeScript
-├── eslint.config.js     # ESLint 9 flat config
-├── tailwind.config.ts   # Tailwind CSS 4
-├── .env.example         # Vite env template
-│
+├── package.json, pnpm-lock.yaml
+├── eslint.config.js, vite.config.ts, vitest.config.ts
+├── tsconfig.{json,app,node}
+├── index.html
+├── .env.example
 └── src/
-    ├── main.tsx         # App entry point
-    ├── index.css        # CSS custom properties (design tokens)
-    ├── routeTree.gen.ts # Auto-generated routes (do not edit)
-    │
-    ├── routes/          # File-based pages (TanStack Router)
-    │   ├── __root.tsx       # Root layout with Sidebar
-    │   ├── index.tsx        # Dashboard (/)
-    │   ├── login.tsx        # Login page
-    │   ├── checkin.tsx      # Check-in flow
-    │   ├── checkin-kiosk.tsx # Kiosk mode
-    │   ├── settings.tsx     # Settings page
-    │   ├── students/
-    │   │   ├── index.tsx    # Student list
-    │   │   └── $studentId/
-    │   │       └── index.tsx # Student detail
-    │   ├── memberships/
-    │   │   └── index.tsx    # Memberships list
-    │   ├── classes/
-    │   │   └── index.tsx    # Classes schedule
-    │   ├── instructors/
-    │   │   └── index.tsx    # Instructors list
-    │   ├── reservations/
-    │   │   └── index.tsx    # Reservations
-    │   ├── users/
-    │   │   └── index.tsx    # Cognito user management
-    │   ├── caja/
-    │   │   └── index.tsx    # Cash register
-    │   ├── reportes/
-    │   │   └── index.tsx    # Reports
-    │   └── inventario/
-    │       └── index.tsx    # Inventory
-    │
+    ├── routes/                   # TanStack Router file-based
+    │   ├── index.tsx             # Dashboard (/)
+    │   ├── checkin.tsx, checkin-kiosk.tsx
+    │   ├── login.tsx             # has "Panel Administrativo" badge + portal link
+    │   ├── students/             # / + /$studentId
+    │   ├── classes/, memberships/, reservations/, instructors/
+    │   ├── reportes/             # 5 tabs: income/memberships/attendance/rankings/inactive
+    │   ├── caja/, inventario/
+    │   └── settings.tsx
     ├── components/
-    │   ├── layout/
-    │   │   ├── Sidebar.tsx      # Navigation sidebar
-    │   │   └── AppLayout.tsx    # Authenticated layout
-    │   └── shared/
-    │       ├── Dialog.tsx           # Modal base
-    │       ├── StatusBadge.tsx      # Status pills
-    │       ├── ErrorBoundary.tsx    # Error handling
-    │       ├── CreateStudentModal.tsx
-    │       ├── EditStudentModal.tsx
-    │       ├── CreateInstructorModal.tsx
-    │       ├── EditInstructorModal.tsx
-    │       ├── CreateUserModal.tsx
-    │       ├── PhoneInput.tsx       # E.164 phone input
-    │       ├── AddressInput.tsx     # Structured address
-    │       └── CameraCapture.tsx    # Webcam photo
-    │
-    ├── hooks/           # TanStack Query hooks
-    │   ├── useStudents.ts
-    │   ├── useClasses.ts
-    │   ├── useMemberships.ts
-    │   ├── useInstructors.ts
-    │   ├── useReservations.ts
-    │   ├── useStats.ts
-    │   ├── useUsers.ts
-    │   └── ...
-    │
-    ├── services/        # Axios API clients
-    │   ├── apiClient.ts     # Configured Axios instance
-    │   ├── studentService.ts
-    │   ├── classService.ts
-    │   ├── membershipService.ts
-    │   └── ...
-    │
-    ├── types/           # TypeScript interfaces
-    │   ├── student.ts
-    │   ├── membership.ts
-    │   ├── class.ts
-    │   ├── instructor.ts
-    │   └── ...
-    │
-    ├── contexts/
-    │   └── AuthContext.tsx  # Cognito auth state
-    │
-    ├── i18n/
-    │   ├── index.ts         # i18next config
-    │   └── locales/
-    │       ├── es.json      # Spanish translations
-    │       └── en.json      # English translations
-    │
-    ├── store/
-    │   └── useThemeStore.ts # Zustand theme store
-    │
-    ├── lib/
-    │   ├── utils.ts         # cn(), formatDate(), etc.
-    │   ├── changelog.ts     # Version history
-    │   ├── phone.ts         # Phone validation
-    │   ├── address.ts       # Address parsing
-    │   ├── specialties.ts   # Instructor specialties
-    │   └── userGroups.ts    # Cognito groups
-    │
-    └── config/
-        └── theme.ts         # Theme application
+    │   ├── layout/               # Sidebar, AppLayout
+    │   └── shared/               # 24 components (modals, dialogs, Calendar, badges, …)
+    ├── hooks/                    # TanStack Query hooks (useStudents, useReports, …)
+    ├── services/                 # Axios clients per entity
+    ├── types/                    # TS interfaces mirroring backend
+    ├── i18n/locales/             # es.json + en.json (paridad 452 keys)
+    ├── store/                    # Zustand (useThemeStore, useGymStore)
+    ├── config/                   # theme.ts (applyTheme)
+    ├── lib/                      # utils, exportReports, dateRangePresets, changelog, apiError
+    └── index.css                 # CSS design tokens (--gold, --bg-*, etc.)
 ```
 
----
+### `portal/` — Member Portal (portal.fitnessroom.mx)
 
-## Student Portal (`/portal/`)
-
-React 19 member-facing app with React Router DOM 7.
-
-```
+```text
 portal/
-├── package.json         # v1.5.5, Vite 6, Tailwind 3
-├── vite.config.ts
-├── tsconfig.json
-├── eslint.config.js     # ESLint 9 config
-├── tailwind.config.js   # Tailwind CSS 3
-│
+├── package.json, package-lock.json
+├── vite.config.ts, tailwind.config.ts (Tailwind 3.4 — NOT 4)
+├── .env.example
 └── src/
-    ├── main.tsx
-    ├── App.tsx              # React Router setup
-    ├── index.css
-    │
-    ├── pages/
-    │   ├── Login.tsx        # Auth flow
-    │   ├── Dashboard.tsx    # Home screen
-    │   ├── Profile.tsx      # User profile
-    │   ├── QR.tsx           # Personal QR code
-    │   └── Schedule.tsx     # Class schedule
-    │
-    ├── components/
-    │   ├── BottomNav.tsx    # Mobile navigation
-    │   ├── Button.tsx
-    │   ├── Card.tsx
-    │   ├── Container.tsx
-    │   └── LoadingSpinner.tsx
-    │
-    ├── contexts/
-    │   └── AuthContext.tsx  # Amplify auth
-    │
-    ├── services/
-    │   └── api.ts           # Portal API client
-    │
-    ├── hooks/
-    │   └── usePortalProfile.ts
-    │
-    └── lib/
-        └── amplify.ts       # AWS Amplify config
+    ├── pages/                    # Dashboard, Profile, QR, Schedule, Login
+    ├── components/               # BottomNav, Button, Card, Container, …
+    ├── contexts/AuthContext.tsx  # Amplify auth
+    ├── services/api.ts           # Axios → /api/v1/portal/*
+    └── lib/amplify.ts            # Amplify config
 ```
 
----
+### `landing/` — Platform landing (platform.fitnessroom.mx)
 
-## Infrastructure (`/infrastructure/`)
-
-AWS CDK v2 infrastructure as code.
-
+```text
+landing/
+├── package.json, package-lock.json
+├── next.config.ts, postcss.config.mjs, amplify.yml
+└── src/                          # Next.js 15 App Router pages
 ```
+
+### `gym-landing/` — Gym landing (fitnessroom.mx)
+
+```text
+gym-landing/
+├── package.json, package-lock.json
+├── next.config.ts, eslint.config.mjs, postcss.config.mjs
+├── README.md, CHECKLIST_CLIENTE.md
+├── app/, lib/                    # Next.js 15 App Router
+└── public/
+```
+
+### `infrastructure/` — AWS CDK v2 (Python)
+
+```text
 infrastructure/
+├── buildspec-backend.yml, buildspec-frontend.yml   # CodeBuild (legacy from pipeline experiments)
 ├── cdk/
-│   ├── app.py               # CDK app entry
-│   ├── cdk.json             # CDK config
-│   ├── requirements.txt     # CDK Python deps
-│   │
+│   ├── app.py
+│   ├── cdk.json
+│   ├── requirements.txt
 │   └── stacks/
-│       ├── database_stack.py        # DynamoDB table
-│       ├── auth_stack.py            # Cognito User Pool
-│       ├── api_stack.py             # Lambda + API Gateway
-│       ├── hosting_stack.py         # S3 + CloudFront (admin)
-│       ├── portal_hosting_stack.py  # S3 + CloudFront (portal)
-│       └── pipeline_stack.py        # CI/CD pipeline
-│
+│       ├── database_stack.py            # DynamoDB + S3 buckets
+│       ├── auth_stack.py                # Cognito User Pool
+│       ├── api_stack.py                 # Lambda + API Gateway + EventBridge
+│       ├── hosting_stack.py             # S3 + CloudFront for admin
+│       ├── portal_hosting_stack.py      # S3 + CloudFront for portal
+│       └── pipeline_stack.py            # placeholder (not deployed)
 ├── lambdas/
-│   └── cognito_custom_message/
-│       └── handler.py       # Custom email templates
-│
+│   └── cognito_custom_message/handler.py    # custom Cognito invite emails
 └── scripts/
-    └── create_admin_user.py # Admin bootstrap
+    ├── bootstrap.sh
+    └── create_admin_user.py
 ```
 
 ---
 
-## Documentation (`/docs/`)
+## Operations
 
+```text
+scripts/
+├── bump-version.sh           # bump 5 sites in sync
+├── check-version.sh          # verify sync
+├── maintenance.sh            # toggle maintenance mode for admin and/or portal
+├── seed_data.py              # seed local DynamoDB (basic)
+├── seed_realistic_data.py    # seed local DynamoDB (1-month simulation)
+├── setup_local_db.py         # create local DynamoDB table with 3 GSIs
+└── legacy/                   # one-shot scripts already executed in production
+    ├── README.md             # describes when each ran
+    ├── migrate_types.py      # v1.7.0 — old enums → dynamic catalog
+    └── resend_carta_responsiva.py  # v1.7.2 — bulk-resend signed PDF
+
+maintenance/
+└── index.html                # static page deployed when maintenance mode is on
 ```
+
+---
+
+## Documentation
+
+```text
 docs/
-├── AI_CONTEXT.md            # Quick-start for AI assistants
-├── REPO_MAP.md              # This file
-├── AUDIT_FINDINGS.md        # Audit report
-├── getting-started.md       # Setup guide
-│
+├── AI_CONTEXT.md             # quick-start for AI assistants
+├── REPO_MAP.md               # this file
+├── ROADMAP.md                # what's planned + what's deferred
+├── RELEASE_CHECKLIST.md      # pre-deploy checklist
+├── TROUBLESHOOTING.md        # common issues
+├── getting-started.md        # onboarding
 ├── architecture/
-│   ├── overview.md          # System architecture
-│   ├── database-design.md   # DynamoDB schema
-│   ├── deployment.md        # Deploy procedures
-│   └── notification-system.md
-│
-└── flows/
-    └── gym-operations.md    # Business workflows
+│   ├── overview.md           # high-level architecture
+│   ├── database-design.md    # DynamoDB single-table layout
+│   ├── deployment.md         # full deploy walkthrough
+│   └── notification-system.md  # SES + SNS event flow
+├── flows/
+│   └── gym-operations.md     # business flows (check-in, reservation, …)
+└── operacion/                # owner-facing manuals (Spanish)
+    ├── README.md
+    ├── MANUAL_USUARIO.md
+    ├── TESTING_MANUAL_DUENOS.md
+    └── COST_ANALYSIS.md
 ```
 
 ---
 
-## Key Config Files
+## What was removed in v1.8.5 cleanup
 
-| File | Purpose |
-|------|---------|
-| `/VERSION` | Master version number |
-| `/CLAUDE.md` | AI assistant rules |
-| `/.claude/settings.local.json` | Claude Code settings |
-| `/frontend/.env.production` | Prod env vars |
-| `/portal/.env.production` | Portal prod env |
-| `/backend/.env` | Local backend env |
+- `docs/AUDIT_FINDINGS.md` — v1.5.5 audit, all items resolved
+- `WHATSAPP_UPDATE.md` — chat snippet from a 2026-05-01 release update
+- `docs/generate_word_docs.py` — script from another project, accidentally committed
+- `docker-data/` — empty local-DynamoDB scaffold dir
+- Tracked `*.tsbuildinfo` files (now gitignored)
+- `.DS_Store` files
+
+## What was moved in v1.8.5 cleanup
+
+- `MANUAL_USUARIO.md`, `TESTING_MANUAL_DUENOS.md`, `COST_ANALYSIS.md` → `docs/operacion/`
+- `scripts/migrate_types.py`, `scripts/resend_carta_responsiva.py` → `scripts/legacy/`
 
 ---
 
-*Generated 2026-04-24 | v1.5.5*
+*Last updated 2026-05-19 — v1.8.5*

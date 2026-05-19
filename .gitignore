@@ -3,15 +3,16 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+*.tsbuildinfo
 
-# ===== NEXT.JS (landing) =====
+# ===== NEXT.JS (landing / gym-landing) =====
 landing/.next/
 landing/out/
-landing/node_modules/
+gym-landing/.next/
+gym-landing/out/
 .env
 .env.*
 !.env.example
-.DS_Store
 .vite/
 
 # ===== PYTHON / BACKEND =====
@@ -79,6 +80,9 @@ infrastructure/cdk/*.d.ts
 .aws-sam/
 samconfig.toml
 *.zip
+
+# ===== LOCAL DYNAMODB DATA =====
+docker-data/
 
 # ===== TERRAFORM (future) =====
 *.tfstate

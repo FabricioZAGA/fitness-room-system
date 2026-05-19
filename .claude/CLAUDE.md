@@ -2,6 +2,8 @@
 
 > **This file is the single source of truth for ANY AI assistant (Claude Code, Windsurf, Cursor, Copilot, etc.) working on this repo.**
 > Read it completely before making any changes. It overrides any conflicting assumptions.
+>
+> **Current version:** 1.8.5 — Production live since 2026-05-01.
 
 ---
 
@@ -34,12 +36,14 @@
 
 | # | File | Field | Example |
 |---|------|-------|---------|
-| 1 | `VERSION` (root) | Plain text | `1.5.2` |
-| 2 | `frontend/package.json` | `"version"` | `"1.5.2"` |
-| 3 | `frontend/src/lib/changelog.ts` | `APP_VERSION` | `"1.5.2"` |
-| 4 | `frontend/src/lib/changelog.ts` | New entry at TOP of `changelog[]` | `{ version: "1.5.2", ... }` |
-| 5 | `backend/src/routers/health.py` | `version=` in HealthResponse | `"1.5.2"` |
+| 1 | `VERSION` (root) | Plain text | `1.8.5` |
+| 2 | `frontend/package.json` | `"version"` | `"1.8.5"` |
+| 3 | `frontend/src/lib/changelog.ts` | `APP_VERSION` | `"1.8.5"` |
+| 4 | `frontend/src/lib/changelog.ts` | New entry at TOP of `changelog[]` | `{ version: "1.8.5", ... }` |
+| 5 | `backend/src/routers/health.py` | `version=` in HealthResponse | `"1.8.5"` |
 | 6 | `CHANGELOG.md` (root) | New `## [x.y.z]` section at TOP | Keep a Changelog format |
+
+Run `./scripts/check-version.sh` to verify all 5 sites are in sync. `./scripts/bump-version.sh X.Y.Z` updates them in one shot.
 
 ### Version bump rules
 - **Patch** (`x.y.Z`): bug fixes, UI tweaks, translation updates
@@ -49,18 +53,18 @@
 ### Changelog entry format (changelog.ts)
 ```typescript
 {
-  version: "1.5.2",
-  date: "2026-04-23",           // YYYY-MM-DD
+  version: "1.8.5",
+  date: "2026-05-19",           // YYYY-MM-DD
   title: "Título corto en español",
   items: [
-    { icon: "🔒", text: "Descripción del cambio en español" },
+    { icon: "🐛", text: "Descripción del cambio en español" },
   ],
 }
 ```
 
 ### CHANGELOG.md format
 ```markdown
-## [1.5.2] — 2026-04-23
+## [1.8.5] — 2026-05-19
 
 ### Added
 - Feature descriptions
@@ -70,6 +74,9 @@
 
 ### Changed
 - Change descriptions
+
+### Removed
+- What was deleted
 ```
 
 ---
@@ -241,10 +248,28 @@ className="bg-[--bg-surface] text-[--tx-primary] border-[--bd-default]"
 
 - **Languages**: Spanish (default) + English
 - **Files**: `frontend/src/i18n/locales/es.json` and `en.json`
+- **Current count**: 452 keys, 100% paridad (auditado en v1.8.5)
 - **Usage**: `const { t } = useTranslation()` → `t("settings.title")`
 - **RULE**: Every user-visible string MUST have a key in BOTH locale files
 - **RULE**: When adding a key to one file, ALWAYS add it to the other
 - **Detection**: localStorage → navigator language, fallback to `"es"`
+- **Toasts exception**: hooks usan toasts en español hardcoded (es la única lengua de operación real). UI visible sí va por i18n.
+
+### Quick paridad check
+
+```python
+import json
+def flatten(d, prefix=""):
+    keys = set()
+    for k, v in d.items():
+        full = f"{prefix}.{k}" if prefix else k
+        keys |= flatten(v, full) if isinstance(v, dict) else {full}
+    return keys
+es = flatten(json.load(open("frontend/src/i18n/locales/es.json")))
+en = flatten(json.load(open("frontend/src/i18n/locales/en.json")))
+print("Missing in EN:", es - en)
+print("Missing in ES:", en - es)
+```
 
 ---
 
@@ -296,16 +321,40 @@ This extracts the `detail` field from FastAPI's 4xx/5xx responses and shows it t
 - `UniquenessService` performs cross-entity checks on create AND update
 - Returns HTTP 409 with descriptive Spanish message on conflict
 
-### Membership types
-| Type | Duration | Classes |
+### Membership types (Fitness Room León catalog — v1.7.0+)
+
+The legacy enums (`monthly`, `quarterly`, `semi_annual`, `annual`, `founder_monthly`, `class_pack_*`, `day_pass`) were migrated in v1.7.0 to a **dynamic catalog** stored in DynamoDB and editable from the Settings UI.
+
+Current shipped slugs:
+
+| Slug | Duration | Classes |
 |------|----------|---------|
-| monthly | 1 month | unlimited |
-| quarterly | 3 months | unlimited |
-| semi_annual | 6 months | unlimited |
-| annual | 12 months | unlimited |
-| founder_monthly | 1 month | unlimited (exclusive 30-member program) |
-| class_pack_5/10/20 | no expiry | 5/10/20 classes |
-| day_pass | 1 day | unlimited |
+| `founder` | 1 month | unlimited (founder program) |
+| `room_daily` | 1 month | 1 / day |
+| `room_elite` | 1 month | unlimited |
+| `room_flex` | 1 month | unlimited + 1 paseo |
+| `room_pass` | 1 day | 1 |
+| `class_pack_5/10/20` | no expiry | 5 / 10 / 20 |
+
+Add/edit from **Settings → Catálogos** in the admin panel.
+
+### Reservation status & business rules (v1.8.5+)
+
+`Reservation.status ∈ {confirmed, attended, no_show, cancelled, waitlisted}`.
+
+The `attended` status:
+
+- Counts toward `class.reservations_count` (occupancy)
+- Appears in the **inscritos** list of `GET /classes/{id}/attendees` (alongside `confirmed`)
+- Counts as "already booked today" for the **1-class-per-day** rule applied to `founder`, `room_daily` and `room_pass`
+
+If you ever filter reservations to "active for the class", use:
+
+```python
+if r.status in ("confirmed", "attended", "waitlisted"):
+```
+
+Excluding `attended` was the bug fixed in v1.8.5.
 
 ---
 
@@ -316,6 +365,7 @@ This extracts the `detail` field from FastAPI's 4xx/5xx responses and shows it t
 | **Phase 1** | Students, Memberships, Classes, Reservations, Instructors, Check-in, Dashboard | ✅ Done |
 | **Phase 2** | Email notifications (SES), Reports, Cash Register, Inventory | ✅ Done |
 | **Phase 2.5** | QR Check-in, Membership freeze, PDF/Excel export, Student Portal | ✅ Done |
+| **Phase 2.6** | App badges, reports overhaul (presets, transactions detail, memberships-by-range), bug fixes (v1.8.3–1.8.5) | ✅ Done |
 | **Phase 3** | WhatsApp Business API, Advanced cash register | 🔜 Planned |
 | **Phase 4** | Loyalty rankings, Motivation metrics, Native mobile app | 🔜 Planned |
 
@@ -349,7 +399,60 @@ This extracts the `detail` field from FastAPI's 4xx/5xx responses and shows it t
 3. **DynamoDB billing** — `PAY_PER_REQUEST`. Review if exceeding 1M requests/month.
 4. **Auth bypass** — When `ENVIRONMENT=local`, backend accepts `Bearer local-dev-token`. NEVER in production.
 5. **Portal uses Tailwind 3** — Admin uses Tailwind 4. Do NOT mix components between apps.
+6. **Portal vs Admin S3 buckets** — `fitness-room-portal-prod` vs `fitness-room-frontend-prod`. Deploying the wrong bundle to either bucket bricks logins for that audience (admin bundle in portal bucket rejects student/teacher groups). Both Login screens now show a visual badge to make this obvious. v1.8.3 was the recovery release.
+7. **`Reservation.status = "attended"` counts as active** — for occupancy, attendees list, and 1-class-per-day rule. Filtering "active" reservations must use `("confirmed", "attended", "waitlisted")`. Excluding `attended` was a v1.8.4 bug fixed in v1.8.5.
 
 ---
 
-*Last updated: 2026-04-23 | v1.5.2 | Fitness Room Management System*
+## 13. Repo layout (post-cleanup, v1.8.5)
+
+```
+fitness-room-system/
+├── README.md                # public overview
+├── CLAUDE.md                # technical guide (project-level)
+├── CHANGELOG.md             # Keep-a-Changelog
+├── VERSION                  # 1.8.5
+├── Makefile                 # make dev / make deploy / make tag
+├── setup.sh                 # full bootstrap
+│
+├── .claude/CLAUDE.md        # this file — AI operational config
+├── .windsurf/               # Windsurf rules + workflows (mirrors .claude)
+├── .github/                 # placeholder; CI workflows live here
+│
+├── backend/                 # Python FastAPI Lambda
+├── frontend/                # React 19 admin (admin.fitnessroom.mx)
+├── portal/                  # React 19 portal (portal.fitnessroom.mx)
+├── landing/                 # Next.js platform.fitnessroom.mx
+├── gym-landing/             # Next.js fitnessroom.mx
+├── infrastructure/          # AWS CDK v2 (Python)
+├── maintenance/             # static HTML for maintenance mode
+│
+├── scripts/
+│   ├── bump-version.sh, check-version.sh, maintenance.sh
+│   ├── seed_data.py, seed_realistic_data.py, setup_local_db.py
+│   └── legacy/              # one-shot scripts already executed (audit only)
+│
+└── docs/
+    ├── architecture/        # overview, database-design, deployment, notification-system
+    ├── flows/               # gym-operations
+    ├── operacion/           # MANUAL_USUARIO, TESTING_MANUAL, COST_ANALYSIS (owner-facing)
+    ├── getting-started.md, RELEASE_CHECKLIST.md, ROADMAP.md, REPO_MAP.md, TROUBLESHOOTING.md, AI_CONTEXT.md
+```
+
+What was removed in the v1.8.5 cleanup pass:
+
+- `docs/AUDIT_FINDINGS.md` (v1.5.5 audit, all items resolved)
+- `WHATSAPP_UPDATE.md` (chat snippet from a 2026-05-01 update)
+- `docs/generate_word_docs.py` (script from another project, accidentally committed)
+- `docker-data/` (empty local-DynamoDB scaffold dir)
+- Tracked `*.tsbuildinfo` files (now gitignored)
+- `.DS_Store` files
+
+What was moved:
+
+- `MANUAL_USUARIO.md`, `TESTING_MANUAL_DUENOS.md`, `COST_ANALYSIS.md` → `docs/operacion/`
+- `scripts/migrate_types.py`, `scripts/resend_carta_responsiva.py` → `scripts/legacy/`
+
+---
+
+*Last updated: 2026-05-19 | v1.8.5 | Fitness Room Management System*

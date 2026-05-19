@@ -1,293 +1,304 @@
 # Fitness Room System
 
-Sistema integral de gestión para el estudio **Fitness Room** — serverless, AWS-native, diseñado para México.
+Sistema integral de gestión para **Fitness Room**, un estudio de fitness en León, México. Serverless, AWS-native, multi-app.
+
+[![Version](https://img.shields.io/badge/version-1.8.5-d4af37)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-Private-lightgrey)]()
+[![Node](https://img.shields.io/badge/node-22+-339933)](.nvmrc)
+[![Python](https://img.shields.io/badge/python-3.12-3776ab)](.python-version)
 
 ---
 
 ## Tabla de Contenidos
 
+- [Qué es esto](#qué-es-esto)
+- [Aplicaciones](#aplicaciones)
 - [Arquitectura](#arquitectura)
-- [Stack Tecnológico](#stack-tecnológico)
-- [Fases de Desarrollo](#fases-de-desarrollo)
-- [Requisitos Previos](#requisitos-previos)
-- [Instalación y Desarrollo Local](#instalación-y-desarrollo-local)
-- [Despliegue en AWS](#despliegue-en-aws)
-- [Estructura del Proyecto](#estructura-del-proyecto)
-- [Variables de Entorno](#variables-de-entorno)
+- [Stack](#stack)
+- [Desarrollo local](#desarrollo-local)
+- [Despliegue](#despliegue)
+- [Estructura del repo](#estructura-del-repo)
 - [Documentación](#documentación)
+- [Versionado](#versionado)
+
+---
+
+## Qué es esto
+
+Plataforma para que el dueño y staff de un gimnasio operen el negocio del día a día: registrar alumnos, vender membresías, agendar y dar clases, hacer check-in, cobrar, llevar inventario, sacar reportes. Pensado y construido para el contexto mexicano (CDMX/León).
+
+Operación en producción desde el **1 de mayo de 2026** (inauguración del studio).
+
+---
+
+## Aplicaciones
+
+El monorepo contiene cinco apps desplegadas en producción:
+
+| App | URL | Stack | Quién la usa |
+|---|---|---|---|
+| **Panel Administrativo** | [admin.fitnessroom.mx](https://admin.fitnessroom.mx) | React 19 + Vite 6 + Tailwind 4 | Dueño, gerencia, recepción |
+| **Portal del Socio** | [portal.fitnessroom.mx](https://portal.fitnessroom.mx) | React 19 + Vite 6 + Tailwind 3 | Alumnos e instructores |
+| **API** | [api.fitnessroom.mx](https://api.fitnessroom.mx) | FastAPI + AWS Lambda | Backend de admin y portal |
+| **Landing del Gym** | [fitnessroom.mx](https://fitnessroom.mx) | Next.js 15 | Visitantes / marketing |
+| **Landing de Plataforma** | [platform.fitnessroom.mx](https://platform.fitnessroom.mx) | Next.js 15 | Pitch a otros gimnasios |
 
 ---
 
 ## Arquitectura
 
 ```
-Browser → CloudFront (CDN) → S3 (React SPA — Admin)
-Browser → CloudFront (CDN) → S3 (React SPA — Portal)
-Browser → API Gateway v2  → Lambda (FastAPI+Mangum) → DynamoDB
-               ↑
-          Cognito JWT Authorizer
+┌─────────────────────────────────────────────────────────────┐
+│  CloudFront (admin)  ──►  S3 ──►  React SPA (frontend/)    │
+│  CloudFront (portal) ──►  S3 ──►  React SPA (portal/)      │
+│  CloudFront (gym)    ──►  S3 ──►  Next static (gym-landing/)│
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+              ┌───────────────────────────────────┐
+              │  API Gateway v2 (api.fitnessroom) │
+              │             │                     │
+              │             ▼                     │
+              │  Lambda — FastAPI + Mangum         │
+              │   (backend/src/, prod fija)       │
+              └───────────────────────────────────┘
+                              │
+                              ▼
+                  ┌─────────────────────────┐
+                  │   DynamoDB single-table │
+                  │   (fitness-room-prod)   │
+                  └─────────────────────────┘
+
+  Auth: AWS Cognito (User Pool us-west-2_nErXzvgfc)
+  Email: AWS SES (carta responsiva, recordatorios)
+  Region: us-west-2 (datos), us-east-1 (CloudFront ACM)
 ```
 
-**Módulos operativos (Fases 1–2.5):**
+**Single-table DynamoDB**, layered FastAPI (`router → service → repository → DynamoDB`), JWT de Cognito en cada endpoint, frontend usa CSS variables sobre Tailwind 4 para soportar dark/light mode + tema dorado.
 
-| Módulo | Descripción |
-|--------|-------------|
-| Check-in | Registro de entrada con validación de membresía en tiempo real + QR |
-| Alumnos | Registro, perfil, historial de clases y membresías |
-| Membresías | Mensual, trimestral, semestral, anual, packs de clases, freeze |
-| Clases | Calendario, capacidad, lista de espera |
-| Reservaciones | Asignación de alumnos a clases, asistencia |
-| Instructores | Gestión del equipo de instructores |
-| Dashboard | Estadísticas en tiempo real (1 llamada a API) |
-| Caja | Registro de pagos, corte de caja diario |
-| Inventario | Productos, ventas, alertas de stock bajo |
-| Reportes | Ingresos, asistencia, rankings, alumnos inactivos |
-| Portal | App para alumnos e instructores (QR, clases, reservaciones) |
+Detalle completo: [`docs/architecture/`](docs/architecture/).
 
 ---
 
-## Stack Tecnológico
+## Stack
 
-| Capa | Tecnología | Versión |
-|------|-----------|---------|
-| **Frontend Admin** | React | 19.x |
-| **Portal** | React + React Router DOM | 19.x / 7.x |
-| **Lenguaje** | TypeScript | 5.7–5.9 |
-| **Build Tool** | Vite | 6.x |
-| **Router (admin)** | TanStack Router (file-based) | 1.x |
-| **Server State** | TanStack Query | 5.x |
-| **Client State** | Zustand | 5.x |
-| **Styling Admin** | Tailwind CSS | 4.x + CSS Variables |
-| **Styling Portal** | Tailwind CSS | 3.4.x |
-| **i18n** | react-i18next | - |
-| **Auth Cliente** | AWS Amplify v6 | 6.x |
-| **Backend** | FastAPI | 0.115.x |
-| **Lenguaje Backend** | Python | 3.12 |
-| **Lambda Adapter** | Mangum | 0.19.x |
-| **Validación** | Pydantic v2 | - |
-| **Observabilidad** | Lambda Powertools v3 | - |
-| **IaC** | AWS CDK v2 (Python) | - |
-| **Auth** | AWS Cognito | - |
-| **Base de Datos** | AWS DynamoDB (single-table) | - |
-| **API** | API Gateway v2 (HTTP API) | - |
-| **Hosting** | S3 + CloudFront (2 distribuciones) | - |
-| **Email** | AWS SES | - |
-| **Landing** | Next.js | 15.x |
+| Capa | Tecnología |
+|---|---|
+| Frontend admin | React 19, TypeScript 5.9, Vite 6, Tailwind 4, TanStack Router/Query, Zustand, react-i18next, AWS Amplify v6 |
+| Portal | React 19, TypeScript 5.9, Vite 6, Tailwind 3.4, React Router DOM 7, AWS Amplify v6 |
+| Backend | Python 3.12, FastAPI 0.115, Pydantic v2, Mangum, AWS Lambda Powertools v3 |
+| IaC | AWS CDK v2 (Python) |
+| Datos | DynamoDB single-table + 3 GSIs |
+| Auth | AWS Cognito (JWT) |
+| Email | AWS SES |
+| Hosting | S3 + CloudFront (3 distribuciones) |
+| Landings | Next.js 15 |
 
 ---
 
-## Fases de Desarrollo
+## Desarrollo local
 
-| Fase | Módulos | Estado |
-|------|---------|--------|
-| **Fase 1** | Check-in, Alumnos, Membresías, Clases, Reservas, Instructores, Dashboard | ✅ Completado |
-| **Fase 2** | Notificaciones Email (SES), Reportes financieros, Caja, Inventario | ✅ Completado |
-| **Fase 2.5** | QR Check-in, Freeze membresía, Exportar PDF/Excel, Portal alumnos | ✅ Completado |
-| **Fase 3** | WhatsApp Business API, Corte de caja avanzado | 🔜 Planeado |
-| **Fase 4** | Rankings de fidelización, Métricas de motivación, App móvil nativa | 🔜 Planeado |
+### Prerequisitos
+
+| Tool | Versión | Install |
+|---|---|---|
+| Node.js | ≥ 22 | `brew install node` (o [.nvmrc](.nvmrc)) |
+| pnpm | ≥ 9 | `npm install -g pnpm` |
+| Python | 3.12 | `brew install python@3.12` |
+| uv | latest | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| AWS CLI v2 | - | configurado con perfil `salle-cajas` |
+| AWS CDK | ≥ 2 | `npm install -g aws-cdk` |
+
+### Bootstrap completo
+
+```bash
+bash setup.sh           # instala deps de todas las apps
+make dev                # levanta backend + frontend + portal en paralelo
+```
+
+### Apps individuales
+
+```bash
+# Backend (FastAPI)
+cd backend && uv sync && cp .env.example .env && uv run uvicorn src.main:app --reload --port 8000
+# Swagger en http://localhost:8000/docs
+
+# Admin
+cd frontend && pnpm install && cp .env.example .env && pnpm dev
+# http://localhost:5173
+
+# Portal
+cd portal && npm install && cp .env.example .env && npm run dev
+# http://localhost:5174
+
+# Landings
+cd landing && npm install && npm run dev          # platform.fitnessroom.mx
+cd gym-landing && npm install && npm run dev      # fitnessroom.mx
+```
+
+Detalle: [`docs/getting-started.md`](docs/getting-started.md).
 
 ---
 
-## Requisitos Previos
+## Despliegue
 
-- **Node.js** >= 22.x
-- **pnpm** >= 9.x (`npm install -g pnpm`)
-- **Python** >= 3.12
-- **uv** (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
-- **AWS CLI** v2 configurado con perfil `salle-cajas`
-- **AWS CDK CLI** >= 2.x (`npm install -g aws-cdk`)
-
----
-
-## Instalación y Desarrollo Local
-
-### Backend
+Producción única (sin staging — costo justificado en [`docs/operacion/COST_ANALYSIS.md`](docs/operacion/COST_ANALYSIS.md)). Todos los comandos usan `--profile salle-cajas`.
 
 ```bash
-cd backend
-uv sync
-cp .env.example .env   # edita los valores
-uv run uvicorn src.main:app --reload --port 8000
-```
-
-- API: `http://localhost:8000`
-- Swagger: `http://localhost:8000/docs`
-
-### Frontend Admin
-
-```bash
-cd frontend
-pnpm install
-cp .env.example .env
-pnpm dev
-```
-
-- App: `http://localhost:5173`
-
-### Portal (alumnos / instructores)
-
-```bash
-cd portal
-npm install
-cp .env.example .env
-npm run dev
-```
-
-- Portal: `http://localhost:5174`
-
-### Landing (sitio informativo)
-
-```bash
-cd landing
-npm install
-npm run dev
-```
-
-- Landing: `http://localhost:3000`
-
----
-
-## Despliegue en AWS
-
-### Infraestructura (primera vez)
-
-```bash
+# 1. Backend (Lambda)
 cd infrastructure/cdk
-pip install -r requirements.txt
-cdk bootstrap --profile salle-cajas aws://948999370306/us-east-1
-cdk deploy --all --profile salle-cajas
+AWS_PROFILE=salle-cajas npx aws-cdk deploy FitnessRoomApiStack-prod --require-approval never
+
+# 2. Admin
+cd frontend && pnpm build
+aws s3 sync dist/ s3://fitness-room-frontend-prod-948999370306 --delete --profile salle-cajas
+aws cloudfront create-invalidation --distribution-id E1B51EPZN5PP0I --paths "/*" --profile salle-cajas
+
+# 3. Portal
+cd portal && npm run build
+aws s3 sync dist/ s3://fitness-room-portal-prod-948999370306 --delete --profile salle-cajas
+aws cloudfront create-invalidation --distribution-id E1VDFNEUSV0C0D --paths "/*" --profile salle-cajas
+
+# 4. Verificar
+curl -s https://api.fitnessroom.mx/health
 ```
 
-### Actualización de código
-
-```bash
-# Backend (Lambda)
-cd backend
-./scripts/deploy.sh [dev|staging|prod]
-
-# Frontend (S3 + CloudFront)
-cd frontend
-pnpm build
-aws s3 sync dist/ s3://fitness-room-frontend-[env] --profile salle-cajas
-aws cloudfront create-invalidation --distribution-id XXXX --paths "/*" --profile salle-cajas
-```
-
-> Ver [docs/deployment/aws-setup.md](docs/deployment/aws-setup.md) para guía completa.
+Guía completa: [`docs/architecture/deployment.md`](docs/architecture/deployment.md).
+Checklist pre-release: [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
 
 ---
 
-## Estructura del Proyecto
+## Estructura del repo
 
 ```
 fitness-room-system/
-├── CLAUDE.md                   # Guía para IAs y desarrolladores
-├── README.md                   # Este archivo
-├── MANUAL_USUARIO.md           # Manual de usuario (dueño del gimnasio)
-├── Makefile                    # Comandos de desarrollo
-├── .gitignore
+├── README.md                  # este archivo
+├── CHANGELOG.md               # Keep-a-Changelog, v1.8.5 al tope
+├── CLAUDE.md                  # guía técnica para IAs/devs (leer primero)
+├── VERSION                    # source of truth (1.8.5)
+├── Makefile                   # atajos: make dev / make deploy / make tag
+├── setup.sh                   # bootstrap inicial
 │
-├── frontend/                   # React SPA — panel de administración
+├── backend/                   # FastAPI + Lambda — API Gateway v2
 │   ├── src/
-│   │   ├── routes/             # Páginas (TanStack Router file-based)
-│   │   ├── components/
-│   │   │   ├── layout/         # Sidebar, AppLayout
-│   │   │   └── shared/         # Modals, Dialog, StatusBadge, ErrorBoundary
-│   │   ├── hooks/              # TanStack Query hooks
-│   │   ├── services/           # Axios API services
-│   │   ├── types/              # TypeScript interfaces
-│   │   ├── i18n/               # Traducciones ES/EN
-│   │   ├── store/              # Zustand (tema dark/light)
-│   │   ├── config/             # theme.ts (applyTheme)
-│   │   ├── lib/                # utils.ts (helpers)
-│   │   └── index.css           # CSS variables (sistema de diseño)
-│   └── package.json
+│   │   ├── main.py            #   FastAPI app + Mangum handler
+│   │   ├── routers/           #   13 routers (students, memberships, classes…)
+│   │   ├── services/          #   lógica de negocio
+│   │   ├── repositories/      #   DynamoDB access
+│   │   ├── models/            #   Pydantic v2
+│   │   └── utils/             #   auth, exceptions
+│   ├── tests/                 #   pytest
+│   └── scripts/               #   bootstrap_admin.py
 │
-├── portal/                     # React SPA — app alumnos/instructores
-│   ├── src/
-│   │   ├── pages/              # Dashboard, Profile, QR, Schedule, Login
-│   │   ├── components/         # BottomNav, Button, Card, etc.
-│   │   ├── contexts/           # AuthContext (Amplify)
-│   │   ├── services/           # api.ts (portal endpoints)
-│   │   └── lib/                # amplify.ts
-│   └── package.json
+├── frontend/                  # Panel administrativo (admin.fitnessroom.mx)
+│   └── src/
+│       ├── routes/            #   TanStack Router file-based
+│       ├── components/        #   layout/, shared/
+│       ├── hooks/             #   TanStack Query hooks
+│       ├── services/          #   Axios API services
+│       ├── i18n/locales/      #   es.json + en.json (paridad 452 keys)
+│       └── lib/               #   utils, exportReports, dateRangePresets
 │
-├── backend/                    # FastAPI + Lambda
-│   ├── src/
-│   │   ├── main.py             # FastAPI app + Mangum handler
-│   │   ├── config.py           # Settings con pydantic-settings
-│   │   ├── routers/            # 12 routers (students, memberships, classes, ...)
-│   │   ├── models/             # Pydantic v2 models
-│   │   ├── services/           # Lógica de negocio
-│   │   ├── repositories/       # DynamoDB access layer
-│   │   └── utils/              # auth.py, exceptions.py
-│   └── tests/                  # pytest
+├── portal/                    # Portal del Socio (portal.fitnessroom.mx)
+│   └── src/
+│       ├── pages/             #   Dashboard, Profile, QR, Schedule, Login
+│       ├── components/        #   BottomNav, Button, Card
+│       ├── contexts/          #   AuthContext (Amplify)
+│       └── services/          #   api.ts (portal endpoints)
 │
-├── infrastructure/             # AWS CDK v2
-│   └── cdk/
-│       ├── app.py              # CDK entry point
-│       └── stacks/             # DatabaseStack, AuthStack, ApiStack,
-│                               # HostingStack, PortalHostingStack
+├── landing/                   # platform.fitnessroom.mx (Next.js 15)
+├── gym-landing/               # fitnessroom.mx (Next.js 15)
 │
-├── landing/                    # Next.js 15 — Sitio informativo + FAQ
-│   ├── src/app/                # App Router pages
-│   └── amplify.yml             # Deploy config para AWS Amplify
+├── infrastructure/            # AWS CDK v2 (Python)
+│   ├── cdk/
+│   │   ├── app.py             #   CDK entry
+│   │   └── stacks/            #   Database, Auth, Api, Hosting, PortalHosting
+│   ├── lambdas/               #   cognito_custom_message
+│   └── scripts/               #   bootstrap.sh, create_admin_user.py
 │
-└── docs/                       # Documentación técnica
-    ├── architecture/
-    │   ├── overview.md         # Arquitectura general
-    │   └── database-design.md  # DynamoDB single-table design
-    ├── flows/
-    │   └── gym-operations.md   # Flujos operativos del negocio
-    └── getting-started.md      # Onboarding para desarrolladores
-```
-
----
-
-## Variables de Entorno
-
-### Backend (`backend/.env`)
-
-```bash
-ENVIRONMENT=local
-DYNAMODB_TABLE_NAME=fitness-room-dev
-DYNAMODB_ENDPOINT_URL=http://localhost:8000  # Solo local
-COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX
-COGNITO_CLIENT_ID=XXXXXXXXXXXXXXXXXXXXXXXXXX
-FRONTEND_URL=http://localhost:5173
-```
-
-### Frontend (`frontend/.env`)
-
-```bash
-VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX
-VITE_COGNITO_CLIENT_ID=XXXXXXXXXXXXXXXXXXXXXXXXXX
-VITE_COGNITO_REGION=us-east-1
-VITE_ENV=development
+├── scripts/                   # mantenimiento operativo
+│   ├── bump-version.sh        #   bump y verificar 5 archivos en sync
+│   ├── check-version.sh
+│   ├── maintenance.sh         #   modo mantenimiento on/off
+│   ├── seed_data.py           #   seed local DynamoDB
+│   ├── seed_realistic_data.py
+│   ├── setup_local_db.py      #   crea tabla local con 3 GSIs
+│   └── legacy/                #   one-shots ya ejecutados (auditoría)
+│
+├── maintenance/               # página HTML para modo mantenimiento
+│
+└── docs/                      # documentación técnica + operativa
+    ├── architecture/          #   overview, database-design, deployment, notification-system
+    ├── flows/                 #   gym-operations
+    ├── operacion/             #   MANUAL_USUARIO, TESTING_MANUAL, COST_ANALYSIS (para el dueño)
+    ├── getting-started.md
+    ├── RELEASE_CHECKLIST.md
+    ├── ROADMAP.md
+    ├── REPO_MAP.md
+    ├── TROUBLESHOOTING.md
+    └── AI_CONTEXT.md
 ```
 
 ---
 
 ## Documentación
 
-| Documento | Audiencia | Descripción |
-|-----------|-----------|-------------|
-| [MANUAL_USUARIO.md](MANUAL_USUARIO.md) | Dueño / staff del gimnasio | Manual de operación completo |
-| [CLAUDE.md](CLAUDE.md) | Desarrolladores / IAs | Guía técnica completa (leer primero) |
-| [docs/architecture/overview.md](docs/architecture/overview.md) | Desarrolladores | Arquitectura general y decisiones técnicas |
-| [docs/architecture/database-design.md](docs/architecture/database-design.md) | Desarrolladores | DynamoDB single-table design |
-| [docs/flows/gym-operations.md](docs/flows/gym-operations.md) | Desarrolladores | Flujos operativos y reglas de negocio |
-| [docs/getting-started.md](docs/getting-started.md) | Desarrolladores nuevos | Onboarding y setup local |
+### Para developers / IAs
+
+| Documento | Cuándo leerlo |
+|---|---|
+| [`CLAUDE.md`](CLAUDE.md) | **Primero**. Guía técnica completa: arquitectura, design system, patrones de código, deploy. |
+| [`docs/getting-started.md`](docs/getting-started.md) | Onboarding paso a paso para tu primer dev local. |
+| [`docs/architecture/overview.md`](docs/architecture/overview.md) | Decisiones arquitectónicas y por qué. |
+| [`docs/architecture/database-design.md`](docs/architecture/database-design.md) | Single-table DynamoDB, GSIs, access patterns. |
+| [`docs/architecture/deployment.md`](docs/architecture/deployment.md) | Deploy paso a paso. |
+| [`docs/architecture/notification-system.md`](docs/architecture/notification-system.md) | Email/SMS, eventos, audit log. |
+| [`docs/flows/gym-operations.md`](docs/flows/gym-operations.md) | Flujos del negocio (qué pasa cuando un alumno hace check-in, etc). |
+| [`docs/REPO_MAP.md`](docs/REPO_MAP.md) | Mapa exhaustivo de directorios. |
+| [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) | Contexto rápido para IAs. |
+| [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) | Antes de un deploy a prod. |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Errores comunes y cómo destrancarse. |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Qué viene y qué quedó parqueado. |
+
+### Para el dueño / staff
+
+| Documento | Para qué |
+|---|---|
+| [`docs/operacion/MANUAL_USUARIO.md`](docs/operacion/MANUAL_USUARIO.md) | Operación diaria del sistema, módulo por módulo. |
+| [`docs/operacion/TESTING_MANUAL_DUENOS.md`](docs/operacion/TESTING_MANUAL_DUENOS.md) | Validar cada flujo después de un release. |
+| [`docs/operacion/COST_ANALYSIS.md`](docs/operacion/COST_ANALYSIS.md) | Costo de la infra y ROI con datos de Cost Explorer. |
 
 ---
 
-## Diseño y UI
+## Versionado
 
-- **Marca:** Negro y dorado (`--gold: #d4af37`)
-- **Modos:** Oscuro (default) y claro, toggle en Configuración
-- **Idiomas:** Español (default) e Inglés
-- **Sistema:** CSS variables Tailwind 4 — no depende de clases hardcodeadas
+Versión actual: **1.8.5** ([CHANGELOG.md](CHANGELOG.md)).
+
+Cinco lugares deben mantenerse en sync (validado por `make check-version`):
+
+| # | Archivo | Campo |
+|---|---|---|
+| 1 | [`VERSION`](VERSION) | texto plano |
+| 2 | [`frontend/package.json`](frontend/package.json) | `"version"` |
+| 3 | [`frontend/src/lib/changelog.ts`](frontend/src/lib/changelog.ts) | `APP_VERSION` + nueva entrada al inicio |
+| 4 | [`backend/src/routers/health.py`](backend/src/routers/health.py) | `version=` en `HealthResponse` |
+| 5 | [`CHANGELOG.md`](CHANGELOG.md) | nueva sección `## [x.y.z]` |
+
+```bash
+./scripts/bump-version.sh 1.9.0   # actualiza los 5 sitios
+./scripts/check-version.sh        # verifica sync
+make tag                          # crea tag v1.9.0
+```
 
 ---
 
-*Desarrollado para Fitness Room — México — 2026 | Fase 2.5 completada*
+## Diseño visual
+
+- **Marca:** negro y dorado (`--gold: #d4af37`).
+- **Modos:** oscuro (default) y claro, toggle en Configuración.
+- **Idiomas:** español (default) e inglés — 452 keys con paridad total.
+- **Tema:** CSS variables sobre Tailwind 4. Nada hardcodeado en JSX.
+
+---
+
+*Fitness Room — León, México — © 2026*
