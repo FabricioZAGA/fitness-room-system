@@ -167,7 +167,28 @@ export default function Login(): React.JSX.Element {
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#d4af37', margin: 0 }}>
             Fitness Room
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '16px', marginTop: '8px', fontWeight: 500 }}>
+          {/* App identifier badge */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginTop: '12px',
+              padding: '6px 14px',
+              borderRadius: '999px',
+              border: '2px solid #d4af37',
+              background: 'rgba(212, 175, 55, 0.12)',
+              color: '#d4af37',
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+            }}
+          >
+            <span>★</span>
+            <span>Portal del Socio</span>
+          </div>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '16px', marginTop: '14px', fontWeight: 500 }}>
             {heading}
           </p>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginTop: '4px' }}>
@@ -253,6 +274,26 @@ export default function Login(): React.JSX.Element {
             >
               ¿Olvidaste tu contraseña?
             </button>
+            <div
+              style={{
+                marginTop: '16px',
+                padding: '14px',
+                borderRadius: '14px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.03)',
+                textAlign: 'center',
+              }}
+            >
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+                ¿Eres staff o administrador?
+              </p>
+              <a
+                href="https://admin.fitnessroom.mx"
+                style={{ color: '#d4af37', fontSize: '14px', fontWeight: 600, textDecoration: 'none', marginTop: '4px', display: 'inline-block' }}
+              >
+                Ir al Panel Administrativo →
+              </a>
+            </div>
           </div>
         )}
 

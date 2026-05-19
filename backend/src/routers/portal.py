@@ -508,7 +508,7 @@ def get_class_detail(
     confirmed: list[dict[str, Any]] = []
     waitlisted: list[dict[str, Any]] = []
     for r in reservations:
-        if r.status not in ("confirmed", "waitlisted"):
+        if r.status not in ("confirmed", "attended", "waitlisted"):
             continue
         attendee: dict[str, Any] = {"status": r.status}
         try:
@@ -525,10 +525,10 @@ def get_class_detail(
             attendee["first_name"] = "Alumno"
             attendee["last_initial"] = ""
 
-        if r.status == "confirmed":
-            confirmed.append(attendee)
-        else:
+        if r.status == "waitlisted":
             waitlisted.append(attendee)
+        else:
+            confirmed.append(attendee)
 
     return JSONResponse(content={
         "class_id": cls.class_id,
@@ -685,9 +685,12 @@ def create_reservation(
     active_mem = membership_repo.get_active_for_student(student_id)
     if active_mem and active_mem.membership_type in _ONE_SESSION_TYPES:
         stu_reservations, _ = reservation_repo.list_for_student(student_id, limit=200)
+        # Include "attended" so a Founder who already checked in to today's class
+        # cannot reserve a second one the same day.
         same_day = [
             r for r in stu_reservations
-            if r.class_date == class_item.class_date and r.status in ("confirmed", "waitlisted")
+            if r.class_date == class_item.class_date
+            and r.status in ("confirmed", "attended", "waitlisted")
         ]
         if same_day:
             raise HTTPException(

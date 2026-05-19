@@ -30,5 +30,5 @@ def health_check() -> HealthResponse:
         status="ok",
         environment=settings.environment,
         service="fitness-room-api",
-        version="1.8.2",
+        version="1.8.5",
     )

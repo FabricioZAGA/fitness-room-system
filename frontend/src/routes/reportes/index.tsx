@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -12,17 +12,26 @@ import {
   Phone,
   FileSpreadsheet,
   FileText,
+  Tag,
 } from "lucide-react";
 import {
   useIncomeReport,
   useAttendanceSummary,
   useRankings,
   useInactiveStudents,
+  useMembershipsRange,
 } from "@/hooks/useReports";
+import { reportService } from "@/services/reportService";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { IncomeDay } from "@/types/report";
 import { useGymStore } from "@/store/useGymStore";
 import { useSendCustomNotification } from "@/hooks/useNotifications";
+import {
+  rangeForPreset,
+  detectPreset,
+  type RangePreset,
+} from "@/lib/dateRangePresets";
+
 // exportReports is loaded lazily so xlsx/jspdf/html2canvas stay out of the main chunk
 const loadExportReports = (): Promise<typeof import("@/lib/exportReports")> =>
   import("@/lib/exportReports");
@@ -31,16 +40,14 @@ export const Route = createFileRoute("/reportes/")({
   component: ReportesPage,
 });
 
-type Tab = "income" | "attendance" | "rankings" | "inactive";
+type Tab = "income" | "memberships" | "attendance" | "rankings" | "inactive";
 
-// ─── Shared active-state style (solid gold, matches primary button) ──────────
 const goldActiveStyle = {
   background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
   color: "var(--gold-fg)",
   border: "1px solid transparent",
 } as const;
 
-/** Primary tab button — solid gold when active */
 function TabBtn({
   active,
   onClick,
@@ -69,7 +76,6 @@ function TabBtn({
   );
 }
 
-/** Compact pill for day-range toggles */
 function DayPill({
   days,
   active,
@@ -95,17 +101,109 @@ function DayPill({
             }
       }
     >
-      {prefix}{days} días
+      {prefix}
+      {days} días
     </button>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+function PresetPill({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}): React.JSX.Element {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-xl px-3 py-1.5 text-xs font-semibold transition-all"
+      style={
+        active
+          ? goldActiveStyle
+          : {
+              border: "1px solid var(--bd-default)",
+              background: "transparent",
+              color: "var(--tx-muted)",
+            }
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
+/** Reusable date-range filter row with quick presets + start/end pickers. */
+function DateRangeFilter({
+  start,
+  end,
+  onStartChange,
+  onEndChange,
+}: {
+  start: string;
+  end: string;
+  onStartChange: (v: string) => void;
+  onEndChange: (v: string) => void;
+}): React.JSX.Element {
+  const { t } = useTranslation();
+  const activePreset = detectPreset({ start, end });
+
+  function applyPreset(preset: RangePreset): void {
+    if (preset === "custom") return;
+    const range = rangeForPreset(preset, { start, end });
+    onStartChange(range.start);
+    onEndChange(range.end);
+  }
+
+  const presets: { id: RangePreset; label: string }[] = [
+    { id: "today", label: t("reportes.rangeToday") },
+    { id: "yesterday", label: t("reportes.rangeYesterday") },
+    { id: "thisWeek", label: t("reportes.rangeThisWeek") },
+    { id: "thisMonth", label: t("reportes.rangeThisMonth") },
+    { id: "lastMonth", label: t("reportes.rangeLastMonth") },
+  ];
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {presets.map((p) => (
+          <PresetPill
+            key={p.id}
+            label={p.label}
+            active={activePreset === p.id}
+            onClick={() => applyPreset(p.id)}
+          />
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <CalendarDays className="h-4 w-4 text-[--tx-muted]" />
+        <input
+          type="date"
+          value={start}
+          onChange={(e) => onStartChange(e.target.value)}
+          className="rounded-xl border border-[--bd-default] bg-[--bg-muted] px-3 py-2 text-sm text-[--tx-primary] focus:border-[--gold] focus:outline-none"
+        />
+        <span className="text-[--tx-muted]">—</span>
+        <input
+          type="date"
+          value={end}
+          onChange={(e) => onEndChange(e.target.value)}
+          className="rounded-xl border border-[--bd-default] bg-[--bg-muted] px-3 py-2 text-sm text-[--tx-primary] focus:border-[--gold] focus:outline-none"
+        />
+      </div>
+    </div>
+  );
+}
 
 function ReportesPage(): React.JSX.Element {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("income");
-  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+
+  const todayStr = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Mexico_City",
+  });
   const todayParts = todayStr.split("-");
   const firstOfMonth = `${todayParts[0]}-${todayParts[1]}-01`;
 
@@ -113,30 +211,65 @@ function ReportesPage(): React.JSX.Element {
   const gymName = useGymStore((s) => s.name);
   const notifyMutation = useSendCustomNotification();
 
-  const [startDate, setStartDate] = useState(firstOfMonth);
-  const [endDate, setEndDate] = useState(todayStr);
+  // Each tab has its own date state to avoid surprising cross-tab jumps.
+  const [incomeStart, setIncomeStart] = useState(firstOfMonth);
+  const [incomeEnd, setIncomeEnd] = useState(todayStr);
+  const [membershipStart, setMembershipStart] = useState(firstOfMonth);
+  const [membershipEnd, setMembershipEnd] = useState(todayStr);
+  const [attendanceMode, setAttendanceMode] = useState<"days" | "range">("days");
   const [attendanceDays, setAttendanceDays] = useState(30);
+  const [attendanceStart, setAttendanceStart] = useState(firstOfMonth);
+  const [attendanceEnd, setAttendanceEnd] = useState(todayStr);
+  const [rankingMode, setRankingMode] = useState<"days" | "range">("days");
   const [rankingDays, setRankingDays] = useState(30);
+  const [rankingStart, setRankingStart] = useState(firstOfMonth);
+  const [rankingEnd, setRankingEnd] = useState(todayStr);
   const [inactiveDays, setInactiveDays] = useState(defaultInactiveDays);
 
+  const incomePeriodLabel = `${incomeStart} al ${incomeEnd}`;
+  const membershipPeriodLabel = `${membershipStart} al ${membershipEnd}`;
+
   const { data: income, isLoading: incomeLoading } = useIncomeReport({
-    start_date: startDate,
-    end_date: endDate,
+    start_date: incomeStart,
+    end_date: incomeEnd,
   });
+  const { data: memberships, isLoading: membershipsLoading } = useMembershipsRange({
+    start_date: membershipStart,
+    end_date: membershipEnd,
+  });
+  const attendanceParams = useMemo(
+    () =>
+      attendanceMode === "range"
+        ? { start_date: attendanceStart, end_date: attendanceEnd }
+        : { days: attendanceDays },
+    [attendanceMode, attendanceStart, attendanceEnd, attendanceDays],
+  );
   const { data: attendance, isLoading: attendanceLoading } =
-    useAttendanceSummary(attendanceDays);
-  const { data: rankings = [], isLoading: rankingsLoading } = useRankings({
-    days: rankingDays,
-  });
+    useAttendanceSummary(attendanceParams);
+  const rankingParams = useMemo(
+    () =>
+      rankingMode === "range"
+        ? { start_date: rankingStart, end_date: rankingEnd }
+        : { days: rankingDays },
+    [rankingMode, rankingStart, rankingEnd, rankingDays],
+  );
+  const { data: rankings = [], isLoading: rankingsLoading } = useRankings(rankingParams);
   const { data: inactive = [], isLoading: inactiveLoading } =
     useInactiveStudents(inactiveDays);
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "income", label: t("reportes.income"), icon: DollarSign },
+    { id: "memberships", label: t("reportes.memberships"), icon: Tag },
     { id: "attendance", label: t("reportes.attendance"), icon: BarChart3 },
     { id: "rankings", label: t("reportes.rankings"), icon: Trophy },
     { id: "inactive", label: t("reportes.inactive"), icon: UserX },
   ];
+
+  const attendancePeriodLabel = attendance?.period_label ?? `últimos ${attendanceDays} días`;
+  const rankingPeriodLabel =
+    rankingMode === "range"
+      ? `${rankingStart} al ${rankingEnd}`
+      : `últimos ${rankingDays} días`;
 
   return (
     <div className="min-h-screen bg-[--bg-base] p-6">
@@ -159,35 +292,28 @@ function ReportesPage(): React.JSX.Element {
       {/* ── Income ──────────────────────────────────────────────────────── */}
       {tab === "income" && (
         <div className="space-y-6">
-          {/* Date filter + export */}
           <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
-            <div className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-[--tx-muted]" />
-              <span className="text-sm text-[--tx-muted]">{t("reportes.period")}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="rounded-xl border border-[--bd-default] bg-[--bg-muted] px-3 py-2 text-sm text-[--tx-primary] focus:border-[--gold] focus:outline-none"
-              />
-              <span className="text-[--tx-muted]">—</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="rounded-xl border border-[--bd-default] bg-[--bg-muted] px-3 py-2 text-sm text-[--tx-primary] focus:border-[--gold] focus:outline-none"
-              />
-            </div>
+            <DateRangeFilter
+              start={incomeStart}
+              end={incomeEnd}
+              onStartChange={setIncomeStart}
+              onEndChange={setIncomeEnd}
+            />
             {income && (
               <div className="ml-auto flex gap-2">
                 <button
                   onClick={async () => {
                     const m = await loadExportReports();
-                    m.exportIncomeExcel(income, `${startDate} al ${endDate}`, gymName);
+                    // Fetch the same range with transactions included for the Excel detail sheet
+                    const full = await reportService.incomeReport({
+                      start_date: incomeStart,
+                      end_date: incomeEnd,
+                      include_transactions: true,
+                    });
+                    m.exportIncomeExcel(full, incomePeriodLabel, gymName);
                   }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
+                  title={t("reportes.includeTransactionsHelp")}
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   Excel
@@ -195,7 +321,7 @@ function ReportesPage(): React.JSX.Element {
                 <button
                   onClick={async () => {
                     const m = await loadExportReports();
-                    m.exportIncomePDF(income, `${startDate} al ${endDate}`, gymName);
+                    m.exportIncomePDF(income, incomePeriodLabel, gymName);
                   }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
                 >
@@ -210,7 +336,6 @@ function ReportesPage(): React.JSX.Element {
             <p className="text-center text-[--tx-muted]">{t("reportes.calculating")}</p>
           ) : income ? (
             <>
-              {/* Totals */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <IncomeCard label={t("reportes.totalPeriod")} value={formatCurrency(income.grand_total)} accent />
                 <IncomeCard label={t("dashboard.cash")} value={formatCurrency(income.total_cash)} />
@@ -218,7 +343,6 @@ function ReportesPage(): React.JSX.Element {
                 <IncomeCard label={t("caja.transfer")} value={formatCurrency(income.total_transfer)} />
               </div>
 
-              {/* By type */}
               {Object.keys(income.by_type).length > 0 && (
                 <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
                   <h3 className="mb-4 text-base font-semibold text-[--tx-primary]">{t("reportes.byCategory")}</h3>
@@ -238,12 +362,13 @@ function ReportesPage(): React.JSX.Element {
                               <div
                                 className="h-2 rounded-full"
                                 style={{
-                                  background: "linear-gradient(90deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                                  background:
+                                    "linear-gradient(90deg, var(--gold) 0%, var(--gold-hover) 100%)",
                                   width: `${Math.min(
                                     100,
                                     income.grand_total > 0
                                       ? ((amount as number) / income.grand_total) * 100
-                                      : 0
+                                      : 0,
                                   )}%`,
                                 }}
                               />
@@ -255,24 +380,44 @@ function ReportesPage(): React.JSX.Element {
                 </div>
               )}
 
-              {/* Daily breakdown */}
+              {/* Daily breakdown — now with cash/card/transfer columns */}
               <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface]">
                 <div className="border-b border-[--bd-default] px-6 py-4">
                   <h3 className="text-base font-semibold text-[--tx-primary]">{t("reportes.dailyDetail")}</h3>
+                </div>
+                <div className="hidden grid-cols-12 gap-3 border-b border-[--bd-default] px-6 py-2 text-xs uppercase tracking-wide text-[--tx-disabled] sm:grid">
+                  <div className="col-span-3">Fecha</div>
+                  <div className="col-span-2">Mov.</div>
+                  <div className="col-span-2 text-right">Efectivo</div>
+                  <div className="col-span-2 text-right">Tarjeta</div>
+                  <div className="col-span-1 text-right">Transf.</div>
+                  <div className="col-span-2 text-right">Total</div>
                 </div>
                 <div className="divide-y divide-[--bd-default]">
                   {income.days
                     .filter((d) => d.count > 0)
                     .reverse()
                     .map((day: IncomeDay) => (
-                      <div key={day.date} className="flex items-center gap-4 px-6 py-3">
-                        <div className="w-28 text-sm text-[--tx-muted]">{formatDate(day.date)}</div>
-                        <div className="flex-1 text-xs text-[--tx-disabled]">
-                          {day.count} movimiento{day.count !== 1 ? "s" : ""}
+                      <div
+                        key={day.date}
+                        className="grid grid-cols-1 gap-2 px-6 py-3 sm:grid-cols-12 sm:items-center sm:gap-3"
+                      >
+                        <div className="col-span-3 text-sm text-[--tx-primary]">{formatDate(day.date)}</div>
+                        <div className="col-span-2 text-xs text-[--tx-disabled]">
+                          {day.count} mov.
                         </div>
-                        <span className="text-sm font-semibold text-[--tx-primary]">
+                        <div className="col-span-2 text-right text-sm text-[--tx-muted]">
+                          {formatCurrency(day.cash)}
+                        </div>
+                        <div className="col-span-2 text-right text-sm text-[--tx-muted]">
+                          {formatCurrency(day.card)}
+                        </div>
+                        <div className="col-span-1 text-right text-sm text-[--tx-muted]">
+                          {formatCurrency(day.transfer)}
+                        </div>
+                        <div className="col-span-2 text-right text-sm font-semibold text-[--tx-primary]">
                           {formatCurrency(day.total)}
-                        </span>
+                        </div>
                       </div>
                     ))}
                   {income.days.filter((d) => d.count > 0).length === 0 && (
@@ -281,6 +426,95 @@ function ReportesPage(): React.JSX.Element {
                     </p>
                   )}
                 </div>
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
+
+      {/* ── Memberships by range ────────────────────────────────────────── */}
+      {tab === "memberships" && (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-4">
+            <DateRangeFilter
+              start={membershipStart}
+              end={membershipEnd}
+              onStartChange={setMembershipStart}
+              onEndChange={setMembershipEnd}
+            />
+            {memberships && memberships.count > 0 && (
+              <div className="ml-auto flex gap-2">
+                <button
+                  onClick={async () => {
+                    const m = await loadExportReports();
+                    m.exportMembershipsRangeExcel(memberships, membershipPeriodLabel, gymName);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Excel
+                </button>
+                <button
+                  onClick={async () => {
+                    const m = await loadExportReports();
+                    m.exportMembershipsRangePDF(memberships, membershipPeriodLabel, gymName);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
+                >
+                  <FileText className="h-4 w-4" />
+                  PDF
+                </button>
+              </div>
+            )}
+          </div>
+
+          {membershipsLoading ? (
+            <p className="text-center text-[--tx-muted]">{t("reportes.calculating")}</p>
+          ) : memberships ? (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <IncomeCard
+                  label={t("reportes.membershipsCount", { count: memberships.count })}
+                  value={String(memberships.count)}
+                  accent
+                />
+                <IncomeCard
+                  label={t("reportes.estimatedRevenue")}
+                  value={formatCurrency(memberships.total_revenue)}
+                />
+              </div>
+
+              <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface]">
+                <div className="border-b border-[--bd-default] px-6 py-4">
+                  <h3 className="text-base font-semibold text-[--tx-primary]">
+                    {t("reportes.dailyDetail")}
+                  </h3>
+                </div>
+                {memberships.memberships.length === 0 ? (
+                  <p className="px-6 py-10 text-center text-[--tx-muted]">
+                    {t("reportes.noMemberships")}
+                  </p>
+                ) : (
+                  <div className="divide-y divide-[--bd-default]">
+                    {memberships.memberships.map((m) => (
+                      <div key={m.membership_id} className="flex flex-wrap items-center gap-4 px-6 py-3">
+                        <div className="w-28 text-sm text-[--tx-muted]">{m.start_date}</div>
+                        <Link
+                          to="/students/$studentId"
+                          params={{ studentId: m.student_id }}
+                          className="min-w-[160px] flex-1 text-sm font-medium text-[--tx-primary] hover:text-[--gold] transition-colors"
+                        >
+                          {m.student_name || "—"}
+                        </Link>
+                        <div className="w-32 text-sm text-[--tx-muted]">{m.membership_type}</div>
+                        <div className="w-20 text-right text-sm font-semibold text-[--tx-primary]">
+                          {formatCurrency(m.price)}
+                        </div>
+                        <div className="w-24 text-xs text-[--tx-disabled]">{m.status}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           ) : null}
@@ -296,16 +530,32 @@ function ReportesPage(): React.JSX.Element {
               <DayPill
                 key={d}
                 days={d}
-                active={attendanceDays === d}
-                onClick={() => setAttendanceDays(d)}
+                active={attendanceMode === "days" && attendanceDays === d}
+                onClick={() => {
+                  setAttendanceMode("days");
+                  setAttendanceDays(d);
+                }}
               />
             ))}
+            <PresetPill
+              label={t("reportes.rangeCustom")}
+              active={attendanceMode === "range"}
+              onClick={() => setAttendanceMode("range")}
+            />
+            {attendanceMode === "range" && (
+              <DateRangeFilter
+                start={attendanceStart}
+                end={attendanceEnd}
+                onStartChange={setAttendanceStart}
+                onEndChange={setAttendanceEnd}
+              />
+            )}
             {attendance && (
               <div className="ml-auto flex gap-2">
                 <button
                   onClick={async () => {
                     const m = await loadExportReports();
-                    m.exportAttendanceExcel(attendance, attendanceDays, gymName);
+                    m.exportAttendanceExcel(attendance, attendancePeriodLabel, gymName);
                   }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
                 >
@@ -315,7 +565,7 @@ function ReportesPage(): React.JSX.Element {
                 <button
                   onClick={async () => {
                     const m = await loadExportReports();
-                    m.exportAttendancePDF(attendance, attendanceDays, gymName);
+                    m.exportAttendancePDF(attendance, attendancePeriodLabel, gymName);
                   }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
                 >
@@ -348,16 +598,32 @@ function ReportesPage(): React.JSX.Element {
               <DayPill
                 key={d}
                 days={d}
-                active={rankingDays === d}
-                onClick={() => setRankingDays(d)}
+                active={rankingMode === "days" && rankingDays === d}
+                onClick={() => {
+                  setRankingMode("days");
+                  setRankingDays(d);
+                }}
               />
             ))}
+            <PresetPill
+              label={t("reportes.rangeCustom")}
+              active={rankingMode === "range"}
+              onClick={() => setRankingMode("range")}
+            />
+            {rankingMode === "range" && (
+              <DateRangeFilter
+                start={rankingStart}
+                end={rankingEnd}
+                onStartChange={setRankingStart}
+                onEndChange={setRankingEnd}
+              />
+            )}
             {rankings.length > 0 && (
               <div className="ml-auto flex gap-2">
                 <button
                   onClick={async () => {
                     const m = await loadExportReports();
-                    m.exportRankingsExcel(rankings, rankingDays, gymName);
+                    m.exportRankingsExcel(rankings, rankingPeriodLabel, gymName);
                   }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success]"
                 >
@@ -367,7 +633,7 @@ function ReportesPage(): React.JSX.Element {
                 <button
                   onClick={async () => {
                     const m = await loadExportReports();
-                    m.exportRankingsPDF(rankings, rankingDays, gymName);
+                    m.exportRankingsPDF(rankings, rankingPeriodLabel, gymName);
                   }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
                 >
@@ -507,6 +773,10 @@ function ReportesPage(): React.JSX.Element {
                           {student.student_name}
                         </Link>
                         <p className="text-xs text-[--tx-muted]">{student.email}</p>
+                        <p className="text-xs text-[--tx-disabled]">
+                          {t("reportes.lastCheckin")}:{" "}
+                          {student.last_checkin ?? t("reportes.neverCheckedIn")}
+                        </p>
                       </div>
                       <div className="flex shrink-0 gap-2">
                         {student.phone && (

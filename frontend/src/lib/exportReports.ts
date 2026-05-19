@@ -3,6 +3,10 @@
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import type {
+  IncomeReport,
+  MembershipRangeReport,
+} from "@/types/report";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -18,26 +22,66 @@ function gymTitle(gymName: string, reportName: string, period?: string): string 
   return `${gymName} — ${reportName}${period ? ` (${period})` : ""}`;
 }
 
+const TX_TYPE_LABEL: Record<string, string> = {
+  membership: "Membresía",
+  class_pack: "Pack de clases",
+  product: "Producto",
+  other: "Otro",
+};
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cash: "Efectivo",
+  card: "Tarjeta",
+  transfer: "Transferencia",
+};
+
+const MEMBERSHIP_STATUS_LABEL: Record<string, string> = {
+  active: "Activa",
+  expired: "Vencida",
+  cancelled: "Cancelada",
+  frozen: "Congelada",
+};
+
+function formatDateTime(iso: string): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString("es-MX", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function formatTime(iso: string): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
 // ─── Excel ────────────────────────────────────────────────────────────────────
 
 export function exportIncomeExcel(
-  income: {
-    grand_total: number;
-    total_cash: number;
-    total_card: number;
-    total_transfer: number;
-    by_type: Record<string, number>;
-    days: { date: string; total: number; count: number }[];
-  },
+  income: IncomeReport,
   period: string,
-  gymName: string
+  gymName: string,
 ): void {
   const wb = XLSX.utils.book_new();
 
-  // Sheet 1: Summary
-  const summaryRows = [
+  // Sheet 1: Resumen
+  const summaryRows: (string | number)[][] = [
     ["Reporte de Ingresos", period],
     ["Studio", gymName],
+    ["Generado", new Date().toLocaleString("es-MX")],
     [],
     ["Concepto", "Monto"],
     ["Total del Período", income.grand_total],
@@ -45,68 +89,182 @@ export function exportIncomeExcel(
     ["Tarjeta", income.total_card],
     ["Transferencia", income.total_transfer],
     [],
-    ["Por Categoría"],
-    ...Object.entries(income.by_type).map(([type, amount]) => [type, amount]),
+    ["Por Categoría", "Monto"],
+    ...Object.entries(income.by_type)
+      .sort(([, a], [, b]) => b - a)
+      .map(([type, amount]) => [TX_TYPE_LABEL[type] ?? type, amount]),
   ];
   const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
+  ws1["!cols"] = [{ wch: 28 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(wb, ws1, "Resumen");
 
-  // Sheet 2: Daily detail
-  const dayRows = [
-    ["Fecha", "Transacciones", "Total"],
+  // Sheet 2: Detalle por Día (con cash/card/transfer)
+  const dayRows: (string | number)[][] = [
+    ["Fecha", "Movimientos", "Efectivo", "Tarjeta", "Transferencia", "Total"],
     ...income.days
       .filter((d) => d.count > 0)
       .reverse()
-      .map((d) => [d.date, d.count, d.total]),
+      .map((d) => [d.date, d.count, d.cash, d.card, d.transfer, d.total]),
   ];
   const ws2 = XLSX.utils.aoa_to_sheet(dayRows);
+  ws2["!cols"] = [{ wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 14 }];
   XLSX.utils.book_append_sheet(wb, ws2, "Detalle por Día");
+
+  // Sheet 3: Detalle de Transacciones (cuando se solicitó include_transactions)
+  if (income.transactions && income.transactions.length > 0) {
+    const txRows: (string | number)[][] = [
+      ["Fecha", "Hora", "Alumno", "Tipo", "Método", "Monto", "Notas"],
+      ...income.transactions
+        .slice()
+        .sort((a, b) => a.datetime.localeCompare(b.datetime))
+        .map((t) => [
+          t.date,
+          formatTime(t.datetime),
+          t.student_name || "—",
+          TX_TYPE_LABEL[t.transaction_type] ?? t.transaction_type,
+          PAYMENT_METHOD_LABEL[t.payment_method] ?? t.payment_method,
+          t.amount,
+          t.notes ?? "",
+        ]),
+    ];
+    const ws3 = XLSX.utils.aoa_to_sheet(txRows);
+    ws3["!cols"] = [
+      { wch: 12 },
+      { wch: 8 },
+      { wch: 30 },
+      { wch: 18 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 40 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws3, "Transacciones");
+  }
 
   XLSX.writeFile(wb, `ingresos_${period.replace(/\s/g, "_")}.xlsx`);
 }
 
-export function exportRankingsExcel(
-  rankings: { student_id: string; student_name: string; checkin_count: number }[],
-  days: number,
-  gymName: string
+export function exportMembershipsRangeExcel(
+  report: MembershipRangeReport,
+  period: string,
+  gymName: string,
 ): void {
   const wb = XLSX.utils.book_new();
-  const rows = [
-    [`${gymName} — Rankings (últimos ${days} días)`],
+
+  const summaryRows: (string | number)[][] = [
+    ["Membresías por Rango", period],
+    ["Studio", gymName],
+    ["Generado", new Date().toLocaleString("es-MX")],
+    [],
+    ["Concepto", "Valor"],
+    ["Total membresías iniciadas", report.count],
+    ["Ingreso total estimado", report.total_revenue],
+    [],
+    ["Tipo", "Cantidad", "Ingreso"],
+    ...Object.entries(report.by_type)
+      .sort(([, a], [, b]) => b.revenue - a.revenue)
+      .map(([type, agg]) => [type, agg.count, agg.revenue]),
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
+  ws1["!cols"] = [{ wch: 28 }, { wch: 14 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, ws1, "Resumen");
+
+  const detailRows: (string | number)[][] = [
+    ["Inicio", "Fin", "Alumno", "Tipo", "Precio", "Status", "Sesiones rest."],
+    ...report.memberships.map((m) => [
+      m.start_date,
+      m.end_date || "—",
+      m.student_name || "—",
+      m.membership_type,
+      m.price,
+      MEMBERSHIP_STATUS_LABEL[m.status] ?? m.status,
+      m.classes_remaining ?? "—",
+    ]),
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(detailRows);
+  ws2["!cols"] = [
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 30 },
+    { wch: 18 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 14 },
+  ];
+  XLSX.utils.book_append_sheet(wb, ws2, "Detalle");
+
+  XLSX.writeFile(wb, `membresias_${period.replace(/\s/g, "_")}.xlsx`);
+}
+
+export function exportRankingsExcel(
+  rankings: { student_id: string; student_name: string; checkin_count: number }[],
+  periodLabel: string,
+  gymName: string,
+): void {
+  const wb = XLSX.utils.book_new();
+  const rows: (string | number)[][] = [
+    [`${gymName} — Rankings`, periodLabel],
     [],
     ["#", "Alumno", "Check-ins"],
     ...rankings.map((s, i) => [i + 1, s.student_name, s.checkin_count]),
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [{ wch: 6 }, { wch: 32 }, { wch: 12 }];
   XLSX.utils.book_append_sheet(wb, ws, "Rankings");
-  XLSX.writeFile(wb, `rankings_${days}dias.xlsx`);
+  XLSX.writeFile(wb, `rankings_${periodLabel.replace(/\s/g, "_")}.xlsx`);
 }
 
 export function exportInactiveExcel(
-  students: { student_id: string; student_name: string; email: string; phone?: string | null; last_checkin?: string | null }[],
+  students: {
+    student_id: string;
+    student_name: string;
+    email: string;
+    phone?: string | null;
+    last_checkin?: string | null;
+  }[],
   days: number,
-  gymName: string
+  gymName: string,
 ): void {
   const wb = XLSX.utils.book_new();
-  const rows = [
+  const rows: (string | number)[][] = [
     [`${gymName} — Alumnos Inactivos (+${days} días sin visita)`],
     [],
     ["Nombre", "Email", "Teléfono", "Último Check-in"],
-    ...students.map((s) => [s.student_name, s.email, s.phone ?? "", s.last_checkin ?? "Nunca"]),
+    ...students.map((s) => [
+      s.student_name,
+      s.email,
+      s.phone ?? "",
+      s.last_checkin ?? "Nunca",
+    ]),
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [{ wch: 30 }, { wch: 30 }, { wch: 16 }, { wch: 14 }];
   XLSX.utils.book_append_sheet(wb, ws, "Inactivos");
   XLSX.writeFile(wb, `inactivos_${days}dias.xlsx`);
 }
 
 export function exportAttendanceExcel(
-  attendance: { period_days: number; attended: number; no_show: number; confirmed: number; cancelled: number; total: number },
-  days: number,
-  gymName: string
+  attendance: {
+    period_label?: string;
+    attended: number;
+    no_show: number;
+    confirmed: number;
+    cancelled: number;
+    total: number;
+  },
+  periodLabel: string,
+  gymName: string,
 ): void {
   const wb = XLSX.utils.book_new();
-  const rows = [
-    [`${gymName} — Reporte de Asistencia (últimos ${days} días)`],
+  const rate =
+    attendance.total > 0
+      ? `${((attendance.attended / attendance.total) * 100).toFixed(1)}%`
+      : "N/A";
+  const noShowRate =
+    attendance.total > 0
+      ? `${((attendance.no_show / attendance.total) * 100).toFixed(1)}%`
+      : "N/A";
+  const rows: (string | number)[][] = [
+    [`${gymName} — Reporte de Asistencia`, periodLabel],
     [],
     ["Métrica", "Cantidad"],
     ["Total Reservaciones", attendance.total],
@@ -115,20 +273,29 @@ export function exportAttendanceExcel(
     ["Confirmadas (pendientes)", attendance.confirmed],
     ["Canceladas", attendance.cancelled],
     [],
-    ["Tasa de Asistencia", attendance.total > 0 ? `${((attendance.attended / attendance.total) * 100).toFixed(1)}%` : "N/A"],
-    ["Tasa de No Show", attendance.total > 0 ? `${((attendance.no_show / attendance.total) * 100).toFixed(1)}%` : "N/A"],
+    ["Tasa de Asistencia", rate],
+    ["Tasa de No Show", noShowRate],
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [{ wch: 28 }, { wch: 16 }];
   XLSX.utils.book_append_sheet(wb, ws, "Asistencia");
-  XLSX.writeFile(wb, `asistencia_${days}dias.xlsx`);
+  XLSX.writeFile(wb, `asistencia_${periodLabel.replace(/\s/g, "_")}.xlsx`);
 }
 
 export function exportUsersExcel(
-  users: { username: string; email: string; name: string; status: string; enabled: boolean; groups: string[]; created_at: string }[],
-  gymName: string
+  users: {
+    username: string;
+    email: string;
+    name: string;
+    status: string;
+    enabled: boolean;
+    groups: string[];
+    created_at: string;
+  }[],
+  gymName: string,
 ): void {
   const wb = XLSX.utils.book_new();
-  const rows = [
+  const rows: (string | number)[][] = [
     [`${gymName} — Reporte de Usuarios (${users.length})`],
     [],
     ["Nombre", "Email", "Status", "Habilitado", "Grupos", "Creado"],
@@ -142,6 +309,7 @@ export function exportUsersExcel(
     ]),
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [{ wch: 28 }, { wch: 30 }, { wch: 24 }, { wch: 12 }, { wch: 16 }, { wch: 14 }];
   XLSX.utils.book_append_sheet(wb, ws, "Usuarios");
   XLSX.writeFile(wb, "usuarios.xlsx");
 }
@@ -164,16 +332,9 @@ function createPdfBase(title: string): jsPDF {
 }
 
 export function exportIncomePDF(
-  income: {
-    grand_total: number;
-    total_cash: number;
-    total_card: number;
-    total_transfer: number;
-    by_type: Record<string, number>;
-    days: { date: string; total: number; count: number }[];
-  },
+  income: IncomeReport,
   period: string,
-  gymName: string
+  gymName: string,
 ): void {
   const doc = createPdfBase(gymTitle(gymName, "Reporte de Ingresos", period));
 
@@ -202,7 +363,7 @@ export function exportIncomePDF(
       head: [["Tipo", "Monto"]],
       body: Object.entries(income.by_type)
         .sort(([, a], [, b]) => b - a)
-        .map(([type, amount]) => [type, formatMXN(amount)]),
+        .map(([type, amount]) => [TX_TYPE_LABEL[type] ?? type, formatMXN(amount)]),
       headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
       theme: "grid",
     });
@@ -217,9 +378,17 @@ export function exportIncomePDF(
     doc.text("Detalle por Día", 14, lastY2);
     autoTable(doc, {
       startY: lastY2 + 4,
-      head: [["Fecha", "Transacciones", "Total"]],
-      body: dayRows.map((d) => [d.date, d.count, formatMXN(d.total)]),
+      head: [["Fecha", "Mov.", "Efectivo", "Tarjeta", "Transf.", "Total"]],
+      body: dayRows.map((d) => [
+        d.date,
+        d.count,
+        formatMXN(d.cash),
+        formatMXN(d.card),
+        formatMXN(d.transfer),
+        formatMXN(d.total),
+      ]),
       headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
+      styles: { fontSize: 8 },
       theme: "grid",
     });
   }
@@ -227,12 +396,54 @@ export function exportIncomePDF(
   doc.save(`ingresos_${period.replace(/\s/g, "_")}.pdf`);
 }
 
+export function exportMembershipsRangePDF(
+  report: MembershipRangeReport,
+  period: string,
+  gymName: string,
+): void {
+  const doc = createPdfBase(gymTitle(gymName, "Membresías por Rango", period));
+
+  autoTable(doc, {
+    startY: 34,
+    head: [["Concepto", "Valor"]],
+    body: [
+      ["Total membresías", String(report.count)],
+      ["Ingreso estimado", formatMXN(report.total_revenue)],
+    ],
+    headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
+    theme: "grid",
+  });
+
+  const lastY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 30, 30);
+  doc.text("Detalle", 14, lastY);
+  autoTable(doc, {
+    startY: lastY + 4,
+    head: [["Inicio", "Fin", "Alumno", "Tipo", "Precio", "Status"]],
+    body: report.memberships.map((m) => [
+      m.start_date,
+      m.end_date || "—",
+      m.student_name || "—",
+      m.membership_type,
+      formatMXN(m.price),
+      MEMBERSHIP_STATUS_LABEL[m.status] ?? m.status,
+    ]),
+    headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
+    styles: { fontSize: 8 },
+    theme: "grid",
+  });
+
+  doc.save(`membresias_${period.replace(/\s/g, "_")}.pdf`);
+}
+
 export function exportRankingsPDF(
   rankings: { student_id: string; student_name: string; checkin_count: number }[],
-  days: number,
-  gymName: string
+  periodLabel: string,
+  gymName: string,
 ): void {
-  const doc = createPdfBase(gymTitle(gymName, `Rankings Top Alumnos (${days} días)`));
+  const doc = createPdfBase(gymTitle(gymName, "Rankings Top Alumnos", periodLabel));
   autoTable(doc, {
     startY: 34,
     head: [["#", "Alumno", "Check-ins"]],
@@ -241,15 +452,21 @@ export function exportRankingsPDF(
     columnStyles: { 0: { halign: "center", cellWidth: 15 }, 2: { halign: "center" } },
     theme: "grid",
   });
-  doc.save(`rankings_${days}dias.pdf`);
+  doc.save(`rankings_${periodLabel.replace(/\s/g, "_")}.pdf`);
 }
 
 export function exportAttendancePDF(
-  attendance: { period_days: number; attended: number; no_show: number; confirmed: number; cancelled: number; total: number },
-  days: number,
-  gymName: string
+  attendance: {
+    attended: number;
+    no_show: number;
+    confirmed: number;
+    cancelled: number;
+    total: number;
+  },
+  periodLabel: string,
+  gymName: string,
 ): void {
-  const doc = createPdfBase(gymTitle(gymName, `Reporte de Asistencia (${days} días)`));
+  const doc = createPdfBase(gymTitle(gymName, "Reporte de Asistencia", periodLabel));
   const rate = attendance.total > 0 ? `${((attendance.attended / attendance.total) * 100).toFixed(1)}%` : "N/A";
   const noShowRate = attendance.total > 0 ? `${((attendance.no_show / attendance.total) * 100).toFixed(1)}%` : "N/A";
   autoTable(doc, {
@@ -267,12 +484,20 @@ export function exportAttendancePDF(
     headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
     theme: "grid",
   });
-  doc.save(`asistencia_${days}dias.pdf`);
+  doc.save(`asistencia_${periodLabel.replace(/\s/g, "_")}.pdf`);
 }
 
 export function exportUsersPDF(
-  users: { username: string; email: string; name: string; status: string; enabled: boolean; groups: string[]; created_at: string }[],
-  gymName: string
+  users: {
+    username: string;
+    email: string;
+    name: string;
+    status: string;
+    enabled: boolean;
+    groups: string[];
+    created_at: string;
+  }[],
+  gymName: string,
 ): void {
   const doc = createPdfBase(gymTitle(gymName, `Reporte de Usuarios (${users.length})`));
   autoTable(doc, {
@@ -294,17 +519,32 @@ export function exportUsersPDF(
 }
 
 export function exportInactivePDF(
-  students: { student_id: string; student_name: string; email: string; phone?: string | null }[],
+  students: {
+    student_id: string;
+    student_name: string;
+    email: string;
+    phone?: string | null;
+    last_checkin?: string | null;
+  }[],
   days: number,
-  gymName: string
+  gymName: string,
 ): void {
   const doc = createPdfBase(gymTitle(gymName, `Alumnos Inactivos +${days} días`));
   autoTable(doc, {
     startY: 34,
-    head: [["Nombre", "Email", "Teléfono"]],
-    body: students.map((s) => [s.student_name, s.email, s.phone ?? "—"]),
+    head: [["Nombre", "Email", "Teléfono", "Último Check-in"]],
+    body: students.map((s) => [
+      s.student_name,
+      s.email,
+      s.phone ?? "—",
+      s.last_checkin ?? "Nunca",
+    ]),
     headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
+    styles: { fontSize: 9 },
     theme: "grid",
   });
   doc.save(`inactivos_${days}dias.pdf`);
 }
+
+// formatDateTime is used downstream from exports; suppress unused warning if any.
+export const _formatDateTimeForRow = formatDateTime;

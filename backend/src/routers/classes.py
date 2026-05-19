@@ -129,8 +129,10 @@ def get_class_attendees(
     confirmed: list[dict[str, Any]] = []
     waitlisted: list[dict[str, Any]] = []
 
+    # `attended` reservations have already been counted toward the class —
+    # they belong in the enrolled list, not excluded as if they were cancelled.
     for r in reservations:
-        if r.status not in ("confirmed", "waitlisted"):
+        if r.status not in ("confirmed", "attended", "waitlisted"):
             continue
         student_info: dict[str, Any] = {
             "student_id": r.student_id,
@@ -150,10 +152,10 @@ def get_class_attendees(
         except Exception:
             student_info["full_name"] = "Desconocido"
 
-        if r.status == "confirmed":
-            confirmed.append(student_info)
-        else:
+        if r.status == "waitlisted":
             waitlisted.append(student_info)
+        else:
+            confirmed.append(student_info)
 
     waitlisted.sort(key=lambda w: w.get("waitlist_position") or 999)
 

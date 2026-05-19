@@ -258,11 +258,14 @@ class ReservationService:
             return
 
         reservations, _ = self._reservation_repo.list_for_student(student_id, limit=200)
-        same_day_confirmed = [
+        # Include "attended" so a Founder who already checked in to today's class
+        # cannot reserve a second one the same day.
+        same_day_active = [
             r for r in reservations
-            if r.class_date == class_date and r.status in ("confirmed", "waitlisted")
+            if r.class_date == class_date
+            and r.status in ("confirmed", "attended", "waitlisted")
         ]
-        if same_day_confirmed:
+        if same_day_active:
             raise_bad_request(
                 "Tu membresía solo permite 1 clase por día. "
                 "Ya tienes una reservación para esta fecha."

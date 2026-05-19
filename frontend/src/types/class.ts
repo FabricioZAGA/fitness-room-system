@@ -59,7 +59,7 @@ export interface UpdateClassRequest {
 export interface ClassAttendee {
   student_id: string;
   reservation_id: string;
-  status: "confirmed" | "waitlisted";
+  status: "confirmed" | "attended" | "waitlisted";
   waitlist_position: number | null;
   created_at: string | null;
   first_name?: string;

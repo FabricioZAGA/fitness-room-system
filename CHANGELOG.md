@@ -5,6 +5,50 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.8.5] — 2026-05-19
+
+### Fixed
+- **Listado de inscritos vs contador de ocupación inconsistentes**: el endpoint `GET /api/v1/classes/{id}/attendees` y `GET /api/v1/portal/classes/{id}/attendees` excluían reservaciones con status `attended` del listado, pero esas asistencias sí cuentan hacia `reservations_count`. Ahora el listado incluye `confirmed + attended + waitlisted` (los `attended` se muestran junto con `confirmed`).
+- **Regla "1 clase por día" (Founder / Room Daily / Room Pass)**: la validación al reservar consideraba solo reservaciones `confirmed`/`waitlisted`. Si un alumno ya había hecho check-in (status `attended`), podía reservar una segunda clase el mismo día. Ahora la validación incluye `attended`.
+- **Strings hardcoded en español** reemplazados por keys i18n: "Inscritos (N)", "Lista de espera (N)", "Sin clases", "Sin membresías registradas", "Sin reservaciones registradas", "Lugares disponibles", "Clase llena — lista de espera activa", "Sin nombre", "Sin especificar".
+
+### Changed
+- Tipo TypeScript `ClassAttendee.status` ahora acepta `"confirmed" | "attended" | "waitlisted"`.
+- Auditoría de i18n: 452 keys verificadas con paridad total entre `es.json` y `en.json`.
+
+---
+
+## [1.8.4] — 2026-05-19
+
+### Added
+- **Reporte "Membresías por rango"**: nuevo endpoint `GET /api/v1/reports/memberships-range` y nueva pestaña en Reportes que lista cada membresía iniciada en el rango con alumno, plan, precio, fechas y status; export Excel + PDF.
+- **Detalle de transacciones en Excel de Ingresos**: el endpoint `GET /api/v1/reports/income` ahora acepta `include_transactions=true` para devolver la lista plana de cada movimiento; el Excel agrega una hoja "Transacciones" con fecha, hora, alumno, tipo, método, monto y notas.
+- **Presets rápidos de rango de fechas**: Hoy, Ayer, Esta semana, Mes actual, Mes anterior y Personalizado en Ingresos y Membresías.
+- **Rango personalizado de fechas en Asistencia y Rankings**: además de los presets 7/14/30/90 días, ahora aceptan `start_date`/`end_date` arbitrarias.
+- **Último check-in en alumnos inactivos**: el endpoint `/api/v1/reports/inactive` y el reporte ahora incluyen `last_checkin` para contexto al contactar.
+- Reporte de Ingresos en Excel y PDF muestra columnas separadas Efectivo / Tarjeta / Transferencia / Total en el detalle por día.
+
+### Changed
+- Página `/reportes` rediseñada con 5 pestañas: Ingresos, Membresías, Asistencia, Rankings, Inactivos.
+- Helper `lib/dateRangePresets.ts` centraliza el cálculo de presets respetando zona horaria de México.
+
+### Removed
+- Datos basura pre-inauguración eliminados de DynamoDB y Cognito: 3 alumnos prueba (`Fabricio fabricio17zg`, `Test Fabricio`, `asdasd asdasd`) y 3 membresías a $0. Las transacciones pre-1-mayo ($10 + $950) y los 2 alumnos linkeados a ellas se conservan por instrucción explícita.
+
+---
+
+## [1.8.3] — 2026-05-15
+
+### Fixed
+- **Portal del Socio caído**: el bucket `fitness-room-portal-prod` tenía desplegado el bundle del panel administrativo por error en el release de v1.8.x; los socios al iniciar sesión recibían el bundle de admin (que rechaza grupos `student`/`teacher`). Redeploy del bundle correcto del portal.
+
+### Added
+- Badge dorado "Panel Administrativo" en el login de `admin.fitnessroom.mx` para identificar visualmente la aplicación
+- Badge dorado "Portal del Socio" en el login de `portal.fitnessroom.mx` para identificar visualmente la aplicación
+- Tarjeta de redirección cruzada en cada login: en admin "¿Eres socio del gym? → Ir al Portal del Socio"; en portal "¿Eres staff o administrador? → Ir al Panel Administrativo"
+
+---
+
 ## [1.8.2] — 2026-05-14
 
 ### Added

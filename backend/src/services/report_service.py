@@ -45,11 +45,17 @@ class ReportService:
     # ------------------------------------------------------------------
 
     def income_by_date_range(
-        self, start_date: date, end_date: date
+        self,
+        start_date: date,
+        end_date: date,
+        include_transactions: bool = False,
     ) -> dict[str, Any]:
         """Aggregate income between two dates (inclusive).
 
         Returns per-day totals and a grand total breakdown by type and method.
+        When ``include_transactions`` is True, also returns the flat list of
+        every transaction in the range — used by the Excel export to populate
+        the "Detalle de transacciones" sheet.
         """
         current = start_date
         days: list[dict[str, Any]] = []
@@ -57,6 +63,16 @@ class ReportService:
         grand_card = 0.0
         grand_transfer = 0.0
         by_type: dict[str, float] = {}
+        all_transactions: list[dict[str, Any]] = []
+
+        # Build a student-id → name lookup once, only when transaction detail is asked
+        student_name_by_id: dict[str, str] = {}
+        if include_transactions:
+            students, _ = self._students.list_all(limit=500)
+            student_name_by_id = {
+                s.student_id: f"{s.first_name} {s.last_name}".strip()
+                for s in students
+            }
 
         while current <= end_date:
             date_str = current.isoformat()
@@ -73,6 +89,25 @@ class ReportService:
                 by_type[t.transaction_type] = (
                     by_type.get(t.transaction_type, 0.0) + t.amount
                 )
+                if include_transactions:
+                    all_transactions.append(
+                        {
+                            "transaction_id": t.transaction_id,
+                            "date": t.transaction_date,
+                            "datetime": t.created_at.isoformat()
+                            if hasattr(t.created_at, "isoformat")
+                            else str(t.created_at),
+                            "student_id": t.student_id,
+                            "student_name": student_name_by_id.get(
+                                t.student_id or "", ""
+                            ),
+                            "transaction_type": t.transaction_type,
+                            "payment_method": t.payment_method,
+                            "amount": t.amount,
+                            "reference_id": t.reference_id,
+                            "notes": t.notes,
+                        }
+                    )
 
             grand_cash += day_cash
             grand_card += day_card
@@ -91,7 +126,7 @@ class ReportService:
             current += timedelta(days=1)
 
         grand_total = grand_cash + grand_card + grand_transfer
-        return {
+        result: dict[str, Any] = {
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
             "grand_total": grand_total,
@@ -101,20 +136,101 @@ class ReportService:
             "by_type": by_type,
             "days": days,
         }
+        if include_transactions:
+            result["transactions"] = all_transactions
+        return result
+
+    # ------------------------------------------------------------------
+    # Memberships by date range
+    # ------------------------------------------------------------------
+
+    def memberships_by_date_range(
+        self, start_date: date, end_date: date
+    ) -> dict[str, Any]:
+        """List all memberships whose start_date falls inside the range.
+
+        Returns alumno, plan, precio, fechas y status — useful to reconcile
+        income vs activated memberships.
+        """
+        students, _ = self._students.list_all(limit=500)
+        student_by_id = {
+            s.student_id: f"{s.first_name} {s.last_name}".strip() for s in students
+        }
+
+        memberships: list[dict[str, Any]] = []
+        total_revenue = 0.0
+        by_type: dict[str, dict[str, Any]] = {}
+
+        all_memberships, _ = self._memberships.list_all(limit=500)
+        start_iso = start_date.isoformat()
+        end_iso = end_date.isoformat()
+
+        for m in all_memberships:
+            ms = getattr(m, "start_date", None)
+            ms_str = ms.isoformat() if hasattr(ms, "isoformat") else str(ms or "")
+            if not (start_iso <= ms_str <= end_iso):
+                continue
+
+            mtype = getattr(m, "membership_type", "")
+            price = float(getattr(m, "price", 0) or 0)
+            end_d = getattr(m, "end_date", None)
+            end_d_str = end_d.isoformat() if hasattr(end_d, "isoformat") else str(end_d or "")
+
+            memberships.append(
+                {
+                    "membership_id": getattr(m, "membership_id", ""),
+                    "student_id": getattr(m, "student_id", ""),
+                    "student_name": student_by_id.get(
+                        getattr(m, "student_id", ""), ""
+                    ),
+                    "membership_type": mtype,
+                    "price": price,
+                    "start_date": ms_str,
+                    "end_date": end_d_str,
+                    "status": getattr(m, "status", ""),
+                    "classes_remaining": getattr(m, "classes_remaining", None),
+                }
+            )
+            total_revenue += price
+            agg = by_type.setdefault(mtype, {"count": 0, "revenue": 0.0})
+            agg["count"] += 1
+            agg["revenue"] += price
+
+        memberships.sort(key=lambda x: x["start_date"])
+        return {
+            "start_date": start_iso,
+            "end_date": end_iso,
+            "count": len(memberships),
+            "total_revenue": total_revenue,
+            "by_type": by_type,
+            "memberships": memberships,
+        }
 
     # ------------------------------------------------------------------
     # Attendance summary
     # ------------------------------------------------------------------
 
-    def attendance_summary(self, days: int = 30) -> dict[str, Any]:
-        """Aggregate reservation attendance stats for the last N days.
+    def attendance_summary(
+        self,
+        days: int = 30,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> dict[str, Any]:
+        """Aggregate reservation attendance stats for a date range.
 
-        Returns totals per status (attended, no_show, confirmed, cancelled)
-        across all students.
+        If ``start_date``/``end_date`` are provided they take priority over
+        ``days``. Otherwise falls back to "last N days from today".
         """
-        since = (mexico_today() - timedelta(days=days)).isoformat()
+        if start_date and end_date:
+            since = start_date.isoformat()
+            until = end_date.isoformat()
+            period_label = f"{since} a {until}"
+        else:
+            today = mexico_today()
+            since = (today - timedelta(days=days)).isoformat()
+            until = today.isoformat()
+            period_label = f"últimos {days} días"
 
-        # Fetch all students and iterate their reservations
         students, _ = self._students.list_all(limit=500)
         totals: dict[str, int] = {}
 
@@ -123,12 +239,15 @@ class ReportService:
                 student.student_id, limit=200
             )
             for r in reservations:
-                if hasattr(r, "class_date") and r.class_date >= since:
+                if hasattr(r, "class_date") and since <= r.class_date <= until:
                     status = r.status
                     totals[status] = totals.get(status, 0) + 1
 
         return {
             "period_days": days,
+            "start_date": since,
+            "end_date": until,
+            "period_label": period_label,
             "attended": totals.get("attended", 0),
             "no_show": totals.get("no_show", 0),
             "confirmed": totals.get("confirmed", 0),
@@ -141,24 +260,31 @@ class ReportService:
     # ------------------------------------------------------------------
 
     def top_students_by_checkins(
-        self, limit: int = 10, days: int = 30
+        self,
+        limit: int = 10,
+        days: int = 30,
+        start_date: date | None = None,
+        end_date: date | None = None,
     ) -> list[dict[str, Any]]:
-        """Return the top N students ranked by check-in count in the last N days.
+        """Return the top N students ranked by check-in count in a date range.
 
-        For each active student, queries their checkins and counts those
-        within the time window. Acceptable for small gym (< 500 students).
+        If ``start_date``/``end_date`` are provided they take priority over
+        ``days``. Otherwise falls back to "last N days from today".
         """
-        since = (mexico_today() - timedelta(days=days)).isoformat()
+        if start_date and end_date:
+            since = start_date.isoformat()
+            until = end_date.isoformat()
+        else:
+            today = mexico_today()
+            since = (today - timedelta(days=days)).isoformat()
+            until = today.isoformat()
 
         students, _ = self._students.list_all(limit=500)
-        active_students = [
-            s for s in students if s.status == "active"
-        ]
+        active_students = [s for s in students if s.status == "active"]
 
         ranked: list[dict[str, Any]] = []
         for student in active_students:
             sid = student.student_id
-            # Query checkins: PK=STUDENT#{id}, SK begins_with CHECKIN#
             checkin_items, _ = self._students.query_by_pk(
                 pk=f"STUDENT#{sid}",
                 sk_begins_with="CHECKIN#",
@@ -167,7 +293,8 @@ class ReportService:
             recent_count = sum(
                 1
                 for c in checkin_items
-                if c.get("checked_in_at", "")[:10] >= since and c.get("can_enter")
+                if since <= c.get("checked_in_at", "")[:10] <= until
+                and c.get("can_enter")
             )
             if recent_count > 0:
                 ranked.append(
@@ -188,14 +315,12 @@ class ReportService:
     def inactive_students(self, inactive_days: int = 14) -> list[dict[str, Any]]:
         """Return active students who haven't checked in (successfully) for N days.
 
-        Fetches all active students and checks their recent checkins.
+        Includes ``last_checkin`` for context when reaching out.
         """
         cutoff = (mexico_today() - timedelta(days=inactive_days)).isoformat()
 
         students, _ = self._students.list_all(limit=500)
-        active_students = [
-            s for s in students if s.status == "active"
-        ]
+        active_students = [s for s in students if s.status == "active"]
 
         inactive: list[dict[str, Any]] = []
         for student in active_students:
@@ -205,10 +330,13 @@ class ReportService:
                 sk_begins_with="CHECKIN#",
                 limit=100,
             )
-            has_recent = any(
-                c.get("checked_in_at", "")[:10] >= cutoff and c.get("can_enter")
+            successful = [
+                c.get("checked_in_at", "")
                 for c in checkin_items
-            )
+                if c.get("can_enter")
+            ]
+            last_checkin = max(successful) if successful else None
+            has_recent = last_checkin is not None and last_checkin[:10] >= cutoff
             if not has_recent:
                 inactive.append(
                     {
@@ -217,6 +345,7 @@ class ReportService:
                         "status": student.status,
                         "email": student.email,
                         "phone": student.phone,
+                        "last_checkin": last_checkin[:10] if last_checkin else None,
                     }
                 )
 

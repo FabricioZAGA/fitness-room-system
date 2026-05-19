@@ -20,11 +20,46 @@ def get_service() -> ReportService:
     "/income",
     summary="Income Report",
     description=(
-        "Aggregate income by date range. "
-        "Returns per-day breakdown and totals by payment method and transaction type."
+        "Aggregate income by date range. Returns per-day breakdown and totals "
+        "by payment method and transaction type. When ``include_transactions`` "
+        "is true, also returns the flat list of every individual transaction "
+        "in the range — used for the Excel 'Detalle de transacciones' sheet."
     ),
 )
 def income_report(
+    start_date: date = Query(
+        default=None,
+        description="Start date YYYY-MM-DD (default: first day of current month)",
+    ),
+    end_date: date = Query(
+        default=None,
+        description="End date YYYY-MM-DD (default: today)",
+    ),
+    include_transactions: bool = Query(
+        default=False,
+        description="When true, include every individual transaction in the response",
+    ),
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: ReportService = Depends(get_service),
+) -> dict[str, Any]:
+    today = mexico_today()
+    actual_end = end_date or today
+    actual_start = start_date or today.replace(day=1)
+    return service.income_by_date_range(
+        actual_start, actual_end, include_transactions=include_transactions
+    )
+
+
+@router.get(
+    "/memberships-range",
+    summary="Memberships by Date Range",
+    description=(
+        "List every membership whose start_date falls inside the range. "
+        "Returns alumno, plan, precio, fechas y status para conciliar pagos "
+        "vs membresías activadas en el período."
+    ),
+)
+def memberships_range(
     start_date: date = Query(
         default=None,
         description="Start date YYYY-MM-DD (default: first day of current month)",
@@ -39,42 +74,54 @@ def income_report(
     today = mexico_today()
     actual_end = end_date or today
     actual_start = start_date or today.replace(day=1)
-    return service.income_by_date_range(actual_start, actual_end)
+    return service.memberships_by_date_range(actual_start, actual_end)
 
 
 @router.get(
     "/attendance",
     summary="Attendance Summary",
-    description="Count reservation statuses (attended, no-show, etc.) over the last N days.",
+    description=(
+        "Count reservation statuses (attended, no-show, etc.). Accepts either "
+        "``days`` (last N days) or an explicit ``start_date`` + ``end_date`` range."
+    ),
 )
 def attendance_report(
     days: int = Query(default=30, ge=1, le=365, description="Number of days back to analyze"),
+    start_date: date = Query(default=None, description="Start date YYYY-MM-DD (overrides days)"),
+    end_date: date = Query(default=None, description="End date YYYY-MM-DD (overrides days)"),
     _current_user: dict[str, Any] = Depends(get_current_user),
     service: ReportService = Depends(get_service),
 ) -> dict[str, Any]:
-    return service.attendance_summary(days=days)
+    return service.attendance_summary(days=days, start_date=start_date, end_date=end_date)
 
 
 @router.get(
     "/rankings",
     summary="Top Students Ranking",
-    description="Return the top students ranked by successful check-ins in the last N days.",
+    description=(
+        "Top students by successful check-ins. Accepts either ``days`` "
+        "(last N days) or an explicit ``start_date`` + ``end_date`` range."
+    ),
 )
 def rankings(
     limit: int = Query(default=10, ge=1, le=50, description="Number of top students to return"),
     days: int = Query(default=30, ge=1, le=365, description="Lookback window in days"),
+    start_date: date = Query(default=None, description="Start date YYYY-MM-DD (overrides days)"),
+    end_date: date = Query(default=None, description="End date YYYY-MM-DD (overrides days)"),
     _current_user: dict[str, Any] = Depends(get_current_user),
     service: ReportService = Depends(get_service),
 ) -> list[dict[str, Any]]:
-    return service.top_students_by_checkins(limit=limit, days=days)
+    return service.top_students_by_checkins(
+        limit=limit, days=days, start_date=start_date, end_date=end_date
+    )
 
 
 @router.get(
     "/inactive",
     summary="Inactive Students",
     description=(
-        "List active students who haven't checked in successfully "
-        "in the last N days. Useful for follow-up outreach."
+        "List active students who haven't checked in successfully in the last N days. "
+        "Returns ``last_checkin`` for context when reaching out."
     ),
 )
 def inactive_students(

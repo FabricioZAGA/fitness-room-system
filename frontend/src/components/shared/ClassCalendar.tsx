@@ -4,6 +4,7 @@
  */
 
 import { useState, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Users, Clock, MapPin } from "lucide-react";
 import { getClassTypeLabel, getClassTypeColor } from "@/types/class";
 import { useClassTypes } from "@/hooks/useCatalogs";
@@ -81,6 +82,7 @@ export function ClassCalendar({
   onDayClick,
   onMonthChange,
 }: ClassCalendarProps): React.JSX.Element {
+  const { t } = useTranslation();
   const { data: classTypes = [] } = useClassTypes();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -358,7 +360,7 @@ export function ClassCalendar({
                   className={`min-h-[300px] border-r last:border-r-0 border-[--bd-default]/60 p-2 space-y-2 ${isToday ? "bg-[--color-success-bg]/30" : ""}`}
                 >
                   {dayClasses.length === 0 ? (
-                    <p className="py-8 text-center text-xs text-[--tx-disabled]">Sin clases</p>
+                    <p className="py-8 text-center text-xs text-[--tx-disabled]">{t("classes.noClassesShort")}</p>
                   ) : (
                     dayClasses.map((cls) => (
                       <ColumnClassCard key={cls.class_id} cls={cls} classTypes={classTypes} onClick={onClassClick} expanded={calView === "day"} />

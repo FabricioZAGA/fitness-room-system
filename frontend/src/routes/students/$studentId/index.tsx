@@ -328,7 +328,7 @@ function StudentDetailPage(): React.JSX.Element {
             {memberships.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
                 <CreditCard className="mb-3 h-10 w-10 text-[--tx-disabled]" />
-                <p className="text-[--tx-muted]">Sin membresías registradas</p>
+                <p className="text-[--tx-muted]">{t("classes.noMembershipsRegistered")}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -403,7 +403,7 @@ function StudentDetailPage(): React.JSX.Element {
             {reservations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
                 <Calendar className="mb-3 h-10 w-10 text-[--tx-disabled]" />
-                <p className="text-[--tx-muted]">Sin reservaciones registradas</p>
+                <p className="text-[--tx-muted]">{t("classes.noReservationsRegistered")}</p>
               </div>
             ) : (
               <div className="max-h-96 space-y-2 overflow-y-auto pr-1">

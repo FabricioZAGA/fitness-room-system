@@ -9,6 +9,19 @@ export interface IncomeDay {
   count: number;
 }
 
+export interface IncomeTransactionRow {
+  transaction_id: string;
+  date: string;
+  datetime: string;
+  student_id: string | null;
+  student_name: string;
+  transaction_type: string;
+  payment_method: string;
+  amount: number;
+  reference_id: string | null;
+  notes: string | null;
+}
+
 export interface IncomeReport {
   start_date: string;
   end_date: string;
@@ -18,10 +31,35 @@ export interface IncomeReport {
   total_transfer: number;
   by_type: Record<string, number>;
   days: IncomeDay[];
+  transactions?: IncomeTransactionRow[];
+}
+
+export interface MembershipRangeRow {
+  membership_id: string;
+  student_id: string;
+  student_name: string;
+  membership_type: string;
+  price: number;
+  start_date: string;
+  end_date: string;
+  status: string;
+  classes_remaining: number | null;
+}
+
+export interface MembershipRangeReport {
+  start_date: string;
+  end_date: string;
+  count: number;
+  total_revenue: number;
+  by_type: Record<string, { count: number; revenue: number }>;
+  memberships: MembershipRangeRow[];
 }
 
 export interface AttendanceSummary {
   period_days: number;
+  start_date?: string;
+  end_date?: string;
+  period_label?: string;
   attended: number;
   no_show: number;
   confirmed: number;
@@ -41,4 +79,5 @@ export interface InactiveStudent {
   status: string;
   email: string;
   phone: string | null;
+  last_checkin: string | null;
 }

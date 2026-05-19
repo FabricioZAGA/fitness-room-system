@@ -6,7 +6,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth, type AuthStep } from "@/contexts/AuthContext";
-import { Dumbbell, Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, KeyRound, ShieldCheck } from "lucide-react";
+import { Dumbbell, Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, KeyRound, ShieldCheck, Shield } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { isKeepSessionEnabled, setKeepSession } from "@/lib/sessionPreferences";
 
@@ -231,7 +231,7 @@ function LoginPage(): React.JSX.Element {
       <div className="flex w-full lg:w-1/2 flex-col justify-center px-8 py-12 sm:px-12 lg:px-16 bg-[--bg-surface]">
         <div className="mx-auto w-full max-w-md">
           {/* Mobile logo */}
-          <div className="mb-8 flex justify-center lg:hidden">
+          <div className="mb-6 flex justify-center lg:hidden">
             <div className="flex items-center gap-3">
               <div
                 className="rounded-xl p-3"
@@ -240,6 +240,21 @@ function LoginPage(): React.JSX.Element {
                 <Dumbbell className="h-8 w-8" style={{ color: "var(--gold-fg)" }} />
               </div>
               <span className="text-2xl font-bold text-[--tx-primary]">Fitness Room</span>
+            </div>
+          </div>
+
+          {/* App identifier badge */}
+          <div className="mb-8 flex justify-center">
+            <div
+              className="inline-flex items-center gap-2 rounded-full border-2 px-4 py-1.5 text-xs font-bold uppercase tracking-widest"
+              style={{
+                background: "var(--gold-bg)",
+                borderColor: "var(--gold)",
+                color: "var(--gold)",
+              }}
+            >
+              <Shield className="h-3.5 w-3.5" />
+              <span>Panel Administrativo</span>
             </div>
           </div>
 
@@ -339,6 +354,15 @@ function LoginPage(): React.JSX.Element {
                   <p className="text-xs text-[--color-warning]">{t("login.devMode")}</p>
                 </div>
               )}
+              <div className="mt-8 rounded-xl border border-[--bd-subtle] bg-[--bg-muted] p-4 text-center">
+                <p className="text-xs text-[--tx-muted]">¿Eres socio del gym?</p>
+                <a
+                  href="https://portal.fitnessroom.mx"
+                  className="mt-1 inline-block text-sm font-semibold text-[--gold] hover:text-[--gold-hover] transition-colors"
+                >
+                  Ir al Portal del Socio →
+                </a>
+              </div>
             </>
           )}
 

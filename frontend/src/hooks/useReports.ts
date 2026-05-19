@@ -5,6 +5,7 @@ import type {
   AttendanceSummary,
   IncomeReport,
   InactiveStudent,
+  MembershipRangeReport,
   StudentRanking,
 } from "@/types/report";
 import { reportService } from "@/services/reportService";
@@ -14,6 +15,7 @@ export const REPORT_KEY = "reports";
 export function useIncomeReport(params?: {
   start_date?: string;
   end_date?: string;
+  include_transactions?: boolean;
 }): UseQueryResult<IncomeReport> {
   return useQuery({
     queryKey: [REPORT_KEY, "income", params],
@@ -21,16 +23,32 @@ export function useIncomeReport(params?: {
   });
 }
 
-export function useAttendanceSummary(days?: number): UseQueryResult<AttendanceSummary> {
+export function useMembershipsRange(params?: {
+  start_date?: string;
+  end_date?: string;
+}): UseQueryResult<MembershipRangeReport> {
   return useQuery({
-    queryKey: [REPORT_KEY, "attendance", days],
-    queryFn: () => reportService.attendanceSummary(days),
+    queryKey: [REPORT_KEY, "memberships-range", params],
+    queryFn: () => reportService.membershipsRange(params),
+  });
+}
+
+export function useAttendanceSummary(params?: {
+  days?: number;
+  start_date?: string;
+  end_date?: string;
+}): UseQueryResult<AttendanceSummary> {
+  return useQuery({
+    queryKey: [REPORT_KEY, "attendance", params],
+    queryFn: () => reportService.attendanceSummary(params),
   });
 }
 
 export function useRankings(params?: {
   limit?: number;
   days?: number;
+  start_date?: string;
+  end_date?: string;
 }): UseQueryResult<StudentRanking[]> {
   return useQuery({
     queryKey: [REPORT_KEY, "rankings", params],

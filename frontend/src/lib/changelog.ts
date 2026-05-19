@@ -12,9 +12,46 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.8.2";
+export const APP_VERSION = "1.8.5";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.8.5",
+    date: "2026-05-19",
+    title: "Bug Fixes — listado de inscritos, regla de 1 clase/día y traducciones completas",
+    items: [
+      { icon: "🐛", text: "Detalle de clase: la lista de inscritos ahora coincide con el contador de ocupación. Antes, una vez marcada la asistencia ('attended'), las personas desaparecían del listado pero seguían contando en 8/15" },
+      { icon: "🐛", text: "Portal del Socio: las clases ya pasadas con asistencia marcada ahora muestran a todas las personas inscritas (mismo bug que admin)" },
+      { icon: "🐛", text: "Regla de 1 clase/día (Founder/Room Daily/Room Pass) ahora considera también las asistencias ya marcadas — antes, un alumno que ya hizo check-in podía reservar una segunda clase el mismo día" },
+      { icon: "🌐", text: "Traducciones: 452 keys verificadas con paridad total entre español e inglés; nuevas claves para enrolled/waitlist/spotsAvailable/notSpecified" },
+      { icon: "🧹", text: "'Inscritos', 'Lista de espera', 'Sin clases', 'Sin membresías registradas', 'Sin reservaciones registradas' ahora vienen del archivo de traducciones en lugar de hardcoded en JSX" },
+      { icon: "🔧", text: "Tipo TypeScript ClassAttendee.status ahora incluye 'attended' además de confirmed/waitlisted" },
+    ],
+  },
+  {
+    version: "1.8.4",
+    date: "2026-05-19",
+    title: "Reportes con rangos de fechas, presets rápidos y detalle de transacciones en Excel",
+    items: [
+      { icon: "📅", text: "Presets rápidos en Reportes: Hoy, Ayer, Esta semana, Mes actual, Mes anterior y Personalizado" },
+      { icon: "📊", text: "Excel de Ingresos ahora trae 3 hojas: Resumen, Detalle por Día (con efectivo/tarjeta/transferencia) y Detalle de Transacciones (cada movimiento individual con fecha, hora, alumno, método, monto y notas)" },
+      { icon: "🆕", text: "Nuevo reporte 'Membresías por rango' — alumno, plan, precio, fechas y status para conciliar pagos vs membresías activadas (Excel y PDF)" },
+      { icon: "🎯", text: "Asistencia y Rankings ahora aceptan rango personalizado de fechas además de los presets de 7/14/30/90 días" },
+      { icon: "📋", text: "Detalle por día en pantalla y PDF: columnas separadas Efectivo / Tarjeta / Transferencia / Total" },
+      { icon: "🕒", text: "Alumnos inactivos ahora muestran la fecha del último check-in para contexto al contactarlos" },
+      { icon: "🧹", text: "Limpieza de datos basura: alumnos prueba pre-inauguración eliminados (3 alumnos + 3 membresías $0)" },
+    ],
+  },
+  {
+    version: "1.8.3",
+    date: "2026-05-15",
+    title: "Portal del Socio restaurado e identificación visual de cada app",
+    items: [
+      { icon: "🚑", text: "Arreglado el portal del socio: el bucket tenía desplegado el panel administrativo por error, por eso los socios no podían iniciar sesión" },
+      { icon: "🛡️", text: "Login del Panel Administrativo ahora muestra un badge dorado 'Panel Administrativo' y un acceso directo al Portal del Socio" },
+      { icon: "⭐", text: "Login del Portal del Socio ahora muestra un badge 'Portal del Socio' y un acceso directo al Panel Administrativo para staff" },
+    ],
+  },
   {
     version: "1.8.2",
     date: "2026-05-14",

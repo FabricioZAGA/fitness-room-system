@@ -316,7 +316,7 @@ function ClassDetailPanel({
         <div className="mb-6 space-y-3">
           <DetailRow icon={Calendar} label={t("classes.date")} value={formatDate(cls.class_date)} />
           <DetailRow icon={Clock} label={t("classes.time")} value={`${formatTime(cls.start_time)} (${cls.duration_minutes ?? 60} min)`} />
-          <DetailRow icon={MapPin} label={t("classes.place")} value={cls.location ?? "Sin especificar"} />
+          <DetailRow icon={MapPin} label={t("classes.place")} value={cls.location ?? t("classes.notSpecified")} />
           {cls.class_link && (
             <DetailRow icon={LinkIcon} label={t("classes.link")} value={t("classes.onlineClass")} link={cls.class_link} />
           )}
@@ -343,8 +343,8 @@ function ClassDetailPanel({
           </div>
           <p className="mt-1 text-xs text-[--tx-disabled]">
             {cls.available_spots > 0
-              ? `${cls.available_spots} lugares disponibles`
-              : "Clase llena — lista de espera activa"}
+              ? t("classes.spotsAvailable", { count: cls.available_spots })
+              : t("classes.classFullWaitlistActive")}
           </p>
         </div>
 
@@ -352,7 +352,7 @@ function ClassDetailPanel({
         <div className="mb-6">
           <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[--tx-muted]">
             <Users className="h-4 w-4" />
-            Inscritos ({attendees?.confirmed.length ?? cls.reservations_count})
+            {t("classes.enrolled", { count: attendees?.confirmed.length ?? cls.reservations_count })}
           </h4>
           {attendeesLoading ? (
             <div className="flex justify-center py-4">
@@ -369,7 +369,7 @@ function ClassDetailPanel({
                     {(a.first_name?.[0] ?? "?").toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-[--tx-primary]">{a.full_name || "Sin nombre"}</p>
+                    <p className="truncate text-sm font-medium text-[--tx-primary]">{a.full_name || t("classes.noName")}</p>
                     <p className="truncate text-xs text-[--tx-disabled]">{a.email || ""}</p>
                   </div>
                 </div>
@@ -385,7 +385,7 @@ function ClassDetailPanel({
           <div className="mb-6">
             <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[--color-warning]">
               <Clock className="h-4 w-4" />
-              Lista de espera ({attendees.waitlisted.length})
+              {t("classes.waitlist", { count: attendees.waitlisted.length })}
             </h4>
             <div className="space-y-2">
               {attendees.waitlisted.map((a) => (
@@ -397,7 +397,7 @@ function ClassDetailPanel({
                     #{a.waitlist_position ?? "?"}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-[--tx-primary]">{a.full_name || "Sin nombre"}</p>
+                    <p className="truncate text-sm font-medium text-[--tx-primary]">{a.full_name || t("classes.noName")}</p>
                     <p className="truncate text-xs text-[--tx-disabled]">{a.email || ""}</p>
                   </div>
                 </div>
