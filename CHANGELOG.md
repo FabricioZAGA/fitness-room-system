@@ -5,6 +5,27 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.0] — 2026-05-21
+
+### Added
+
+- **Reservaciones de visita y cortesía**: nuevos tipos `day_pass` y `courtesy` para reservar clase a visitantes sin membresía, con nombre y teléfono del visitante.
+- **Modal de añadir a clase con pestañas**: Socio (búsqueda de miembro), Visita 1 día (formulario de visitante), Cortesía (formulario de visitante).
+- **Badges de tipo de reservación** en detalle de clase y lista de reservaciones: Visita / Cortesía con colores diferenciados y teléfono del visitante.
+- **Directorio de miembros**: opciones de ordenar por nombre A-Z/Z-A o fecha de registro, y exportar a Excel y PDF.
+- **Detalle de transacciones en PDF de ingresos**: el PDF ahora incluye la tabla de transacciones individuales (antes solo en Excel).
+- **Recibo de corte de caja**: recibo imprimible con desglose por método de pago, exportable a PDF.
+- Nuevas claves i18n: `sortNameAsc`, `sortNameDesc`, `sortNewest`, `sortOldest`, `exportExcel`, `exportPDF`, `printReceipt` en `es.json` y `en.json`.
+
+### Changed
+
+- Backend: endpoint `GET /classes/{id}/attendees` ahora incluye `reservation_type`, `visitor_name`, `visitor_phone` en cada attendee.
+- Backend: `ReservationService.create_reservation` genera un `student_id` único para visitantes y omite validaciones de membresía/límite diario.
+- Frontend: tipo `ClassAttendee` ahora incluye `reservation_type`, `visitor_name`, `visitor_phone`.
+- Frontend: tipo `Reservation` y `CreateReservationRequest` ahora incluyen `reservation_type`, `visitor_name`, `visitor_phone`.
+
+---
+
 ## [1.8.5] — 2026-05-19
 
 ### Fixed

@@ -350,3 +350,59 @@ class ReportService:
                 )
 
         return inactive
+
+    # ------------------------------------------------------------------
+    # Students export (full directory)
+    # ------------------------------------------------------------------
+
+    def students_export(self) -> list[dict[str, Any]]:
+        """Return every student enriched with active membership info.
+
+        Used by the frontend to generate an Excel/PDF directory of all
+        students with name, email, phone, birth date, status, membership
+        type, expiry date, and membership status.
+        """
+        students, _ = self._students.list_all(limit=500)
+
+        # Build a map student_id → active membership
+        all_memberships, _ = self._memberships.list_all(limit=500)
+        active_by_student: dict[str, Any] = {}
+        for m in all_memberships:
+            sid = getattr(m, "student_id", "")
+            m_status = getattr(m, "status", "")
+            if m_status == "active" and sid not in active_by_student:
+                active_by_student[sid] = m
+
+        result: list[dict[str, Any]] = []
+        for s in students:
+            membership = active_by_student.get(s.student_id)
+            end_d = getattr(membership, "end_date", None) if membership else None
+            end_d_str = (
+                end_d.isoformat() if hasattr(end_d, "isoformat") else str(end_d or "")
+            ) if end_d else ""
+
+            result.append(
+                {
+                    "student_id": s.student_id,
+                    "full_name": f"{s.first_name} {s.last_name}".strip(),
+                    "email": s.email,
+                    "phone": s.phone or "",
+                    "birth_date": (
+                        s.birth_date.isoformat()
+                        if hasattr(s.birth_date, "isoformat")
+                        else str(s.birth_date or "")
+                    ) if s.birth_date else "",
+                    "status": s.status,
+                    "membership_type": getattr(membership, "membership_type", "") if membership else "",
+                    "membership_status": getattr(membership, "status", "") if membership else "",
+                    "membership_expiry": end_d_str,
+                    "membership_price": float(getattr(membership, "price", 0) or 0) if membership else 0,
+                    "created_at": (
+                        s.created_at.isoformat()
+                        if hasattr(s.created_at, "isoformat")
+                        else str(s.created_at or "")
+                    ),
+                }
+            )
+
+        return result

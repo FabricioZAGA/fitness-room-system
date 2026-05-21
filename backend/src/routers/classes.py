@@ -140,17 +140,30 @@ def get_class_attendees(
             "status": r.status,
             "waitlist_position": r.waitlist_position,
             "created_at": r.created_at.isoformat() if r.created_at else None,
+            "reservation_type": getattr(r, "reservation_type", "member"),
+            "visitor_name": getattr(r, "visitor_name", None),
+            "visitor_phone": getattr(r, "visitor_phone", None),
         }
-        try:
-            item = stu_repo.get_item(f"STUDENT#{r.student_id}", "PROFILE")
-            if item:
-                student_info["first_name"] = item.get("first_name", "")
-                student_info["last_name"] = item.get("last_name", "")
-                student_info["email"] = item.get("email", "")
-                student_info["phone"] = item.get("phone")
-                student_info["full_name"] = f"{item.get('first_name', '')} {item.get('last_name', '')}".strip()
-        except Exception:
-            student_info["full_name"] = "Desconocido"
+        is_visitor = student_info["reservation_type"] in ("day_pass", "courtesy")
+        if is_visitor:
+            student_info["full_name"] = r.visitor_name or "Visitante"
+            student_info["first_name"] = (r.visitor_name or "V").split()[0]
+            student_info["last_name"] = ""
+            student_info["email"] = ""
+            student_info["phone"] = r.visitor_phone
+        else:
+            try:
+                item = stu_repo.get_item(f"STUDENT#{r.student_id}", "PROFILE")
+                if item:
+                    student_info["first_name"] = item.get("first_name", "")
+                    student_info["last_name"] = item.get("last_name", "")
+                    student_info["email"] = item.get("email", "")
+                    student_info["phone"] = item.get("phone")
+                    fname = item.get("first_name", "")
+                    lname = item.get("last_name", "")
+                    student_info["full_name"] = f"{fname} {lname}".strip()
+            except Exception:
+                student_info["full_name"] = "Desconocido"
 
         if r.status == "waitlisted":
             waitlisted.append(student_info)

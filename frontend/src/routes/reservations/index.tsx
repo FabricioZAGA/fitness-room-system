@@ -6,6 +6,8 @@ import { useStudents } from "@/hooks/useStudents";
 import { useReservationsForClass, useCancelReservation, useMarkAttendance } from "@/hooks/useReservations";
 import { ReservationStatusBadge } from "@/components/shared/StatusBadge";
 import { getClassTypeLabel } from "@/types/class";
+import { RESERVATION_TYPE_LABELS, RESERVATION_TYPE_COLORS } from "@/types/reservation";
+import type { ReservationType } from "@/types/reservation";
 import { useClassTypes } from "@/hooks/useCatalogs";
 import { formatDate, formatTime, getInitials } from "@/lib/utils";
 import { useState, useMemo } from "react";
@@ -213,6 +215,17 @@ function ReservationsPage(): React.JSX.Element {
             <div className="space-y-3">
               {reservations.map((res) => {
                 const member = studentMap[res.student_id];
+                const isVisitor = res.reservation_type === "day_pass" || res.reservation_type === "courtesy";
+                const displayName = isVisitor
+                  ? (res.visitor_name ?? "Visitante")
+                  : member
+                    ? member.name
+                    : `ID: ${res.student_id.slice(0, 8)}...`;
+                const displayInitials = isVisitor
+                  ? getInitials(res.visitor_name ?? "V")
+                  : member
+                    ? member.initials
+                    : res.student_id.slice(0, 2).toUpperCase();
                 return (
                   <div
                     key={res.reservation_id}
@@ -220,28 +233,40 @@ function ReservationsPage(): React.JSX.Element {
                   >
                     <div className="flex items-center gap-4">
                       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
-                        {member?.photo_url ? (
+                        {!isVisitor && member?.photo_url ? (
                           <img
                             src={member.photo_url}
                             alt={member.name}
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-[--color-success-bg] text-sm font-bold text-[--color-success]">
-                            {member ? member.initials : res.student_id.slice(0, 2).toUpperCase()}
+                          <div className={`flex h-full w-full items-center justify-center text-sm font-bold ${
+                            isVisitor
+                              ? "bg-[--gold-bg] text-[--gold]"
+                              : "bg-[--color-success-bg] text-[--color-success]"
+                          }`}>
+                            {displayInitials}
                           </div>
                         )}
                       </div>
                       <div>
                         <p className="text-lg font-semibold text-[--tx-primary]">
-                          {member ? member.name : `ID: ${res.student_id.slice(0, 8)}...`}
+                          {displayName}
                         </p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
                           <ReservationStatusBadge status={res.status} />
+                          {res.reservation_type && res.reservation_type !== "member" && (
+                            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${RESERVATION_TYPE_COLORS[res.reservation_type as ReservationType]}`}>
+                              {RESERVATION_TYPE_LABELS[res.reservation_type as ReservationType]}
+                            </span>
+                          )}
                           {res.waitlist_position !== null && (
                             <span className="text-xs text-[--color-warning]">
                               Lista de espera #{res.waitlist_position}
                             </span>
+                          )}
+                          {isVisitor && res.visitor_phone && (
+                            <span className="text-xs text-[--tx-disabled]">Tel: {res.visitor_phone}</span>
                           )}
                         </div>
                       </div>

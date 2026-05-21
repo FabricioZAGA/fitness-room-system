@@ -147,7 +147,13 @@
     "confirmUpdateContact": "Guardar y Reenviar Credenciales",
     "actions": "Acciones",
     "notifications": "Notificaciones",
-    "sending": "Enviando..."
+    "sending": "Enviando...",
+    "sortNameAsc": "Nombre A-Z",
+    "sortNameDesc": "Nombre Z-A",
+    "sortNewest": "Más recientes",
+    "sortOldest": "Más antiguos",
+    "exportExcel": "Exportar directorio Excel",
+    "exportPDF": "Exportar directorio PDF"
   },
   "classes": {
     "title": "Clases",
@@ -411,7 +417,8 @@
     "quantity": "Cantidad",
     "total": "Total",
     "sell": "Vender",
-    "register": "Registrar"
+    "register": "Registrar",
+    "printReceipt": "Imprimir recibo PDF"
   },
   "reportes": {
     "title": "Reportes",

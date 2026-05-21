@@ -12,9 +12,23 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.8.5";
+export const APP_VERSION = "1.9.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.9.0",
+    date: "2026-05-21",
+    title: "Reservaciones de visita/cortesía, exportación de directorio, recibo de corte de caja",
+    items: [
+      { icon: "🎟️", text: "Reservaciones: nuevo tipo 'Visita 1 día' y 'Cortesía' — permite reservar clase para visitantes sin membresía activa, con nombre y teléfono" },
+      { icon: "🧩", text: "Modal de añadir a clase con pestañas: Socio (búsqueda de miembro), Visita 1 día (formulario de visitante), Cortesía (formulario de visitante)" },
+      { icon: "🏷️", text: "Badges de tipo de reservación en detalle de clase y lista de reservaciones: Visita / Cortesía con colores diferenciados" },
+      { icon: "📋", text: "Directorio de miembros: ordenar por nombre A-Z/Z-A, fecha de registro, y exportar a Excel y PDF" },
+      { icon: "📄", text: "Reporte de ingresos: detalle de transacciones individuales ahora incluido en el PDF (antes solo en Excel)" },
+      { icon: "🧾", text: "Corte de caja: recibo imprimible con desglose por método de pago, exportable a PDF" },
+      { icon: "🌐", text: "Nuevas claves i18n: sort, export, printReceipt en es.json y en.json" },
+    ],
+  },
   {
     version: "1.8.5",
     date: "2026-05-19",

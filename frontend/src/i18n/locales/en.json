@@ -147,7 +147,13 @@
     "confirmUpdateContact": "Save & Resend Credentials",
     "actions": "Actions",
     "notifications": "Notifications",
-    "sending": "Sending..."
+    "sending": "Sending...",
+    "sortNameAsc": "Name A-Z",
+    "sortNameDesc": "Name Z-A",
+    "sortNewest": "Newest first",
+    "sortOldest": "Oldest first",
+    "exportExcel": "Export directory (Excel)",
+    "exportPDF": "Export directory (PDF)"
   },
   "classes": {
     "title": "Classes",
@@ -411,7 +417,8 @@
     "quantity": "Quantity",
     "total": "Total",
     "sell": "Sell",
-    "register": "Register"
+    "register": "Register",
+    "printReceipt": "Print receipt PDF"
   },
   "reportes": {
     "title": "Reports",

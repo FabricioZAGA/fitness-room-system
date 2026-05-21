@@ -25,6 +25,14 @@ from pydantic import BaseModel, Field
 from src.models.common import TimestampedModel, new_id, utc_now
 
 
+class ReservationType(StrEnum):
+    """Type of reservation (member, day pass, or courtesy)."""
+
+    MEMBER = "member"
+    DAY_PASS = "day_pass"
+    COURTESY = "courtesy"
+
+
 class ReservationStatus(StrEnum):
     """Reservation lifecycle status."""
 
@@ -40,6 +48,16 @@ class ReservationCreate(BaseModel):
 
     student_id: str = Field(..., description="Student ID making the reservation")
     class_id: str = Field(..., description="Class ID to reserve a spot in")
+    reservation_type: ReservationType = Field(
+        default=ReservationType.MEMBER,
+        description="Type: member, day_pass, or courtesy",
+    )
+    visitor_name: str | None = Field(
+        default=None, description="Name for day-pass / courtesy visitors",
+    )
+    visitor_phone: str | None = Field(
+        default=None, description="Phone for day-pass / courtesy visitors",
+    )
 
 
 class ReservationUpdate(BaseModel):
@@ -55,6 +73,9 @@ class ReservationResponse(TimestampedModel):
     student_id: str
     class_id: str
     status: ReservationStatus
+    reservation_type: str = "member"
+    visitor_name: str | None = None
+    visitor_phone: str | None = None
     waitlist_position: int | None = Field(
         default=None, description="Position in waitlist (null if confirmed)"
     )
@@ -75,6 +96,9 @@ class ReservationDynamoItem(BaseModel):
     student_id: str
     class_id: str
     status: str
+    reservation_type: str = ReservationType.MEMBER.value
+    visitor_name: str | None = None
+    visitor_phone: str | None = None
     class_date: str
     created_at: datetime
     updated_at: datetime
@@ -96,6 +120,9 @@ class ReservationDynamoItem(BaseModel):
             student_id=data.student_id,
             class_id=data.class_id,
             status=ReservationStatus.CONFIRMED.value,
+            reservation_type=data.reservation_type.value,
+            visitor_name=data.visitor_name,
+            visitor_phone=data.visitor_phone,
             class_date=class_date,
             created_at=now,
             updated_at=now,
@@ -108,6 +135,9 @@ class ReservationDynamoItem(BaseModel):
             student_id=self.student_id,
             class_id=self.class_id,
             status=ReservationStatus(self.status),
+            reservation_type=self.reservation_type,
+            visitor_name=self.visitor_name,
+            visitor_phone=self.visitor_phone,
             class_date=self.class_date,
             created_at=self.created_at,
             updated_at=self.updated_at,

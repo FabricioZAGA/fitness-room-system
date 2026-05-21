@@ -13,6 +13,7 @@ import {
   Users,
   Package,
   AlertTriangle,
+  FileText,
 } from "lucide-react";
 import {
   useCreateCashCut,
@@ -26,6 +27,11 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import type { CreateTransactionRequest, PaymentMethod, TransactionType } from "@/types/transaction";
 import { PAYMENT_METHOD_LABELS, TRANSACTION_TYPE_LABELS } from "@/types/transaction";
 import type { Product } from "@/types/inventory";
+import { transactionService } from "@/services/transactionService";
+import { useGymStore } from "@/store/useGymStore";
+
+const loadExportReports = (): Promise<typeof import("@/lib/exportReports")> =>
+  import("@/lib/exportReports");
 
 export const Route = createFileRoute("/caja/")({
   component: CajaPage,
@@ -70,6 +76,7 @@ function CajaPage(): React.JSX.Element {
     payment_method: "cash",
   });
 
+  const gymName = useGymStore((s) => s.name);
   const { data: summary } = useTodaySummary();
   const { data: todayTransactions = [] } = useTransactionsByDate(today);
   const { data: cashCuts = [] } = useCashCuts();
@@ -229,6 +236,18 @@ function CajaPage(): React.JSX.Element {
                     {t("caja.movements", { count: cut.transaction_count })}
                   </p>
                 </div>
+                <button
+                  onClick={async () => {
+                    const full = await transactionService.getCashCut(cut.cut_id);
+                    const m = await loadExportReports();
+                    m.exportCashCutPDF(full, gymName);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-xs font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
+                  title={t("caja.printReceipt")}
+                >
+                  <FileText className="h-4 w-4" />
+                  PDF
+                </button>
                 <span className="font-semibold text-[--tx-primary]">{formatCurrency(cut.grand_total)}</span>
               </div>
             ))}

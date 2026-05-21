@@ -360,20 +360,32 @@ function ClassDetailPanel({
             </div>
           ) : attendees && attendees.confirmed.length > 0 ? (
             <div className="space-y-2">
-              {attendees.confirmed.map((a) => (
-                <div
-                  key={a.reservation_id}
-                  className="flex items-center gap-3 rounded-lg border border-[--bd-subtle] bg-[--bg-muted]/30 px-3 py-2"
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[--color-success-bg] text-xs font-bold text-[--color-success]">
-                    {(a.first_name?.[0] ?? "?").toUpperCase()}
+              {attendees.confirmed.map((a) => {
+                const isVisitor = a.reservation_type === "day_pass" || a.reservation_type === "courtesy";
+                return (
+                  <div
+                    key={a.reservation_id}
+                    className="flex items-center gap-3 rounded-lg border border-[--bd-subtle] bg-[--bg-muted]/30 px-3 py-2"
+                  >
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
+                      isVisitor ? "bg-[--gold-bg] text-[--gold]" : "bg-[--color-success-bg] text-[--color-success]"
+                    }`}>
+                      {(a.first_name?.[0] ?? "?").toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-medium text-[--tx-primary]">{a.full_name || t("classes.noName")}</p>
+                        {isVisitor && (
+                          <span className="shrink-0 rounded-full border border-[--gold-bd] bg-[--gold-bg] px-1.5 py-0.5 text-[9px] font-semibold text-[--gold]">
+                            {a.reservation_type === "day_pass" ? "Visita" : "Cortesía"}
+                          </span>
+                        )}
+                      </div>
+                      <p className="truncate text-xs text-[--tx-disabled]">{a.email || ""}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-[--tx-primary]">{a.full_name || t("classes.noName")}</p>
-                    <p className="truncate text-xs text-[--tx-disabled]">{a.email || ""}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="py-2 text-center text-sm text-[--tx-disabled]">{t("classes.noEnrollments")}</p>

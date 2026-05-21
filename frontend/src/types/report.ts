@@ -81,3 +81,17 @@ export interface InactiveStudent {
   phone: string | null;
   last_checkin: string | null;
 }
+
+export interface StudentExportRow {
+  student_id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  birth_date: string;
+  status: string;
+  membership_type: string;
+  membership_status: string;
+  membership_expiry: string;
+  membership_price: number;
+  created_at: string;
+}

@@ -321,7 +321,12 @@ function ReportesPage(): React.JSX.Element {
                 <button
                   onClick={async () => {
                     const m = await loadExportReports();
-                    m.exportIncomePDF(income, incomePeriodLabel, gymName);
+                    const full = await reportService.incomeReport({
+                      start_date: incomeStart,
+                      end_date: incomeEnd,
+                      include_transactions: true,
+                    });
+                    m.exportIncomePDF(full, incomePeriodLabel, gymName);
                   }}
                   className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger]"
                 >

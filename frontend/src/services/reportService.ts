@@ -5,6 +5,7 @@ import type {
   IncomeReport,
   InactiveStudent,
   MembershipRangeReport,
+  StudentExportRow,
   StudentRanking,
 } from "@/types/report";
 import { apiClient } from "./apiClient";
@@ -57,6 +58,10 @@ export const reportService = {
     const res = await apiClient.get<InactiveStudent[]>("/reports/inactive", {
       params: days ? { days } : undefined,
     });
+    return res.data;
+  },
+  async studentsExport(): Promise<StudentExportRow[]> {
+    const res = await apiClient.get<StudentExportRow[]>("/reports/students-export");
     return res.data;
   },
 } as const;

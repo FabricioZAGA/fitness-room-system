@@ -60,6 +60,9 @@ export interface ClassAttendee {
   student_id: string;
   reservation_id: string;
   status: "confirmed" | "attended" | "waitlisted";
+  reservation_type?: string;
+  visitor_name?: string | null;
+  visitor_phone?: string | null;
   waitlist_position: number | null;
   created_at: string | null;
   first_name?: string;

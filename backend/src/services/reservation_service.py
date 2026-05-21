@@ -5,8 +5,8 @@ from typing import Any
 
 from aws_lambda_powertools import Logger
 
-from src.models.common import MX_TZ, mexico_now
-from src.models.reservation import ReservationCreate, ReservationResponse
+from src.models.common import MX_TZ, mexico_now, new_id
+from src.models.reservation import ReservationCreate, ReservationResponse, ReservationType
 from src.repositories.class_repository import ClassRepository
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.reservation_repository import ReservationRepository
@@ -56,19 +56,31 @@ class ReservationService:
         Returns:
             The created reservation (confirmed or waitlisted).
         """
+        is_visitor = data.reservation_type in (ReservationType.DAY_PASS, ReservationType.COURTESY)
+
+        # For visitors, generate a unique student_id so they don't collide.
+        if is_visitor and (not data.student_id or data.student_id.startswith("visitor_")):
+            data = data.model_copy(update={"student_id": f"visitor_{new_id()}"})
+
         logger.info(
             "Creating reservation",
-            extra={"student_id": data.student_id, "class_id": data.class_id},
+            extra={
+                "student_id": data.student_id,
+                "class_id": data.class_id,
+                "reservation_type": data.reservation_type,
+            },
         )
 
-        self._student_repo.get_by_id(data.student_id)
+        # Only validate student existence for member reservations.
+        if not is_visitor:
+            self._student_repo.get_by_id(data.student_id)
 
         class_item = self._class_repo.get_by_id(data.class_id)
 
         if class_item.is_cancelled:
             raise_bad_request(f"Class '{data.class_id}' has been cancelled.")
 
-        if not staff_override:
+        if not staff_override and not is_visitor:
             self._check_booking_window(class_item)
             self._check_daily_limit(data.student_id, class_item.class_date)
 

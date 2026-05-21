@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Loader2, Mail, Phone, Plus, Users } from "lucide-react";
+import { FileSpreadsheet, FileText, Loader2, Mail, Phone, Plus, Users } from "lucide-react";
 import { PageWrapper } from "@/components/shared/PageWrapper";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SearchInput } from "@/components/shared/SearchInput";
@@ -11,7 +11,14 @@ import { StudentStatusBadge } from "@/components/shared/StatusBadge";
 import { CreateStudentModal } from "@/components/shared/CreateStudentModal";
 import { useStudents } from "@/hooks/useStudents";
 import { getInitials } from "@/lib/utils";
+import { reportService } from "@/services/reportService";
+import { useGymStore } from "@/store/useGymStore";
 import type { StudentStatus } from "@/types/student";
+
+const loadExportReports = (): Promise<typeof import("@/lib/exportReports")> =>
+  import("@/lib/exportReports");
+
+type SortOption = "name_asc" | "name_desc" | "newest" | "oldest";
 
 export const Route = createFileRoute("/students/")({
   component: StudentsPage,
@@ -30,18 +37,51 @@ function StudentsPage(): React.JSX.Element {
   const [filter, setFilter] = useState<FilterValue>("all");
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [sort, setSort] = useState<SortOption>("name_asc");
+  const [exporting, setExporting] = useState(false);
+  const gymName = useGymStore((s) => s.name);
 
   const statusParam = filter === "all" ? undefined : filter;
   const { data, isLoading } = useStudents({ status: statusParam });
 
   const students = data?.items ?? [];
-  const filtered = search
+  const searched = search
     ? students.filter(
         (s) =>
           s.full_name.toLowerCase().includes(search.toLowerCase()) ||
           s.email.toLowerCase().includes(search.toLowerCase())
       )
     : students;
+
+  const filtered = [...searched].sort((a, b) => {
+    switch (sort) {
+      case "name_asc":
+        return a.full_name.localeCompare(b.full_name);
+      case "name_desc":
+        return b.full_name.localeCompare(a.full_name);
+      case "newest":
+        return (b.created_at ?? "").localeCompare(a.created_at ?? "");
+      case "oldest":
+        return (a.created_at ?? "").localeCompare(b.created_at ?? "");
+      default:
+        return 0;
+    }
+  });
+
+  const handleExport = async (format: "excel" | "pdf"): Promise<void> => {
+    setExporting(true);
+    try {
+      const data = await reportService.studentsExport();
+      const m = await loadExportReports();
+      if (format === "excel") {
+        m.exportStudentsDirectoryExcel(data, gymName);
+      } else {
+        m.exportStudentsDirectoryPDF(data, gymName);
+      }
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const total = data?.total ?? 0;
   const subtitle = t("students.membersCount", { count: total });
@@ -54,7 +94,7 @@ function StudentsPage(): React.JSX.Element {
         action={{ label: t("students.newStudent"), icon: Plus, onClick: () => setCreateOpen(true) }}
       />
 
-      {/* Search + Filters */}
+      {/* Search + Filters + Sort + Export */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <SearchInput
           value={search}
@@ -66,6 +106,36 @@ function StudentsPage(): React.JSX.Element {
           value={filter}
           onChange={setFilter}
         />
+        <div className="ml-auto flex items-center gap-2">
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortOption)}
+            className="rounded-xl border border-[--bd-default] bg-[--bg-muted] px-3 py-2 text-xs font-medium text-[--tx-muted] focus:border-[--gold] focus:outline-none"
+          >
+            <option value="name_asc">{t("students.sortNameAsc")}</option>
+            <option value="name_desc">{t("students.sortNameDesc")}</option>
+            <option value="newest">{t("students.sortNewest")}</option>
+            <option value="oldest">{t("students.sortOldest")}</option>
+          </select>
+          <button
+            onClick={() => void handleExport("excel")}
+            disabled={exporting}
+            className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-xs font-medium text-[--tx-muted] transition-all hover:border-[--color-success-bd] hover:text-[--color-success] disabled:opacity-50"
+            title={t("students.exportExcel")}
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Excel
+          </button>
+          <button
+            onClick={() => void handleExport("pdf")}
+            disabled={exporting}
+            className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2 text-xs font-medium text-[--tx-muted] transition-all hover:border-[--color-danger-bd] hover:text-[--color-danger] disabled:opacity-50"
+            title={t("students.exportPDF")}
+          >
+            <FileText className="h-4 w-4" />
+            PDF
+          </button>
+        </div>
       </div>
 
       {/* Content */}

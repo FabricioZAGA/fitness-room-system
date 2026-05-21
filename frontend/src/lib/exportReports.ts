@@ -6,6 +6,7 @@ import autoTable from "jspdf-autotable";
 import type {
   IncomeReport,
   MembershipRangeReport,
+  StudentExportRow,
 } from "@/types/report";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -393,6 +394,37 @@ export function exportIncomePDF(
     });
   }
 
+  // Transaction detail table (when include_transactions was requested)
+  if (income.transactions && income.transactions.length > 0) {
+    const lastYTx = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+    if (lastYTx > 250) doc.addPage();
+    const txStartY = lastYTx > 250 ? 14 : lastYTx;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 30, 30);
+    doc.text("Detalle de Transacciones", 14, txStartY);
+    autoTable(doc, {
+      startY: txStartY + 4,
+      head: [["Fecha", "Hora", "Alumno", "Tipo", "Método", "Monto", "Notas"]],
+      body: income.transactions
+        .slice()
+        .sort((a, b) => a.datetime.localeCompare(b.datetime))
+        .map((t) => [
+          t.date,
+          formatTime(t.datetime),
+          t.student_name || "—",
+          TX_TYPE_LABEL[t.transaction_type] ?? t.transaction_type,
+          PAYMENT_METHOD_LABEL[t.payment_method] ?? t.payment_method,
+          formatMXN(t.amount),
+          t.notes ?? "",
+        ]),
+      headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
+      styles: { fontSize: 7 },
+      columnStyles: { 6: { cellWidth: 40 } },
+      theme: "grid",
+    });
+  }
+
   doc.save(`ingresos_${period.replace(/\s/g, "_")}.pdf`);
 }
 
@@ -544,6 +576,153 @@ export function exportInactivePDF(
     theme: "grid",
   });
   doc.save(`inactivos_${days}dias.pdf`);
+}
+
+// ─── Cash Cut Receipt ────────────────────────────────────────────────────────
+
+export interface CashCutPDFData {
+  cut_id: string;
+  cut_date: string;
+  total_cash: number;
+  total_card: number;
+  total_transfer: number;
+  grand_total: number;
+  transaction_count: number;
+  notes: string | null;
+  transactions: {
+    transaction_id: string;
+    student_id: string | null;
+    transaction_type: string;
+    amount: number;
+    payment_method: string;
+    notes: string | null;
+    transaction_date: string;
+    created_at: string;
+  }[];
+}
+
+export function exportCashCutPDF(
+  cut: CashCutPDFData,
+  gymName: string,
+): void {
+  const doc = createPdfBase(gymTitle(gymName, "Corte de Caja", cut.cut_date));
+
+  autoTable(doc, {
+    startY: 34,
+    head: [["Concepto", "Monto"]],
+    body: [
+      ["Efectivo", formatMXN(cut.total_cash)],
+      ["Tarjeta", formatMXN(cut.total_card)],
+      ["Transferencia", formatMXN(cut.total_transfer)],
+      ["Total", formatMXN(cut.grand_total)],
+      ["Transacciones", String(cut.transaction_count)],
+    ],
+    headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
+    theme: "grid",
+  });
+
+  if (cut.notes) {
+    const lastY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Notas: ${cut.notes}`, 14, lastY);
+  }
+
+  if (cut.transactions.length > 0) {
+    const lastY2 = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + (cut.notes ? 14 : 8);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 30, 30);
+    doc.text("Detalle de Transacciones", 14, lastY2);
+    autoTable(doc, {
+      startY: lastY2 + 4,
+      head: [["Hora", "Tipo", "Método", "Monto", "Notas"]],
+      body: cut.transactions.map((t) => [
+        formatTime(t.created_at),
+        TX_TYPE_LABEL[t.transaction_type] ?? t.transaction_type,
+        PAYMENT_METHOD_LABEL[t.payment_method] ?? t.payment_method,
+        formatMXN(t.amount),
+        t.notes ?? "",
+      ]),
+      headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
+      styles: { fontSize: 8 },
+      theme: "grid",
+    });
+  }
+
+  doc.save(`corte_${cut.cut_date}.pdf`);
+}
+
+// ─── Students Directory Excel/PDF ────────────────────────────────────────────
+
+const STUDENT_STATUS_LABEL: Record<string, string> = {
+  active: "Activo",
+  inactive: "Inactivo",
+  suspended: "Suspendido",
+};
+
+const MEMBERSHIP_TYPE_LABEL: Record<string, string> = {
+  founder_monthly: "Socio Fundador",
+  room_daily: "Room Daily",
+  room_elite: "Room Elite",
+  room_flex: "Room Flex",
+  room_pass: "Room Pass",
+};
+
+export function exportStudentsDirectoryExcel(
+  students: StudentExportRow[],
+  gymName: string,
+): void {
+  const wb = XLSX.utils.book_new();
+  const rows: (string | number)[][] = [
+    [`${gymName} — Directorio de Alumnos (${students.length})`],
+    ["Generado", new Date().toLocaleString("es-MX")],
+    [],
+    ["Nombre", "Email", "Teléfono", "Fecha Nac.", "Estado", "Membresía", "Vencimiento", "Precio", "Inscripción"],
+    ...students.map((s) => [
+      s.full_name,
+      s.email,
+      s.phone || "—",
+      s.birth_date || "—",
+      STUDENT_STATUS_LABEL[s.status] ?? s.status,
+      (MEMBERSHIP_TYPE_LABEL[s.membership_type] ?? s.membership_type) || "Sin membresía",
+      s.membership_expiry || "—",
+      s.membership_price || 0,
+      s.created_at ? s.created_at.slice(0, 10) : "",
+    ]),
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [
+    { wch: 30 }, { wch: 28 }, { wch: 16 }, { wch: 12 },
+    { wch: 12 }, { wch: 20 }, { wch: 14 }, { wch: 10 }, { wch: 12 },
+  ];
+  XLSX.utils.book_append_sheet(wb, ws, "Alumnos");
+  XLSX.writeFile(wb, "directorio_alumnos.xlsx");
+}
+
+export function exportStudentsDirectoryPDF(
+  students: StudentExportRow[],
+  gymName: string,
+): void {
+  const doc = createPdfBase(gymTitle(gymName, `Directorio de Alumnos (${students.length})`));
+  autoTable(doc, {
+    startY: 34,
+    head: [["Nombre", "Email", "Tel.", "Estado", "Membresía", "Vence", "Precio"]],
+    body: students.map((s) => [
+      s.full_name,
+      s.email,
+      s.phone || "—",
+      STUDENT_STATUS_LABEL[s.status] ?? s.status,
+      (MEMBERSHIP_TYPE_LABEL[s.membership_type] ?? s.membership_type) || "—",
+      s.membership_expiry || "—",
+      s.membership_price ? formatMXN(s.membership_price) : "—",
+    ]),
+    headStyles: { fillColor: [20, 20, 20], textColor: [212, 175, 55], fontStyle: "bold" },
+    styles: { fontSize: 7 },
+    theme: "grid",
+  });
+  doc.save("directorio_alumnos.pdf");
 }
 
 // formatDateTime is used downstream from exports; suppress unused warning if any.

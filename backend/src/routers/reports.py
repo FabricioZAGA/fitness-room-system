@@ -135,3 +135,19 @@ def inactive_students(
     service: ReportService = Depends(get_service),
 ) -> list[dict[str, Any]]:
     return service.inactive_students(inactive_days=days)
+
+
+@router.get(
+    "/students-export",
+    summary="Students Directory Export",
+    description=(
+        "Return every student enriched with active membership info "
+        "(type, expiry, price, status). Used by the frontend to generate "
+        "an Excel/PDF directory for the gym owner."
+    ),
+)
+def students_export(
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: ReportService = Depends(get_service),
+) -> list[dict[str, Any]]:
+    return service.students_export()
