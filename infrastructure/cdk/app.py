@@ -74,6 +74,8 @@ auth_stack = AuthStack(
     domain=domain,
     admin_subdomain=admin_subdomain,
     portal_subdomain=portal_subdomain,
+    ses_sender_email=sender_email,
+    ses_sender_name=sender_name,
     env=aws_env,
     tags=common_tags,
 )

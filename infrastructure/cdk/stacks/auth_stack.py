@@ -28,6 +28,8 @@ class AuthStack(cdk.Stack):
         portal_subdomain: str = "portal",
         admin_cloudfront_url: str = "",
         portal_cloudfront_url: str = "",
+        ses_sender_email: str = "noreply@fitnessroom.mx",
+        ses_sender_name: str = "Fitness Room",
         **kwargs: object,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -69,6 +71,12 @@ class AuthStack(cdk.Stack):
             account_recovery=cognito.AccountRecovery.EMAIL_ONLY,
             removal_policy=(
                 cdk.RemovalPolicy.RETAIN if is_prod else cdk.RemovalPolicy.DESTROY
+            ),
+            email=cognito.UserPoolEmail.with_ses(
+                from_email=ses_sender_email,
+                from_name=ses_sender_name,
+                ses_region="us-west-2",
+                ses_verified_domain=domain or "fitnessroom.mx",
             ),
             mfa=cognito.Mfa.OPTIONAL,
             mfa_second_factor=cognito.MfaSecondFactor(
