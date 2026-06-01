@@ -33,6 +33,7 @@ class MembershipType(StrEnum):
     ROOM_ELITE = "room_elite"      # Room Elite — $1,600 — ilimitado L-S
     ROOM_FLEX = "room_flex"        # Room Flex — $1,150 — 12 sesiones/mes
     ROOM_PASS = "room_pass"        # Room Pass — $150 — 1 sesión mismo día
+    COURTESY = "courtesy"          # Cortesía — $0 — duración configurable, ilimitado (regalos/staff)
 
 
 class MembershipStatus(StrEnum):

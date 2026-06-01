@@ -5,6 +5,25 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.1] — 2026-06-01
+
+### Added
+
+- **Tipo de membresía `courtesy` (Cortesía)**: precio $0, duración configurable. Default 1 día, editable a cualquier rango (1 semana, 1 mes, etc.). Útil para regalos como Día del Padre, staff o invitados VIP. No genera transacción en caja.
+- **Modal `EditMembershipModal`**: nueva UI para editar membresías existentes — fecha de vencimiento, precio pagado, clases restantes, estado y notas. Disponible desde `/memberships` y desde el detalle del alumno.
+
+### Changed
+
+- **Asignación de membresía a alumno con activa**: el backend ahora cancela automáticamente la membresía activa anterior y crea la nueva. Antes devolvía 400 y la nueva no se podía crear sin pasos manuales.
+- **Toasts de error en hooks de membresías**: usan `getApiErrorMessage` para mostrar el `detail` real del backend en lugar de un mensaje genérico.
+
+### Fixed
+
+- **`MembershipRepository.update`**: `price_paid` se guardaba como string (`str(...)`), rompiendo todos los cálculos de ingresos posteriores. Ahora se guarda como número (Decimal en DynamoDB).
+- **`MembershipRepository.update`**: cambiar `status` a `active` no restauraba `GSI3SK = "ACTIVE_MEMBERSHIP"`, por lo que el check-in seguía sin reconocerla. Corregido.
+
+---
+
 ## [1.9.0] — 2026-05-21
 
 ### Added

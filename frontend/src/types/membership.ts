@@ -5,7 +5,8 @@ export type MembershipType =
   | "room_daily"
   | "room_elite"
   | "room_flex"
-  | "room_pass";
+  | "room_pass"
+  | "courtesy";
 
 export type MembershipStatus = "active" | "frozen" | "expired" | "cancelled" | "pending";
 
@@ -58,6 +59,7 @@ export const MEMBERSHIP_TYPE_LABELS: Record<MembershipType, string> = {
   room_elite: "Room Elite",
   room_flex: "Room Flex",
   room_pass: "Room Pass",
+  courtesy: "Cortesía",
 };
 
 /** Recommended price per plan (MXN). Editable in the create modal. */
@@ -67,4 +69,5 @@ export const MEMBERSHIP_DEFAULT_PRICE: Record<MembershipType, number> = {
   room_elite: 1600,
   room_flex: 1150,
   room_pass: 150,
+  courtesy: 0,
 };

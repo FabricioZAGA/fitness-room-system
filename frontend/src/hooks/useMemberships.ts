@@ -8,6 +8,7 @@ import type {
   UpdateMembershipRequest,
 } from "@/types/membership";
 import { membershipService } from "@/services/membershipService";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 export const MEMBERSHIPS_KEY = "memberships";
 
@@ -54,8 +55,8 @@ export function useAssignMembership() {
       qc.invalidateQueries({ queryKey: ["transactions"] });
       toast.success("Membresía asignada exitosamente.");
     },
-    onError: () => {
-      toast.error("Error al asignar la membresía.");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Error al asignar la membresía."));
     },
   });
 }
@@ -69,8 +70,8 @@ export function useUpdateMembership(studentId: string, membershipId: string) {
       qc.invalidateQueries({ queryKey: [MEMBERSHIPS_KEY] });
       toast.success("Membresía actualizada.");
     },
-    onError: () => {
-      toast.error("Error al actualizar la membresía.");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Error al actualizar la membresía."));
     },
   });
 }
@@ -84,8 +85,8 @@ export function useCancelMembership() {
       qc.invalidateQueries({ queryKey: [MEMBERSHIPS_KEY] });
       toast.success("Membresía cancelada.");
     },
-    onError: () => {
-      toast.error("Error al cancelar la membresía.");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Error al cancelar la membresía."));
     },
   });
 }
@@ -108,7 +109,8 @@ export function useFreezeMembership() {
         `Membresía congelada ${result.frozen_days_accumulated} días. Nueva fecha de vencimiento: ${result.end_date}`
       );
     },
-    onError: () => toast.error("Error al congelar la membresía."),
+    onError: (error) =>
+      toast.error(getApiErrorMessage(error, "Error al congelar la membresía.")),
   });
 }
 
@@ -121,6 +123,7 @@ export function useUnfreezeMembership() {
       qc.invalidateQueries({ queryKey: [MEMBERSHIPS_KEY] });
       toast.success("Membresía reactivada exitosamente.");
     },
-    onError: () => toast.error("Error al reactivar la membresía."),
+    onError: (error) =>
+      toast.error(getApiErrorMessage(error, "Error al reactivar la membresía.")),
   });
 }

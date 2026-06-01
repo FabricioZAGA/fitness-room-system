@@ -53,9 +53,17 @@ class MembershipService:
 
         existing_active = self._membership_repo.get_active_for_student(data.student_id)
         if existing_active:
-            raise_bad_request(
-                f"Student '{data.student_id}' already has an active membership "
-                f"(id: {existing_active.membership_id}). Cancel or expire it first."
+            logger.info(
+                "Auto-cancelling existing active membership for renewal",
+                extra={
+                    "student_id": data.student_id,
+                    "previous_membership_id": existing_active.membership_id,
+                },
+            )
+            self._membership_repo.update(
+                data.student_id,
+                existing_active.membership_id,
+                MembershipUpdate(status=MembershipStatus.CANCELLED),
             )
 
         item = self._membership_repo.create(data)

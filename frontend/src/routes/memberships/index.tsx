@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   CreditCard,
   Plus,
+  Pencil,
   Calendar,
   DollarSign,
   Mail,
@@ -17,6 +18,7 @@ import {
 import { useAllMemberships } from "@/hooks/useMemberships";
 import { useStudents } from "@/hooks/useStudents";
 import { CreateMembershipModal } from "@/components/shared/CreateMembershipModal";
+import { EditMembershipModal } from "@/components/shared/EditMembershipModal";
 import { useSendCustomNotification } from "@/hooks/useNotifications";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import type { Membership, MembershipStatus } from "@/types/membership";
@@ -32,6 +34,7 @@ function MembershipsPage(): React.JSX.Element {
   const { t } = useTranslation();
   const [createOpen, setCreateOpen] = useState(false);
   const [renewStudentId, setRenewStudentId] = useState<string | null>(null);
+  const [editMembership, setEditMembership] = useState<Membership | null>(null);
   const [tab, setTab] = useState<Tab>("active");
   const [search, setSearch] = useState("");
 
@@ -257,6 +260,7 @@ function MembershipsPage(): React.JSX.Element {
                 membership={m}
                 today={today}
                 student={studentMap[m.student_id]}
+                onEdit={() => setEditMembership(m)}
                 onRenew={
                   m.status === "expired" ||
                   (m.status === "active" && (m.days_until_expiry ?? 999) <= 30)
@@ -289,6 +293,11 @@ function MembershipsPage(): React.JSX.Element {
           studentId={renewStudentId}
         />
       )}
+      <EditMembershipModal
+        open={!!editMembership}
+        onClose={() => setEditMembership(null)}
+        membership={editMembership}
+      />
     </>
   );
 }
@@ -399,12 +408,14 @@ function MembershipCard({
   student,
   onRenew,
   onNotify,
+  onEdit,
 }: {
   membership: Membership;
   today: string;
   student?: { name: string; photo_url: string | null };
   onRenew?: () => void;
   onNotify?: () => void;
+  onEdit?: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation();
 
@@ -494,6 +505,16 @@ function MembershipCard({
 
       {/* Actions */}
       <div className="flex shrink-0 items-center gap-2">
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className="flex items-center gap-1.5 rounded-xl border border-[--bd-default] px-3 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]"
+            title={t("memberships.edit") ?? "Editar"}
+          >
+            <Pencil className="h-4 w-4" />
+            <span className="hidden sm:inline">Editar</span>
+          </button>
+        )}
         {onNotify && (
           <button
             onClick={onNotify}

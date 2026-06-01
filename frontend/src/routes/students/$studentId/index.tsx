@@ -17,6 +17,7 @@ import { useReservationsForStudent } from "@/hooks/useReservations";
 import { useClasses } from "@/hooks/useClasses";
 import { StudentStatusBadge, MembershipStatusBadge, ReservationStatusBadge } from "@/components/shared/StatusBadge";
 import { CreateMembershipModal } from "@/components/shared/CreateMembershipModal";
+import { EditMembershipModal } from "@/components/shared/EditMembershipModal";
 import { EditStudentModal } from "@/components/shared/EditStudentModal";
 import { Dialog } from "@/components/shared/Dialog";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
@@ -43,6 +44,7 @@ function StudentDetailPage(): React.JSX.Element {
   const [freezeOpen, setFreezeOpen] = useState(false);
   const [freezeMembershipId, setFreezeMembershipId] = useState<string | null>(null);
   const [freezeDays, setFreezeDays] = useState(14);
+  const [editMembershipId, setEditMembershipId] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
   const [suspendConfirmOpen, setSuspendConfirmOpen] = useState(false);
@@ -349,6 +351,14 @@ function StudentDetailPage(): React.JSX.Element {
                       </p>
                       <div className="flex items-center gap-2">
                         <MembershipStatusBadge status={m.status} />
+                        <button
+                          onClick={() => setEditMembershipId(m.membership_id)}
+                          className="flex items-center gap-1 rounded-lg border border-[--bd-default] bg-[--bg-muted] px-2 py-1 text-xs font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]"
+                          title="Editar membresía"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Editar
+                        </button>
                         {m.status === "active" && (
                           <button
                             onClick={() => { setFreezeMembershipId(m.membership_id); setFreezeOpen(true); }}
@@ -447,6 +457,15 @@ function StudentDetailPage(): React.JSX.Element {
         open={editOpen}
         onClose={() => setEditOpen(false)}
         student={student}
+      />
+      <EditMembershipModal
+        open={!!editMembershipId}
+        onClose={() => setEditMembershipId(null)}
+        membership={
+          editMembershipId
+            ? memberships.find((m) => m.membership_id === editMembershipId) ?? null
+            : null
+        }
       />
 
       {/* Freeze membership modal */}

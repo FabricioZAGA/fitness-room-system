@@ -143,8 +143,10 @@ class MembershipRepository(DynamoRepository):
             updates["status"] = data.status.value
             if data.status != MembershipStatus.ACTIVE:
                 updates["GSI3SK"] = f"INACTIVE_MEMBERSHIP#{membership_id}"
+            else:
+                updates["GSI3SK"] = "ACTIVE_MEMBERSHIP"
         if data.price_paid is not None:
-            updates["price_paid"] = str(data.price_paid)
+            updates["price_paid"] = data.price_paid
         if data.classes_remaining is not None:
             updates["classes_remaining"] = data.classes_remaining
         if data.notes is not None:

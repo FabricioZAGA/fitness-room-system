@@ -47,6 +47,7 @@ function addMonths(date: string, months: number): string {
 function endDateFor(type: MembershipType, startDate: string): string {
   switch (type) {
     case "room_pass":
+    case "courtesy":
       // Same-day pass: end_date must be > start_date, so we give +1 day.
       return addDays(startDate, 1);
     case "room_flex":

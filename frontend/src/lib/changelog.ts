@@ -12,9 +12,22 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.9.0";
+export const APP_VERSION = "1.9.1";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.9.1",
+    date: "2026-06-01",
+    title: "Membresías: tipo Cortesía, edición y arreglos al flujo de asignación",
+    items: [
+      { icon: "🎁", text: "Nuevo tipo de membresía 'Cortesía' — precio $0, duración configurable (default 1 día, editable a 1 semana, mes, etc.). Ideal para regalos de Día del Padre, staff o invitados VIP" },
+      { icon: "✏️", text: "Botón 'Editar' en cada membresía (en /memberships y en detalle de alumno): cambia fecha de vencimiento, precio, clases restantes, estado y notas" },
+      { icon: "🔄", text: "Asignar nueva membresía a un alumno con una activa ahora cancela automáticamente la anterior — antes el sistema bloqueaba la asignación con un toast genérico" },
+      { icon: "🐛", text: "Bug fix: editar el precio de una membresía lo guardaba como texto en DynamoDB, rompiendo cálculos de ingresos. Ahora se guarda como número" },
+      { icon: "🐛", text: "Bug fix: cambiar el estado de una membresía de inactiva a activa no restauraba el índice GSI3 ACTIVE_MEMBERSHIP, por lo que el check-in seguía sin reconocerla" },
+      { icon: "💬", text: "Mensajes de error de membresías ahora muestran el motivo real del backend en lugar de un toast genérico" },
+    ],
+  },
   {
     version: "1.9.0",
     date: "2026-05-21",
