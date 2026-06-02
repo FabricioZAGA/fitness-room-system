@@ -5,6 +5,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.2] — 2026-06-02
+
+### Fixed
+
+- **`/memberships` — nombres en blanco**: el frontend pedía `useStudents({ limit: 500 })` pero `GET /students` validaba `le=200`, devolviendo 422. La query fallaba silenciosamente, `studentMap` quedaba vacío y todas las tarjetas renderizaban `—`. Se subió el cap del endpoint a `le=500` para alinearlo con `/memberships` (que ya soportaba 500). El padrón completo ahora carga y los nombres vuelven a aparecer.
+
+---
+
 ## [1.9.1] — 2026-06-01
 
 ### Added

@@ -12,9 +12,17 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.9.1";
+export const APP_VERSION = "1.9.2";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.9.2",
+    date: "2026-06-02",
+    title: "Membresías: nombres de los miembros visibles otra vez",
+    items: [
+      { icon: "🐛", text: "Bug fix: en la pantalla de Membresías las tarjetas mostraban '—' en lugar del nombre del miembro. Causa: la pantalla pedía hasta 500 alumnos pero el servidor solo permitía 200, por lo que la lista regresaba vacía. Ahora el servidor acepta hasta 500 y los nombres se muestran correctamente" },
+    ],
+  },
   {
     version: "1.9.1",
     date: "2026-06-01",
