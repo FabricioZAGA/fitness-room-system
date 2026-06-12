@@ -28,6 +28,7 @@ import type {
 } from "@/types/inventory";
 import { PRODUCT_CATEGORY_LABELS } from "@/types/inventory";
 import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 export const Route = createFileRoute("/inventario/")({
@@ -42,6 +43,7 @@ const selectCls =
 
 function InventarioPage(): React.JSX.Element {
   const { t } = useTranslation();
+  const { isAdmin } = useAuth();
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("");
   const [showCreate, setShowCreate] = useState(false);
@@ -320,6 +322,7 @@ function InventarioPage(): React.JSX.Element {
               <ProductRow
                 key={product.product_id}
                 product={product}
+                isAdmin={isAdmin}
                 onSell={() => setSellProduct(product)}
                 onRestock={() => setRestockProduct(product)}
                 onEdit={() => openEditModal(product)}
@@ -637,43 +640,47 @@ function InventarioPage(): React.JSX.Element {
                   />
                 </div>
               </div>
-              {/* Stock with double confirmation */}
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                  {t("inventario.stockLabel")}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  className={inputCls}
-                  value={editForm.stock ?? 0}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setEditForm((f) => ({
-                      ...f,
-                      stock: v === "" ? 0 : Math.max(0, parseInt(v) || 0),
-                    }));
-                    setConfirmStockChange(false);
-                  }}
-                />
-              </div>
-              {stockChanged && (
-                <div className="rounded-xl border border-[--color-warning-bd] bg-[--color-warning-bg] p-3">
-                  <p className="text-xs text-[--color-warning] mb-2">
-                    {t("inventario.stockChangeWarning", { from: editProduct.stock, to: editForm.stock })}
-                  </p>
-                  <label className="flex items-center gap-2 cursor-pointer">
+              {/* Stock with double confirmation — admin only */}
+              {isAdmin && (
+                <>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+                      {t("inventario.stockLabel")}
+                    </label>
                     <input
-                      type="checkbox"
-                      checked={confirmStockChange}
-                      onChange={(e) => setConfirmStockChange(e.target.checked)}
-                      className="h-4 w-4 rounded border-[--bd-default] accent-[--gold]"
+                      type="number"
+                      min="0"
+                      className={inputCls}
+                      value={editForm.stock ?? 0}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setEditForm((f) => ({
+                          ...f,
+                          stock: v === "" ? 0 : Math.max(0, parseInt(v) || 0),
+                        }));
+                        setConfirmStockChange(false);
+                      }}
                     />
-                    <span className="text-xs font-medium text-[--color-warning]">
-                      {t("inventario.confirmStockChange")}
-                    </span>
-                  </label>
-                </div>
+                  </div>
+                  {stockChanged && (
+                    <div className="rounded-xl border border-[--color-warning-bd] bg-[--color-warning-bg] p-3">
+                      <p className="text-xs text-[--color-warning] mb-2">
+                        {t("inventario.stockChangeWarning", { from: editProduct.stock, to: editForm.stock })}
+                      </p>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={confirmStockChange}
+                          onChange={(e) => setConfirmStockChange(e.target.checked)}
+                          className="h-4 w-4 rounded border-[--bd-default] accent-[--gold]"
+                        />
+                        <span className="text-xs font-medium text-[--color-warning]">
+                          {t("inventario.confirmStockChange")}
+                        </span>
+                      </label>
+                    </div>
+                  )}
+                </>
               )}
             </div>
             {editErrors.length > 0 && !stockChanged && (
@@ -755,12 +762,14 @@ function InventarioPage(): React.JSX.Element {
 
 function ProductRow({
   product,
+  isAdmin,
   onSell,
   onRestock,
   onEdit,
   onToggleActive,
 }: {
   product: Product;
+  isAdmin: boolean;
   onSell: () => void;
   onRestock: () => void;
   onEdit: () => void;
@@ -804,13 +813,15 @@ function ProductRow({
             {t("inventario.sellButton")}
           </button>
         )}
-        <button
-          onClick={onEdit}
-          className="flex items-center gap-1 rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-muted] hover:border-[--gold-bd] hover:text-[--gold] transition-colors"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          {t("inventario.editButton")}
-        </button>
+        {isAdmin && (
+          <button
+            onClick={onEdit}
+            className="flex items-center gap-1 rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-muted] hover:border-[--gold-bd] hover:text-[--gold] transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            {t("inventario.editButton")}
+          </button>
+        )}
         <button
           onClick={onRestock}
           className="flex items-center gap-1 rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-muted] hover:border-[--gold-bd] hover:text-[--gold] transition-colors"
@@ -818,12 +829,14 @@ function ProductRow({
           <ArrowUpCircle className="h-3.5 w-3.5" />
           {t("inventario.restockButton")}
         </button>
-        <button
-          onClick={onToggleActive}
-          className="rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-disabled] hover:text-[--tx-muted] transition-colors"
-        >
-          {product.is_active ? t("inventario.deactivate") : t("inventario.activate")}
-        </button>
+        {isAdmin && (
+          <button
+            onClick={onToggleActive}
+            className="rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-disabled] hover:text-[--tx-muted] transition-colors"
+          >
+            {product.is_active ? t("inventario.deactivate") : t("inventario.activate")}
+          </button>
+        )}
       </div>
     </div>
   );
