@@ -50,6 +50,7 @@ function InventarioPage(): React.JSX.Element {
   const [restockQty, setRestockQty] = useState(1);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [editForm, setEditForm] = useState<Partial<UpdateProductRequest>>({});
+  const [confirmStockChange, setConfirmStockChange] = useState(false);
   const [createForm, setCreateForm] = useState<Partial<CreateProductRequest>>({
     category: "other",
     stock: 0,
@@ -145,14 +146,32 @@ function InventarioPage(): React.JSX.Element {
     setRestockQty(1);
   };
 
+  const stockChanged = editProduct != null && editForm.stock !== undefined && editForm.stock !== editProduct.stock;
+
+  const editErrors: string[] = [];
+  if (!editForm.name || editForm.name.trim().length < 2) {
+    editErrors.push(t("inventario.productName") + " — mínimo 2 caracteres");
+  }
+  if (editForm.price === undefined || editForm.price === null || Number.isNaN(editForm.price) || editForm.price <= 0) {
+    editErrors.push(t("inventario.price") + " — debe ser mayor a 0");
+  }
+  if (editForm.stock !== undefined && (Number.isNaN(editForm.stock) || editForm.stock < 0)) {
+    editErrors.push(t("inventario.stockLabel") + " — debe ser 0 o más");
+  }
+  if (stockChanged && !confirmStockChange) {
+    editErrors.push(t("inventario.confirmStockChange"));
+  }
+  const editDisabled = editErrors.length > 0 || updateMutation.isPending;
+
   const handleEdit = async () => {
-    if (!editProduct) return;
+    if (!editProduct || editDisabled) return;
     const payload: UpdateProductRequest = {};
     const name = (editForm.name ?? "").trim();
     if (name && name !== editProduct.name) payload.name = name;
     if (editForm.price !== undefined && editForm.price !== editProduct.price) payload.price = editForm.price;
     if (editForm.category && editForm.category !== editProduct.category) payload.category = editForm.category;
     if (editForm.low_stock_threshold !== undefined && editForm.low_stock_threshold !== editProduct.low_stock_threshold) payload.low_stock_threshold = editForm.low_stock_threshold;
+    if (editForm.stock !== undefined && editForm.stock !== editProduct.stock) payload.stock = editForm.stock;
     const sku = (editForm.sku ?? "").trim();
     if (sku !== (editProduct.sku ?? "")) payload.sku = sku || undefined;
     const description = (editForm.description ?? "").trim();
@@ -164,6 +183,7 @@ function InventarioPage(): React.JSX.Element {
     try {
       await updateMutation.mutateAsync({ productId: editProduct.product_id, data: payload });
       setEditProduct(null);
+      setConfirmStockChange(false);
     } catch {
       // useUpdateProduct surfaces the API error via toast; keep the modal open.
     }
@@ -173,11 +193,13 @@ function InventarioPage(): React.JSX.Element {
     setEditForm({
       name: product.name,
       price: product.price,
+      stock: product.stock,
       category: product.category,
       low_stock_threshold: product.low_stock_threshold,
       sku: product.sku ?? "",
       description: product.description ?? "",
     });
+    setConfirmStockChange(false);
     setEditProduct(product);
   };
 
@@ -615,7 +637,52 @@ function InventarioPage(): React.JSX.Element {
                   />
                 </div>
               </div>
+              {/* Stock with double confirmation */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+                  {t("inventario.stockLabel")}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  className={inputCls}
+                  value={editForm.stock ?? 0}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setEditForm((f) => ({
+                      ...f,
+                      stock: v === "" ? 0 : Math.max(0, parseInt(v) || 0),
+                    }));
+                    setConfirmStockChange(false);
+                  }}
+                />
+              </div>
+              {stockChanged && (
+                <div className="rounded-xl border border-[--color-warning-bd] bg-[--color-warning-bg] p-3">
+                  <p className="text-xs text-[--color-warning] mb-2">
+                    {t("inventario.stockChangeWarning", { from: editProduct.stock, to: editForm.stock })}
+                  </p>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={confirmStockChange}
+                      onChange={(e) => setConfirmStockChange(e.target.checked)}
+                      className="h-4 w-4 rounded border-[--bd-default] accent-[--gold]"
+                    />
+                    <span className="text-xs font-medium text-[--color-warning]">
+                      {t("inventario.confirmStockChange")}
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
+            {editErrors.length > 0 && !stockChanged && (
+              <ul className="mt-4 space-y-1 rounded-xl border border-[--color-warning-bd] bg-[--color-warning-bg] p-3 text-xs text-[--color-warning]">
+                {editErrors.map((err) => (
+                  <li key={err}>• {err}</li>
+                ))}
+              </ul>
+            )}
             <div className="mt-6 flex gap-3">
               <button
                 type="button"
@@ -626,7 +693,7 @@ function InventarioPage(): React.JSX.Element {
               </button>
               <button
                 type="submit"
-                disabled={updateMutation.isPending}
+                disabled={editDisabled}
                 className="flex-1 rounded-xl py-3 text-sm font-semibold disabled:opacity-50"
                 style={{
                   background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",

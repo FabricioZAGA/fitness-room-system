@@ -505,6 +505,9 @@
     "activate": "Activar",
     "editButton": "Editar",
     "editProductTitle": "Editar Producto",
-    "updateProduct": "Guardar Cambios"
+    "updateProduct": "Guardar Cambios",
+    "stockLabel": "Stock actual",
+    "stockChangeWarning": "Estás cambiando el stock de {{from}} a {{to}} unidades. Este cambio es directo y no queda registrado como reabastecimiento ni venta.",
+    "confirmStockChange": "Confirmo el cambio de stock"
   }
 }

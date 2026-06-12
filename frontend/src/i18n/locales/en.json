@@ -505,6 +505,9 @@
     "activate": "Activate",
     "editButton": "Edit",
     "editProductTitle": "Edit Product",
-    "updateProduct": "Save Changes"
+    "updateProduct": "Save Changes",
+    "stockLabel": "Current stock",
+    "stockChangeWarning": "You are changing stock from {{from}} to {{to}} units. This change is direct and won't be logged as a restock or sale.",
+    "confirmStockChange": "I confirm the stock change"
   }
 }
