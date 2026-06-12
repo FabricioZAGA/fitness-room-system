@@ -502,6 +502,9 @@
     "sellButton": "Vender",
     "restockButton": "Reabastecer",
     "deactivate": "Desact.",
-    "activate": "Activar"
+    "activate": "Activar",
+    "editButton": "Editar",
+    "editProductTitle": "Editar Producto",
+    "updateProduct": "Guardar Cambios"
   }
 }

@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   ArrowUpCircle,
   Search,
+  Pencil,
 } from "lucide-react";
 import {
   useProducts,
@@ -23,6 +24,7 @@ import type {
   CreateSaleRequest,
   Product,
   ProductCategory,
+  UpdateProductRequest,
 } from "@/types/inventory";
 import { PRODUCT_CATEGORY_LABELS } from "@/types/inventory";
 import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
@@ -46,6 +48,8 @@ function InventarioPage(): React.JSX.Element {
   const [sellProduct, setSellProduct] = useState<Product | null>(null);
   const [restockProduct, setRestockProduct] = useState<Product | null>(null);
   const [restockQty, setRestockQty] = useState(1);
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [editForm, setEditForm] = useState<Partial<UpdateProductRequest>>({});
   const [createForm, setCreateForm] = useState<Partial<CreateProductRequest>>({
     category: "other",
     stock: 0,
@@ -139,6 +143,42 @@ function InventarioPage(): React.JSX.Element {
     });
     setRestockProduct(null);
     setRestockQty(1);
+  };
+
+  const handleEdit = async () => {
+    if (!editProduct) return;
+    const payload: UpdateProductRequest = {};
+    const name = (editForm.name ?? "").trim();
+    if (name && name !== editProduct.name) payload.name = name;
+    if (editForm.price !== undefined && editForm.price !== editProduct.price) payload.price = editForm.price;
+    if (editForm.category && editForm.category !== editProduct.category) payload.category = editForm.category;
+    if (editForm.low_stock_threshold !== undefined && editForm.low_stock_threshold !== editProduct.low_stock_threshold) payload.low_stock_threshold = editForm.low_stock_threshold;
+    const sku = (editForm.sku ?? "").trim();
+    if (sku !== (editProduct.sku ?? "")) payload.sku = sku || undefined;
+    const description = (editForm.description ?? "").trim();
+    if (description !== (editProduct.description ?? "")) payload.description = description || undefined;
+    if (Object.keys(payload).length === 0) {
+      setEditProduct(null);
+      return;
+    }
+    try {
+      await updateMutation.mutateAsync({ productId: editProduct.product_id, data: payload });
+      setEditProduct(null);
+    } catch {
+      // useUpdateProduct surfaces the API error via toast; keep the modal open.
+    }
+  };
+
+  const openEditModal = (product: Product) => {
+    setEditForm({
+      name: product.name,
+      price: product.price,
+      category: product.category,
+      low_stock_threshold: product.low_stock_threshold,
+      sku: product.sku ?? "",
+      description: product.description ?? "",
+    });
+    setEditProduct(product);
   };
 
   const handleToggleActive = async (product: Product) => {
@@ -260,6 +300,7 @@ function InventarioPage(): React.JSX.Element {
                 product={product}
                 onSell={() => setSellProduct(product)}
                 onRestock={() => setRestockProduct(product)}
+                onEdit={() => openEditModal(product)}
                 onToggleActive={() => void handleToggleActive(product)}
               />
             ))}
@@ -482,6 +523,123 @@ function InventarioPage(): React.JSX.Element {
         </div>
       )}
 
+      {/* Edit modal */}
+      {editProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <form
+            className="w-full max-w-md rounded-2xl border border-[--gold-bd] p-6 shadow-2xl"
+            style={{ backgroundColor: "var(--bg-elevated)" }}
+            onSubmit={(e) => { e.preventDefault(); void handleEdit(); }}
+          >
+            <h2 className="mb-6 text-xl font-bold text-[--tx-primary]">{t("inventario.editProductTitle")}</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+                  {t("inventario.productName")} *
+                </label>
+                <input
+                  className={inputCls}
+                  value={editForm.name ?? ""}
+                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  autoFocus
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+                    {t("inventario.price")} *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className={inputCls}
+                    value={editForm.price ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setEditForm((f) => ({
+                        ...f,
+                        price: v === "" ? undefined : parseFloat(v),
+                      }));
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+                    {t("inventario.category")}
+                  </label>
+                  <select
+                    className={selectCls}
+                    value={editForm.category}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        category: e.target.value as ProductCategory,
+                      }))
+                    }
+                  >
+                    {Object.entries(PRODUCT_CATEGORY_LABELS).map(([val, label]) => (
+                      <option key={val} value={val}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+                    {t("inventario.lowStockThreshold")}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    className={inputCls}
+                    value={editForm.low_stock_threshold ?? 5}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        low_stock_threshold: parseInt(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+                    {t("inventario.sku")}
+                  </label>
+                  <input
+                    className={inputCls}
+                    value={editForm.sku ?? ""}
+                    onChange={(e) => setEditForm((f) => ({ ...f, sku: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setEditProduct(null)}
+                className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] hover:bg-[--bg-muted]"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="flex-1 rounded-xl py-3 text-sm font-semibold disabled:opacity-50"
+                style={{
+                  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                  color: "var(--gold-fg)",
+                }}
+              >
+                {updateMutation.isPending ? t("common.saving") : t("inventario.updateProduct")}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Restock modal */}
       {restockProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
@@ -532,11 +690,13 @@ function ProductRow({
   product,
   onSell,
   onRestock,
+  onEdit,
   onToggleActive,
 }: {
   product: Product;
   onSell: () => void;
   onRestock: () => void;
+  onEdit: () => void;
   onToggleActive: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation();
@@ -577,6 +737,13 @@ function ProductRow({
             {t("inventario.sellButton")}
           </button>
         )}
+        <button
+          onClick={onEdit}
+          className="flex items-center gap-1 rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-muted] hover:border-[--gold-bd] hover:text-[--gold] transition-colors"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          {t("inventario.editButton")}
+        </button>
         <button
           onClick={onRestock}
           className="flex items-center gap-1 rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-muted] hover:border-[--gold-bd] hover:text-[--gold] transition-colors"
