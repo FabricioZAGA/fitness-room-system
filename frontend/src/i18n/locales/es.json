@@ -73,7 +73,15 @@
     "noMovements": "Sin movimientos hoy",
     "cash": "Efectivo",
     "card": "Tarjeta",
-    "transfer": "Transfer."
+    "transfer": "Transfer.",
+    "greetingMorning": "Buenos días",
+    "greetingAfternoon": "Buenas tardes",
+    "greetingEvening": "Buenas noches",
+    "todayDate": "{{date}}",
+    "occupancy": "Ocupación",
+    "movements": "movimientos",
+    "last30Days": "Últimos 30 días",
+    "checkins": "check-ins"
   },
   "checkin": {
     "title": "Check-in",

@@ -73,7 +73,15 @@
     "noMovements": "No transactions today",
     "cash": "Cash",
     "card": "Card",
-    "transfer": "Transfer"
+    "transfer": "Transfer",
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "todayDate": "{{date}}",
+    "occupancy": "Occupancy",
+    "movements": "transactions",
+    "last30Days": "Last 30 days",
+    "checkins": "check-ins"
   },
   "checkin": {
     "title": "Check-in",
