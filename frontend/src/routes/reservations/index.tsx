@@ -27,12 +27,17 @@ function ReservationsPage(): React.JSX.Element {
 
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
   const weekEnd = new Date(Date.now() + 7 * 86400000).toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+  const monthStart = today.slice(0, 8) + "01";
+  const nextMonth = new Date(new Date(today + "T12:00:00").getFullYear(), new Date(today + "T12:00:00").getMonth() + 2, 0).toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+
+  const classParams = useMemo(() => {
+    if (dateFilter === "today") return { date: today, limit: 50 as const };
+    if (dateFilter === "week") return { start_date: today, end_date: weekEnd, limit: 100 as const };
+    return { start_date: monthStart, end_date: nextMonth, limit: 200 as const };
+  }, [dateFilter, today, weekEnd, monthStart, nextMonth]);
 
   const { data: classTypes = [] } = useClassTypes();
-  const { data: classesData, isLoading: classesLoading } = useClasses({
-    upcoming_only: false,
-    limit: 200,
-  });
+  const { data: classesData, isLoading: classesLoading } = useClasses(classParams);
   const { data: reservationsData, isLoading: resLoading } =
     useReservationsForClass(selectedClassId);
   const reservations = reservationsData?.items ?? [];
@@ -53,13 +58,8 @@ function ReservationsPage(): React.JSX.Element {
   const { mutate: cancelReservation } = useCancelReservation();
   const { mutate: markAttendance } = useMarkAttendance();
 
-  const allClasses = classesData?.items ?? [];
-  const classes = allClasses.filter((c) => {
-    if (dateFilter === "today") return c.class_date === today;
-    if (dateFilter === "week") return c.class_date >= today && c.class_date <= weekEnd;
-    return true;
-  });
-  const selectedClass = allClasses.find((c) => c.class_id === selectedClassId);
+  const classes = classesData?.items ?? [];
+  const selectedClass = classes.find((c) => c.class_id === selectedClassId);
 
   return (
     <div className="min-h-screen bg-[--bg-base] p-6">
