@@ -17,21 +17,22 @@ export function FilterTabs<T extends string>({
   onChange,
 }: FilterTabsProps<T>): React.JSX.Element {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5 rounded-xl bg-[--bg-muted]/50 p-1">
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+          className={`rounded-lg px-3.5 py-2 text-xs font-medium transition-all duration-200 ${
             value === opt.value
-              ? "shadow-md"
-              : "bg-[--bg-muted] text-[--tx-muted] hover:text-[--tx-primary]"
+              ? ""
+              : "text-[--tx-muted] hover:text-[--tx-primary] hover:bg-[--bg-muted]"
           }`}
           style={
             value === opt.value
               ? {
                   background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
                   color: "var(--gold-fg)",
+                  boxShadow: "var(--shadow-gold)",
                 }
               : undefined
           }

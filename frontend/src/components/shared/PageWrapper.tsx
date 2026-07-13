@@ -6,7 +6,7 @@ interface PageWrapperProps {
 
 export function PageWrapper({ children }: PageWrapperProps): React.JSX.Element {
   return (
-    <div className="min-h-screen bg-[--bg-base] p-6">
+    <div className="min-h-screen bg-[--bg-base] p-5 lg:p-8">
       {children}
     </div>
   );

@@ -90,10 +90,16 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
         return;
       }
 
+      const idTokenClaims = session.tokens?.idToken?.payload;
+      const displayName =
+        (idTokenClaims?.["name"] as string | undefined) ??
+        (idTokenClaims?.["preferred_username"] as string | undefined) ??
+        undefined;
+
       setUser({
         userId: currentUser.userId,
         email: currentUser.signInDetails?.loginId ?? "",
-        name: currentUser.username,
+        name: displayName,
         groups,
         role,
       });

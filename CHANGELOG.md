@@ -5,6 +5,28 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [2.0.0] — 2026-07-07
+
+### Added
+
+- **Dashboard 2.0**: rediseño completo con bento grid layout, stat cards con color por métrica (gold/info/success/warning), gradiente glassmorphism en tarjeta de ingresos, barras de progreso en ocupación de clases, ranking visual de alumnos con barras proporcionales y ícono de fuego para el #1.
+- **Saludo por hora del día**: "Buenos días / Buenas tardes / Buenas noches" con nombre del usuario y fecha actual en el header del dashboard.
+- **Edición de productos en Inventario**: modal con campos de nombre, precio, categoría, SKU y stock — solo admins pueden editar, con doble confirmación para cambios de stock y restricción de botones por rol.
+- **Traducciones i18n**: nuevos keys para saludo, ocupación, movimientos, check-ins, edición de producto.
+
+### Fixed
+
+- **Reservaciones rotas al cambiar de mes**: el frontend pedía `useClasses({ limit: 200 })` sin filtros de fecha, trayendo las 200 clases más antiguas. Al tener >200 clases totales, las de julio no aparecían. Ahora se usa filtrado por fecha del lado del servidor (`date`, `start_date`/`end_date`).
+- **Lista de Alumnos limitada a 50**: `/students` llamaba a `useStudents` sin `limit`, usando el default del backend (50). Ahora carga `limit: 200` como el resto de las listas con filtrado client-side. Pendiente: paginación server-side real (TODO en el código, ver Advertencias conocidas #2).
+- **Nombre de usuario mostraba UUID**: `currentUser.username` de Cognito es el UUID; ahora se lee el atributo `name` del ID token.
+
+### Changed
+
+- **Stat cards** ahora tienen color semántico: dorado (miembros), azul (clases), verde (instructores), naranja (por vencer) en lugar de todos dorados.
+- **Sidebar y dashboard** usan micro-interacciones: hover lift, scale en íconos, transiciones suaves.
+
+---
+
 ## [1.9.2] — 2026-06-02
 
 ### Fixed

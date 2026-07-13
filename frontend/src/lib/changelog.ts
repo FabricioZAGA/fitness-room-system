@@ -12,9 +12,22 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "1.9.2";
+export const APP_VERSION = "2.0.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "2.0.0",
+    date: "2026-07-07",
+    title: "Dashboard 2.0 — rediseño completo, fix reservaciones y edición de inventario",
+    items: [
+      { icon: "🎨", text: "Dashboard completamente rediseñado: bento grid, tarjetas con color por métrica, saludo según hora del día, gradientes glassmorphism en ingresos, barras de progreso en clases y ranking visual de alumnos" },
+      { icon: "🐛", text: "Fix crítico: la pestaña de Reservaciones dejó de funcionar al cambiar de mes (julio). Causa: se pedían las 200 clases más antiguas y las nuevas no aparecían. Ahora se usa filtrado por fecha del lado del servidor" },
+      { icon: "🐛", text: "Fix: la lista de Alumnos solo mostraba 50 registros (default del backend). Ahora carga hasta 200 como el resto de las listas" },
+      { icon: "✏️", text: "Inventario: nuevo botón Editar producto con modal completo — solo admins pueden editar, cambiar stock (con doble confirmación) y desactivar productos" },
+      { icon: "🌐", text: "Traducciones i18n actualizadas — nuevos keys para saludo, ocupación, movimientos y check-ins" },
+      { icon: "🔧", text: "Nombre de usuario en dashboard y sidebar ahora muestra el nombre real de Cognito en lugar del UUID" },
+    ],
+  },
   {
     version: "1.9.2",
     date: "2026-06-02",

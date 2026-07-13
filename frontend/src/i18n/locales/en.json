@@ -15,7 +15,8 @@
     "mainMenu": "Main Menu",
     "administration": "Administration",
     "logout": "Logout",
-    "managementSystem": "Management System"
+    "managementSystem": "Management System",
+    "reception": "Reception"
   },
   "common": {
     "cancel": "Cancel",

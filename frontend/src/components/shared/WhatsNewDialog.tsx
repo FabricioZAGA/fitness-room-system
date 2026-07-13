@@ -34,12 +34,15 @@ export function WhatsNewDialog(): React.JSX.Element | null {
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-md"
         onClick={handleClose}
       />
 
       {/* Dialog */}
-      <div className="relative mx-4 w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 rounded-3xl border border-[--bd-default] bg-[--bg-surface] shadow-2xl">
+      <div
+        className="relative mx-4 w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 rounded-3xl border border-[--bd-subtle] bg-[--bg-surface]"
+        style={{ boxShadow: "var(--shadow-lg)" }}
+      >
         {/* Header */}
         <div className="relative overflow-hidden rounded-t-3xl px-6 py-6">
           <div
@@ -67,7 +70,7 @@ export function WhatsNewDialog(): React.JSX.Element | null {
             </div>
             <button
               onClick={handleClose}
-              className="rounded-lg p-2 text-[--tx-disabled] hover:bg-[--bg-muted] hover:text-[--tx-primary] transition-colors"
+              className="rounded-lg p-2 text-[--tx-disabled] hover:bg-[--bg-muted] hover:text-[--tx-primary] transition-all duration-200 hover:rotate-90"
             >
               <X className="h-5 w-5" />
             </button>
@@ -98,13 +101,14 @@ export function WhatsNewDialog(): React.JSX.Element | null {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-[--bd-default] px-6 py-4">
+        <div className="border-t border-[--bd-subtle] px-6 py-4">
           <button
             onClick={handleClose}
-            className="w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all"
+            className="w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
             style={{
               background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
               color: "var(--gold-fg)",
+              boxShadow: "var(--shadow-gold)",
             }}
           >
             Entendido

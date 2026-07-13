@@ -43,25 +43,28 @@ export function Dialog({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
       <div
         ref={ref}
         className={cn(
-          "relative flex w-full max-h-[90vh] flex-col rounded-2xl border border-[--bd-default] shadow-2xl",
+          "relative flex w-full max-h-[90vh] flex-col rounded-2xl border border-[--bd-subtle]",
           widths[size]
         )}
-        style={{ backgroundColor: "var(--bg-elevated)" }}
+        style={{
+          backgroundColor: "var(--bg-elevated)",
+          boxShadow: "var(--shadow-lg), 0 0 0 1px var(--bd-subtle)",
+        }}
       >
-        <div className="flex shrink-0 items-start justify-between border-b border-[--bd-default] px-6 py-5">
+        <div className="flex shrink-0 items-start justify-between border-b border-[--bd-subtle] px-6 py-5">
           <div>
-            <h2 className="text-lg font-semibold text-[--tx-primary]">{title}</h2>
+            <h2 className="text-lg font-semibold tracking-tight text-[--tx-primary]">{title}</h2>
             {description && (
-              <p className="mt-0.5 text-sm text-[--tx-disabled]">{description}</p>
+              <p className="mt-1 text-sm text-[--tx-muted]">{description}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="ml-4 rounded-lg p-1.5 text-[--tx-disabled] transition-colors hover:bg-[--bg-muted] hover:text-[--tx-primary]"
+            className="ml-4 rounded-lg p-1.5 text-[--tx-disabled] transition-all duration-200 hover:bg-[--bg-muted] hover:text-[--tx-primary] hover:rotate-90"
           >
             <X className="h-4 w-4" />
           </button>

@@ -15,9 +15,9 @@ export const Route = createFileRoute("/login")({
 });
 
 const inputClass =
-  "w-full rounded-xl border-2 border-[--bd-default] bg-[--bg-input] py-4 pl-12 pr-4 text-lg text-[--tx-primary] placeholder-[--tx-disabled] transition-colors focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bg]";
+  "w-full rounded-xl border border-[--bd-default] bg-[--bg-input] py-3.5 pl-12 pr-4 text-base text-[--tx-primary] placeholder-[--tx-disabled] transition-all duration-200 focus:border-[--gold] focus:outline-none focus:shadow-[0_0_0_3px_var(--gold-bg)]";
 const inputClassPr14 =
-  "w-full rounded-xl border-2 border-[--bd-default] bg-[--bg-input] py-4 pl-12 pr-14 text-lg text-[--tx-primary] placeholder-[--tx-disabled] transition-colors focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bg]";
+  "w-full rounded-xl border border-[--bd-default] bg-[--bg-input] py-3.5 pl-12 pr-14 text-base text-[--tx-primary] placeholder-[--tx-disabled] transition-all duration-200 focus:border-[--gold] focus:outline-none focus:shadow-[0_0_0_3px_var(--gold-bg)]";
 
 function GoldButton({ children, disabled, onClick, type = "button" }: {
   children: React.ReactNode;
@@ -30,8 +30,12 @@ function GoldButton({ children, disabled, onClick, type = "button" }: {
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className="w-full rounded-xl py-4 text-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-      style={{ backgroundColor: "var(--gold)", color: "var(--gold-fg)", boxShadow: "0 4px 16px var(--gold-bg)" }}
+      className="w-full rounded-xl py-3.5 text-base font-semibold transition-all duration-200 hover:brightness-110 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:brightness-100"
+      style={{
+        background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+        color: "var(--gold-fg)",
+        boxShadow: "var(--shadow-gold)",
+      }}
     >
       {children}
     </button>
@@ -194,7 +198,7 @@ function LoginPage(): React.JSX.Element {
       {/* Left side - Branding */}
       <div
         className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12"
-        style={{ background: "linear-gradient(135deg, #0a0a0a 0%, #1a1500 50%, #0a0a0a 100%)" }}
+        style={{ background: "linear-gradient(160deg, #09090b 0%, #1a1600 40%, #09090b 100%)" }}
       >
         <div className="max-w-md text-center">
           <div className="mb-8 flex justify-center">
@@ -202,7 +206,7 @@ function LoginPage(): React.JSX.Element {
               className="rounded-2xl p-6"
               style={{
                 background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-                boxShadow: "0 8px 32px var(--gold-bg)",
+                boxShadow: "var(--shadow-gold)",
               }}
             >
               <Dumbbell className="h-20 w-20" style={{ color: "var(--gold-fg)" }} />
@@ -293,8 +297,8 @@ function LoginPage(): React.JSX.Element {
             </div>
           )}
           {successMsg && (
-            <div className="mb-6 rounded-xl p-4" style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)" }}>
-              <p className="text-sm" style={{ color: "#22c55e" }}>{successMsg}</p>
+            <div className="mb-6 rounded-xl bg-[--color-success-bg] border border-[--color-success-bd] p-4">
+              <p className="text-sm text-[--color-success]">{successMsg}</p>
             </div>
           )}
 

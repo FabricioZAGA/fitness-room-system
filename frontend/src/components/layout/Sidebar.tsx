@@ -12,6 +12,7 @@ import {
   Receipt,
   Settings,
   Shield,
+  Sparkles,
   UserCog,
   Users,
 } from "lucide-react";
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { useGymStore } from "@/store/useGymStore";
+import { APP_VERSION } from "@/lib/changelog";
 
 interface NavItem {
   label: string;
@@ -47,15 +49,15 @@ function useNavItems(): NavItem[] {
 }
 
 const navItemCls = cn(
-  "flex items-center gap-4 rounded-xl px-4 py-3.5 text-base font-medium transition-all",
-  "text-[--tx-muted] hover:bg-[--bg-muted] hover:text-[--tx-primary]"
+  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+  "text-[--tx-muted] hover:bg-[--bg-muted]/60 hover:text-[--tx-primary]"
 );
 
 const navActiveProps = {
-  style: {
-    background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-    color: "var(--gold-fg)",
-  },
+  className: cn(
+    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200",
+    "bg-[--gold-bg] text-[--gold] border border-[--gold-bd]"
+  ),
 } as const;
 
 export function Sidebar(): React.JSX.Element {
@@ -69,64 +71,83 @@ export function Sidebar(): React.JSX.Element {
   const operationsItems = visibleItems.filter((i) => i.section === "operations");
   const adminItems = visibleItems.filter((i) => i.section === "admin");
 
+  const initials = user?.name
+    ? user.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
+    : "U";
+
   return (
-    <aside className="flex h-screen w-72 flex-col bg-[--bg-surface] border-r border-[--bd-default]">
-      {/* Logo */}
-      <div className="flex h-20 items-center gap-3 border-b border-[--bd-default] px-6">
+    <aside
+      className="flex h-screen w-72 flex-col border-r border-[--bd-subtle]"
+      style={{ background: "var(--bg-surface)" }}
+    >
+      {/* ── Brand header ── */}
+      <div className="flex items-center gap-3 px-5 py-5">
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
           style={{
             background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-            boxShadow: "0 4px 14px var(--gold-bg)",
+            boxShadow: "var(--shadow-gold)",
           }}
         >
-          <Dumbbell className="h-7 w-7 text-[--gold-fg]" />
+          <Dumbbell className="h-6 w-6 text-[--gold-fg]" />
         </div>
-        <div>
-          <span className="block text-lg font-bold text-[--tx-primary]">{gymName}</span>
-          <span className="text-xs text-[--tx-muted]">{t("nav.managementSystem")}</span>
+        <div className="min-w-0">
+          <span className="block text-base font-bold tracking-tight text-[--tx-primary] truncate">{gymName}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-[--tx-disabled]">{t("nav.managementSystem")}</span>
+            <span className="text-[10px] font-mono font-medium text-[--gold] bg-[--gold-bg] px-1.5 py-0.5 rounded">
+              v{APP_VERSION}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Quick Check-in Action */}
-      <div className="p-4">
+      {/* ── Quick Check-in CTA ── */}
+      <div className="px-4 pb-3">
         {operationsItems.map((item) => (
           <Link
             key={item.to}
             to={item.to}
-            className="flex items-center justify-center gap-3 rounded-xl px-4 py-4 text-base font-semibold transition-all hover:scale-[1.02]"
+            className="flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
             style={{
               background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
               color: "var(--gold-fg)",
-              boxShadow: "0 4px 16px var(--gold-bg)",
+              boxShadow: "var(--shadow-gold)",
             }}
           >
-            <item.icon className="h-6 w-6" />
+            <Sparkles className="h-4 w-4" />
             {item.label}
           </Link>
         ))}
       </div>
 
-      {/* Main Navigation */}
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 pb-4">
-        <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">
+      {/* ── Separator ── */}
+      <div className="mx-5 border-t border-[--bd-subtle]" />
+
+      {/* ── Main Navigation ── */}
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-3">
+        <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-widest text-[--tx-disabled]">
           {t("nav.mainMenu")}
         </p>
         {mainItems.map((item) => (
           <Link key={item.to} to={item.to} className={navItemCls} activeProps={navActiveProps}>
-            <item.icon className="h-5 w-5 shrink-0" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[--bg-muted]/50 transition-colors group-hover:bg-[--bg-muted]">
+              <item.icon className="h-4 w-4 shrink-0" />
+            </div>
             {item.label}
           </Link>
         ))}
 
         {adminItems.length > 0 && (
           <>
-            <p className="mb-2 mt-6 px-3 text-xs font-semibold uppercase tracking-wider text-[--tx-disabled]">
+            <p className="mb-1.5 mt-4 px-3 text-[11px] font-semibold uppercase tracking-widest text-[--tx-disabled]">
               {t("nav.administration")}
             </p>
             {adminItems.map((item) => (
               <Link key={item.to} to={item.to} className={navItemCls} activeProps={navActiveProps}>
-                <item.icon className="h-5 w-5 shrink-0" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[--bg-muted]/50 transition-colors group-hover:bg-[--bg-muted]">
+                  <item.icon className="h-4 w-4 shrink-0" />
+                </div>
                 {item.label}
               </Link>
             ))}
@@ -134,36 +155,53 @@ export function Sidebar(): React.JSX.Element {
         )}
       </nav>
 
-      {/* User section */}
-      <div className="border-t border-[--bd-default] p-4">
-        <div className="flex items-center gap-3 rounded-xl bg-[--bg-muted] p-3">
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold border border-[--gold-bd] bg-[--gold-bg] text-[--gold]"
-          >
-            {user?.name?.charAt(0).toUpperCase() ?? "U"}
+      {/* ── User section ── */}
+      <div className="border-t border-[--bd-subtle] px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          {/* Avatar with gradient ring */}
+          <div className="relative shrink-0">
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold"
+              style={{
+                background: "linear-gradient(135deg, var(--gold-bg) 0%, var(--bg-muted) 100%)",
+                border: "2px solid var(--gold-bd)",
+                color: "var(--gold)",
+              }}
+            >
+              {initials}
+            </div>
+            <div
+              className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2"
+              style={{
+                borderColor: "var(--bg-surface)",
+                background: "var(--color-success)",
+              }}
+            />
           </div>
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <p className="truncate text-sm font-medium text-[--tx-primary]">
-                {user?.name ?? "Usuario"}
+              <p className="truncate text-sm font-semibold text-[--tx-primary]">
+                {user?.name ?? user?.email?.split("@")[0] ?? "Usuario"}
               </p>
               <span className={cn(
-                "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase",
+                "shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
                 isAdmin
                   ? "bg-[--gold-bg] text-[--gold] border border-[--gold-bd]"
                   : "bg-[--color-info-bg] text-[--color-info] border border-[--color-info-bd]"
               )}>
-                {isAdmin ? "Admin" : "Recepción"}
+                {isAdmin ? "Admin" : t("nav.reception")}
               </span>
             </div>
-            <p className="truncate text-xs text-[--tx-muted]">{user?.email}</p>
+            <p className="truncate text-[11px] text-[--tx-disabled]">{user?.email}</p>
           </div>
+
           <button
             onClick={() => logout()}
-            className="rounded-lg p-2 text-[--tx-disabled] hover:bg-[--bg-elevated] hover:text-[--tx-primary] transition-colors"
+            className="shrink-0 rounded-lg p-2 text-[--tx-disabled] hover:bg-[--color-danger-bg] hover:text-[--color-danger] transition-all duration-200"
             title={t("nav.logout")}
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>

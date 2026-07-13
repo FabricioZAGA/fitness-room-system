@@ -42,7 +42,12 @@ function StudentsPage(): React.JSX.Element {
   const gymName = useGymStore((s) => s.name);
 
   const statusParam = filter === "all" ? undefined : filter;
-  const { data, isLoading } = useStudents({ status: statusParam });
+  // Load up to 200 (convención del sistema para listas con filtrado client-side).
+  // El default del backend es 50, lo que dejaba invisibles a los alumnos restantes.
+  // TODO(pagination): parche temporal. El backend ya soporta last_key/has_more.
+  // Implementar paginación server-side real (botón "cargar más" o scroll infinito)
+  // antes de superar 500 alumnos — ver Advertencias conocidas #2 en CLAUDE.md.
+  const { data, isLoading } = useStudents({ status: statusParam, limit: 200 });
 
   const students = data?.items ?? [];
   const searched = search

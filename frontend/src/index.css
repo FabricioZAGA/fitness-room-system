@@ -2,54 +2,68 @@
 
 /* ─────────────────────────────────────────────
    DESIGN TOKENS — Dark (default)
+   v2.0 — 2026-27 Aesthetic
    ───────────────────────────────────────────── */
 :root,
 [data-theme="dark"] {
-  /* Backgrounds */
-  --bg-base: #0a0a0a;
-  --bg-surface: #111111;
-  --bg-elevated: #1a1a1a;
-  --bg-muted: #222222;
-  --bg-input: #1a1a1a;
+  /* Backgrounds — deeper, richer blacks */
+  --bg-base: #09090b;
+  --bg-surface: #0f0f12;
+  --bg-elevated: #18181b;
+  --bg-muted: #1f1f23;
+  --bg-input: #16161a;
 
-  /* Borders */
-  --bd-default: #2a2a2a;
-  --bd-subtle: #1e1e1e;
+  /* Borders — softer, less harsh */
+  --bd-default: #27272a;
+  --bd-subtle: #1c1c1f;
 
-  /* Text */
-  --tx-primary: #f0f0f0;
-  --tx-muted: #888888;
-  --tx-disabled: #555555;
+  /* Text — slightly warmer whites */
+  --tx-primary: #f4f4f5;
+  --tx-muted: #a1a1aa;
+  --tx-disabled: #52525b;
 
-  /* Brand — Gold */
+  /* Brand — Gold, refined */
   --gold: #d4af37;
   --gold-hover: #e5c158;
   --gold-active: #c49c26;
-  --gold-bg: rgba(212, 175, 55, 0.10);
-  --gold-bd: rgba(212, 175, 55, 0.25);
-  --gold-fg: #0a0a0a;
+  --gold-bg: rgba(212, 175, 55, 0.08);
+  --gold-bd: rgba(212, 175, 55, 0.20);
+  --gold-fg: #09090b;
+  --gold-glow: rgba(212, 175, 55, 0.15);
 
-  /* Status colors */
+  /* Status colors — vibrant but not neon */
   --color-success: #22c55e;
-  --color-success-bg: rgba(34, 197, 94, 0.10);
-  --color-success-bd: rgba(34, 197, 94, 0.25);
+  --color-success-bg: rgba(34, 197, 94, 0.08);
+  --color-success-bd: rgba(34, 197, 94, 0.20);
   --color-warning: #f59e0b;
-  --color-warning-bg: rgba(245, 158, 11, 0.10);
-  --color-warning-bd: rgba(245, 158, 11, 0.25);
+  --color-warning-bg: rgba(245, 158, 11, 0.08);
+  --color-warning-bd: rgba(245, 158, 11, 0.20);
   --color-danger: #ef4444;
-  --color-danger-bg: rgba(239, 68, 68, 0.10);
-  --color-danger-bd: rgba(239, 68, 68, 0.25);
+  --color-danger-bg: rgba(239, 68, 68, 0.08);
+  --color-danger-bd: rgba(239, 68, 68, 0.20);
   --color-info: #3b82f6;
-  --color-info-bg: rgba(59, 130, 246, 0.10);
-  --color-info-bd: rgba(59, 130, 246, 0.25);
+  --color-info-bg: rgba(59, 130, 246, 0.08);
+  --color-info-bd: rgba(59, 130, 246, 0.20);
 
-  /* Legacy compat — keep working until SWE-1.6 migration */
+  /* Glass — 2026 glassmorphism tokens */
+  --glass-bg: rgba(15, 15, 18, 0.70);
+  --glass-bd: rgba(255, 255, 255, 0.06);
+  --glass-blur: 16px;
+
+  /* Shadows — layered depth */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.25);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.35);
+  --shadow-gold: 0 4px 20px var(--gold-glow);
+
+  /* Legacy compat */
   --color-primary: var(--gold);
   --color-primary-foreground: var(--gold-fg);
   --color-accent: var(--gold-hover);
   --color-background: var(--bg-base);
   --color-card: var(--bg-surface);
-  --radius: 0.75rem;
+  --radius: 0.875rem;
+  --radius-lg: 1.25rem;
   --font-family: "Inter", "system-ui", sans-serif;
 }
 
@@ -58,42 +72,54 @@
    ───────────────────────────────────────────── */
 [data-theme="light"] {
   /* Backgrounds */
-  --bg-base: #f5f5f5;
+  --bg-base: #fafafa;
   --bg-surface: #ffffff;
   --bg-elevated: #ffffff;
-  --bg-muted: #eeeeee;
-  --bg-input: #f8f8f8;
+  --bg-muted: #f0f0f0;
+  --bg-input: #f5f5f5;
 
   /* Borders */
-  --bd-default: #e0e0e0;
-  --bd-subtle: #ebebeb;
+  --bd-default: #e4e4e7;
+  --bd-subtle: #ececef;
 
   /* Text */
-  --tx-primary: #0a0a0a;
-  --tx-muted: #666666;
-  --tx-disabled: #aaaaaa;
+  --tx-primary: #09090b;
+  --tx-muted: #71717a;
+  --tx-disabled: #a1a1aa;
 
   /* Brand — Gold (darker for readability on light bg) */
   --gold: #a67c00;
   --gold-hover: #c09000;
   --gold-active: #8a6800;
-  --gold-bg: rgba(166, 124, 0, 0.08);
-  --gold-bd: rgba(166, 124, 0, 0.25);
+  --gold-bg: rgba(166, 124, 0, 0.06);
+  --gold-bd: rgba(166, 124, 0, 0.20);
   --gold-fg: #ffffff;
+  --gold-glow: rgba(166, 124, 0, 0.12);
 
   /* Status colors */
   --color-success: #16a34a;
-  --color-success-bg: rgba(22, 163, 74, 0.10);
-  --color-success-bd: rgba(22, 163, 74, 0.25);
+  --color-success-bg: rgba(22, 163, 74, 0.06);
+  --color-success-bd: rgba(22, 163, 74, 0.20);
   --color-warning: #d97706;
-  --color-warning-bg: rgba(217, 119, 6, 0.10);
-  --color-warning-bd: rgba(217, 119, 6, 0.25);
+  --color-warning-bg: rgba(217, 119, 6, 0.06);
+  --color-warning-bd: rgba(217, 119, 6, 0.20);
   --color-danger: #dc2626;
-  --color-danger-bg: rgba(220, 38, 38, 0.10);
-  --color-danger-bd: rgba(220, 38, 38, 0.25);
+  --color-danger-bg: rgba(220, 38, 38, 0.06);
+  --color-danger-bd: rgba(220, 38, 38, 0.20);
   --color-info: #2563eb;
-  --color-info-bg: rgba(37, 99, 235, 0.10);
-  --color-info-bd: rgba(37, 99, 235, 0.25);
+  --color-info-bg: rgba(37, 99, 235, 0.06);
+  --color-info-bd: rgba(37, 99, 235, 0.20);
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.70);
+  --glass-bd: rgba(0, 0, 0, 0.06);
+  --glass-blur: 16px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  --shadow-gold: 0 4px 20px var(--gold-glow);
 
   /* Legacy compat */
   --color-primary: var(--gold);
@@ -101,12 +127,13 @@
   --color-accent: var(--gold-hover);
   --color-background: var(--bg-base);
   --color-card: var(--bg-surface);
-  --radius: 0.75rem;
+  --radius: 0.875rem;
+  --radius-lg: 1.25rem;
   --font-family: "Inter", "system-ui", sans-serif;
 }
 
 /* ─────────────────────────────────────────────
-   BASE STYLES
+   BASE STYLES — v2.0
    ───────────────────────────────────────────── */
 @layer base {
   * {
@@ -129,6 +156,7 @@
   textarea:disabled,
   select:disabled {
     cursor: not-allowed;
+    opacity: 0.5;
   }
 
   html {
@@ -143,13 +171,14 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Minimal scrollbar — almost invisible until hovered */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--bg-muted);
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
@@ -163,7 +192,7 @@
 }
 
 /* ─────────────────────────────────────────────
-   COMPONENT UTILITIES (token-based)
+   COMPONENT UTILITIES — v2.0
    ───────────────────────────────────────────── */
 @layer components {
   /* Surfaces */
@@ -172,63 +201,90 @@
   .surface-elevated { background-color: var(--bg-elevated); }
   .surface-muted { background-color: var(--bg-muted); }
 
+  /* Glass surface — 2026 glassmorphism */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-bd);
+  }
+
   /* Cards */
   .card {
     background-color: var(--bg-surface);
     border-radius: var(--radius);
     border: 1px solid var(--bd-default);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .card:hover {
+    border-color: var(--gold-bd);
   }
 
   .card-elevated {
     background-color: var(--bg-elevated);
     border-radius: var(--radius);
     border: 1px solid var(--bd-default);
+    box-shadow: var(--shadow-sm);
   }
 
-  /* Gold brand buttons */
+  /* Gold brand buttons — gradient with glow */
   .btn-primary {
-    background-color: var(--gold);
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%);
     color: var(--gold-fg);
-    border-radius: calc(var(--radius) - 2px);
-    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    padding: 0.625rem 1.25rem;
     font-weight: 600;
-    transition: background-color 0.15s, opacity 0.15s;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-gold);
   }
 
   .btn-primary:hover {
-    background-color: var(--gold-hover);
+    filter: brightness(1.08);
+    box-shadow: 0 6px 24px var(--gold-glow);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+    filter: brightness(0.95);
   }
 
   .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
+    filter: none;
   }
 
   .btn-ghost {
     background-color: transparent;
     color: var(--tx-muted);
     border: 1px solid var(--bd-default);
-    border-radius: calc(var(--radius) - 2px);
-    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    padding: 0.625rem 1.25rem;
     font-weight: 500;
-    transition: all 0.15s;
+    font-size: 0.875rem;
+    transition: all 0.2s;
   }
 
   .btn-ghost:hover {
     border-color: var(--gold-bd);
     color: var(--tx-primary);
+    background-color: var(--gold-bg);
   }
 
-  /* Inputs */
+  /* Inputs — refined focus ring */
   .input {
     width: 100%;
     background-color: var(--bg-input);
     border: 1px solid var(--bd-default);
-    border-radius: calc(var(--radius) - 2px);
+    border-radius: var(--radius);
     padding: 0.625rem 1rem;
     color: var(--tx-primary);
     font-size: 0.875rem;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
 
   .input::placeholder {
@@ -238,7 +294,7 @@
   .input:focus {
     outline: none;
     border-color: var(--gold);
-    box-shadow: 0 0 0 3px var(--gold-bg);
+    box-shadow: 0 0 0 3px var(--gold-bg), var(--shadow-gold);
   }
 
   /* Gold accent items */

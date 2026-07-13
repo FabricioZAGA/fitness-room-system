@@ -17,12 +17,12 @@ export function SearchInput({
 }: SearchInputProps): React.JSX.Element {
   return (
     <div className={`relative flex-1 max-w-md ${className}`}>
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[--tx-disabled]" />
+      <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[--tx-disabled] transition-colors" />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-[--bd-default] bg-[--bg-muted] pl-10 pr-4 py-2.5 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none"
+        className="w-full rounded-xl border border-[--bd-default] bg-[--bg-input] pl-10 pr-4 py-2.5 text-sm text-[--tx-primary] placeholder-[--tx-disabled] transition-all duration-200 focus:border-[--gold] focus:outline-none focus:shadow-[0_0_0_3px_var(--gold-bg)]"
       />
     </div>
   );
