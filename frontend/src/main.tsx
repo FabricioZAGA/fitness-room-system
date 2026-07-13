@@ -13,6 +13,18 @@ import "./i18n";
 
 configureAmplify();
 
+// Auto-recover from stale dynamic chunks after a deploy. When we ship a new
+// build, `s3 sync --delete` removes the old hashed chunks; a tab left open from
+// before the deploy fails its next import() (e.g. the lazy report-export
+// module) with a preloadError. Reloading once pulls the fresh index + chunks.
+// Guarded by a session flag so we never loop if the reload doesn't help.
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault();
+  if (sessionStorage.getItem("chunk-reload") === "1") return;
+  sessionStorage.setItem("chunk-reload", "1");
+  window.location.reload();
+});
+
 // Apply saved theme from localStorage before first render to prevent flash
 try {
   const saved = localStorage.getItem("fitness-room-theme");

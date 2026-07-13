@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [2.0.1] — 2026-07-13
+
+### Fixed
+
+- **Descarga de reportes fallaba en silencio**: los botones de export (Excel/PDF) usan un `import()` dinámico del chunk `exportReports`. Tras un deploy con `s3 sync --delete`, una pestaña abierta desde antes referenciaba un chunk con hash ya borrado; el `import()` fallaba y, al no haber manejo de error, el clic no hacía nada. Ahora un handler global de `vite:preloadError` recarga la app una vez (guardado con flag de sesión para no ciclar) y el loader muestra un toast si el chunk no carga.
+
 ## [2.0.0] — 2026-07-07
 
 ### Added

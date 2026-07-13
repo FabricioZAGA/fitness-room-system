@@ -12,9 +12,17 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "2.0.0";
+export const APP_VERSION = "2.0.1";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "2.0.1",
+    date: "2026-07-13",
+    title: "Fix: descarga de reportes fallaba en silencio tras un deploy",
+    items: [
+      { icon: "🐛", text: "Corregido: los botones de exportar reportes (Excel/PDF) podían no hacer nada al dar clic si la pestaña estaba abierta desde antes de una actualización de la plataforma. Ahora la app se recupera sola y avisa si algo falla en lugar de quedarse en silencio" },
+    ],
+  },
   {
     version: "2.0.0",
     date: "2026-07-07",

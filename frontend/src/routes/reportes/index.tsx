@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import {
   BarChart3,
   TrendingUp,
@@ -32,9 +33,18 @@ import {
   type RangePreset,
 } from "@/lib/dateRangePresets";
 
-// exportReports is loaded lazily so xlsx/jspdf/html2canvas stay out of the main chunk
-const loadExportReports = (): Promise<typeof import("@/lib/exportReports")> =>
-  import("@/lib/exportReports");
+// exportReports is loaded lazily so xlsx/jspdf/html2canvas stay out of the main chunk.
+// If the dynamic chunk fails to load (e.g. a tab open from before a deploy pointing at
+// a hashed chunk that s3 sync --delete already removed), the vite:preloadError handler
+// in main.tsx reloads once. Here we surface a toast so the click is never a silent no-op.
+const loadExportReports = async (): Promise<typeof import("@/lib/exportReports")> => {
+  try {
+    return await import("@/lib/exportReports");
+  } catch (err) {
+    toast.error("No se pudo cargar el exportador. Recarga la página (Ctrl/Cmd + Shift + R) e intenta de nuevo.");
+    throw err;
+  }
+};
 
 export const Route = createFileRoute("/reportes/")({
   component: ReportesPage,
