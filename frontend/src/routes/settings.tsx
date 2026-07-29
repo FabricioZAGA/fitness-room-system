@@ -630,10 +630,12 @@ function SettingsPage(): React.JSX.Element {
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-[--tx-disabled]">{t("settings.phase")}</dt>
-              <dd className="text-[--tx-primary]">Fase 2.5 — Portal &amp; QR</dd>
+              <dd className="text-[--tx-primary] text-right max-w-[60%] truncate" title={changelog[0]?.title}>
+                {changelog[0]?.title ?? "—"}
+              </dd>
             </div>
             <div className="flex items-center justify-between">
-              <dt className="text-[--tx-disabled]">Última actualización</dt>
+              <dt className="text-[--tx-disabled]">{t("settings.lastUpdate")}</dt>
               <dd className="flex items-center gap-1.5 text-[--tx-muted]">
                 <Clock className="h-3 w-3" />
                 {LATEST_DATE}
