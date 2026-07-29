@@ -5,6 +5,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [2.1.0] — 2026-07-29
+
+### Added
+
+- **Saldo a Favor (monedero interno)**: los alumnos pueden tener un saldo prepagado. Backend: modelo `StudentBalance` + `BalanceMovement` en DynamoDB, repositorio, servicio y endpoints REST (`/balance/{id}`, `/balance/{id}/deposit`, `/balance/{id}/apply`, `/balance/{id}/movements`). Frontend: tipos, servicio API, hooks TanStack Query, sección en perfil del alumno con historial de movimientos y modal de abono.
+- **Ventas Pendientes (fiado)**: al vender un producto se puede marcar como pago pendiente, creando un registro de deuda (`StudentDebt`). Backend: modelo, repositorio, servicio y endpoints REST (`/debts/student/{id}`, `/debts/pending`, `/debts/student/{id}/{sale_id}/pay`, `/debts/student/{id}/pay-all`). Frontend: tipos, servicio API, hooks, sección en perfil del alumno con cobro individual o masivo.
+- **Caja — pestaña Abono a Cuenta**: nueva pestaña en el registro de pagos para depositar dinero al saldo a favor de un alumno (selector de alumno, monto, método de pago, notas).
+- **Caja — toggle Pagado/Pendiente**: en la venta de producto, toggle para marcar la venta como pagada o pendiente (fiado). Ventas pendientes requieren seleccionar un alumno.
+- **Check-in — banner de deudas**: banner rojo prominente con desglose de deudas y botón de cobro rápido (individual o masivo) con selector de método de pago.
+- **Check-in — badge de saldo**: badge verde con el saldo a favor del alumno cuando es mayor a 0.
+- **Membresías — aplicar saldo**: al crear membresía, si el alumno tiene saldo a favor, se muestra un checkbox para aplicarlo al pago con desglose de descuento y restante a cobrar.
+- **i18n**: keys completos en español (`es.json`) e inglés (`en.json`) para `balance.*`, `debt.*`, `checkin.balanceBadge/debtBanner`, `caja.depositTab/pendingPayment/*`.
+
 ## [2.0.1] — 2026-07-13
 
 ### Fixed

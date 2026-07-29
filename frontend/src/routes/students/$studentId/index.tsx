@@ -3,7 +3,7 @@ import {
   ArrowLeft, CreditCard, Calendar, Plus, Power, PowerOff,
   Pencil, Mail, Phone, User, CheckCircle2, XCircle, Clock,
   Snowflake, QrCode, Download, ShieldBan, ShieldCheck,
-  Send, KeyRound, RefreshCw,
+  Send, KeyRound, RefreshCw, Wallet, AlertTriangle,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,7 +23,12 @@ import { Dialog } from "@/components/shared/Dialog";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import { CLASS_TYPE_LABELS } from "@/types/class";
+import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
+import type { PaymentMethod } from "@/types/transaction";
 import { formatDate, formatCurrency, getInitials } from "@/lib/utils";
+import { useStudentBalance, useBalanceMovements, useDeposit } from "@/hooks/useBalance";
+import { useStudentDebts, usePayDebt, usePayAllDebts } from "@/hooks/useDebts";
+import { BALANCE_MOVEMENT_TYPE_LABELS, type BalanceMovementType } from "@/types/balance";
 
 export const Route = createFileRoute("/students/$studentId/")({
   component: StudentDetailPage,
@@ -65,6 +70,18 @@ function StudentDetailPage(): React.JSX.Element {
   const { mutate: resendWelcome, isPending: sendingWelcome } = useResendWelcome();
   const { mutate: resendCreds, isPending: sendingCreds } = useResendCredentials();
   const updateContact = useUpdateContact(studentId);
+  const { data: balance } = useStudentBalance(studentId);
+  const { data: movements = [] } = useBalanceMovements(studentId);
+  const { data: debts = [] } = useStudentDebts(studentId);
+  const depositMutation = useDeposit();
+  const payDebtMutation = usePayDebt();
+  const payAllDebtsMutation = usePayAllDebts();
+
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState(0);
+  const [depositMethod, setDepositMethod] = useState<PaymentMethod>("cash");
+  const [depositNotes, setDepositNotes] = useState("");
+  const [debtPayMethod, setDebtPayMethod] = useState<PaymentMethod>("cash");
 
   const [contactOpen, setContactOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
@@ -307,6 +324,133 @@ function StudentDetailPage(): React.JSX.Element {
           <p className="mt-3 text-xs text-[--tx-disabled]">
             {t("students.updateContactDesc")}
           </p>
+        </div>
+
+        {/* ── Balance + Debts row ── */}
+        <div className="mb-6 grid gap-6 lg:grid-cols-2">
+          {/* Balance section */}
+          <section className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-[--gold]" />
+                <h2 className="text-base font-semibold text-[--tx-primary]">{t("balance.title")}</h2>
+              </div>
+              <button
+                onClick={() => { setDepositOpen(true); setDepositAmount(0); setDepositNotes(""); }}
+                className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                style={{
+                  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                  color: "var(--gold-fg)"
+                }}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t("balance.deposit")}
+              </button>
+            </div>
+
+            <div className="mb-4 rounded-xl border border-[--gold-bd] bg-[--gold-bg] px-4 py-3">
+              <p className="text-xs text-[--tx-muted]">{t("balance.currentBalance")}</p>
+              <p className="text-2xl font-bold text-[--gold]">{formatCurrency(balance?.current_balance ?? 0)}</p>
+            </div>
+
+            {movements.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-medium text-[--tx-muted]">{t("balance.history")}</p>
+                <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+                  {movements.slice(0, 10).map((m) => (
+                    <div key={m.movement_id} className="flex items-center justify-between rounded-lg border border-[--bd-subtle] bg-[--bg-muted]/40 px-3 py-2 text-xs">
+                      <div>
+                        <span className="font-medium text-[--tx-primary]">
+                          {BALANCE_MOVEMENT_TYPE_LABELS[m.movement_type as BalanceMovementType] ?? m.movement_type}
+                        </span>
+                        {m.notes && <span className="ml-2 text-[--tx-disabled]">{m.notes}</span>}
+                      </div>
+                      <span className={`font-semibold ${m.amount >= 0 ? "text-[--color-success]" : "text-[--color-danger]"}`}>
+                        {m.amount >= 0 ? "+" : ""}{formatCurrency(m.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {movements.length === 0 && (
+              <p className="text-center text-xs text-[--tx-disabled] py-4">{t("balance.noMovements")}</p>
+            )}
+          </section>
+
+          {/* Debts section */}
+          <section className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-[--color-danger]" />
+                <h2 className="text-base font-semibold text-[--tx-primary]">{t("debt.title")}</h2>
+                {debts.length > 0 && (
+                  <span className="rounded-full bg-[--color-danger-bg] px-2 py-0.5 text-xs font-bold text-[--color-danger]">
+                    {debts.length}
+                  </span>
+                )}
+              </div>
+              {debts.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <select
+                    className="rounded-lg border border-[--bd-default] bg-[--bg-muted] px-2 py-1.5 text-xs text-[--tx-primary]"
+                    value={debtPayMethod}
+                    onChange={(e) => setDebtPayMethod(e.target.value as PaymentMethod)}
+                  >
+                    {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => payAllDebtsMutation.mutate({
+                      studentId,
+                      data: { payment_method: debtPayMethod },
+                    })}
+                    disabled={payAllDebtsMutation.isPending}
+                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50"
+                    style={{ background: "var(--color-danger)" }}
+                  >
+                    {payAllDebtsMutation.isPending ? t("common.saving") : t("debt.payAll")}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {debts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <CheckCircle2 className="mb-3 h-10 w-10 text-[--color-success]" />
+                <p className="text-[--tx-muted]">{t("debt.noDebts")}</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {debts.map((d) => (
+                  <div key={d.sale_id} className="flex items-center justify-between rounded-xl border border-[--color-danger-bd] bg-[--color-danger-bg] px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[--tx-primary]">{d.product_name}</p>
+                      <p className="text-xs text-[--tx-muted]">
+                        {t("debt.quantity", { count: d.quantity })} · {formatDate(d.created_at)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[--color-danger]">{formatCurrency(d.amount)}</span>
+                      <button
+                        onClick={() => payDebtMutation.mutate({
+                          studentId,
+                          saleId: d.sale_id,
+                          data: { payment_method: debtPayMethod },
+                        })}
+                        disabled={payDebtMutation.isPending}
+                        className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50"
+                        style={{ background: "var(--color-danger)" }}
+                      >
+                        {payDebtMutation.isPending ? t("common.saving") : t("debt.pay")}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -670,6 +814,83 @@ function StudentDetailPage(): React.JSX.Element {
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-[--gold] border-t-transparent" />
             </div>
           )}
+        </div>
+      </Dialog>
+
+      {/* Deposit modal */}
+      <Dialog open={depositOpen} onClose={() => setDepositOpen(false)} title={t("balance.depositTitle")}>
+        <div className="space-y-5">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-[--tx-muted]">
+              {t("caja.depositAmount")} *
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="0.01"
+              value={depositAmount || ""}
+              onChange={(e) => setDepositAmount(parseFloat(e.target.value) || 0)}
+              placeholder="0.00"
+              className="w-full rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-[--tx-muted]">
+              {t("caja.paymentMethod")} *
+            </label>
+            <select
+              className="w-full rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]"
+              value={depositMethod}
+              onChange={(e) => setDepositMethod(e.target.value as PaymentMethod)}
+            >
+              {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-[--tx-muted]">
+              {t("caja.depositNotes")}
+            </label>
+            <input
+              value={depositNotes}
+              onChange={(e) => setDepositNotes(e.target.value)}
+              placeholder={t("caja.depositNotesPlaceholder")}
+              className="w-full rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-3 text-sm text-[--tx-primary] placeholder-[--tx-disabled] focus:border-[--gold] focus:outline-none focus:ring-2 focus:ring-[--gold-bd]"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => setDepositOpen(false)}
+              className="rounded-xl border border-[--bd-default] px-4 py-2.5 text-sm text-[--tx-muted] transition-all hover:border-[--bd-subtle] hover:text-[--tx-primary]"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              disabled={depositMutation.isPending || depositAmount <= 0}
+              onClick={() => {
+                depositMutation.mutate(
+                  {
+                    studentId,
+                    data: {
+                      amount: depositAmount,
+                      payment_method: depositMethod,
+                      notes: depositNotes || undefined,
+                    },
+                  },
+                  { onSuccess: () => setDepositOpen(false) }
+                );
+              }}
+              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
+              style={{
+                background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                color: "var(--gold-fg)",
+              }}
+            >
+              <Wallet className="h-4 w-4" />
+              {depositMutation.isPending ? t("common.saving") : t("caja.confirmDeposit")}
+            </button>
+          </div>
         </div>
       </Dialog>
     </>

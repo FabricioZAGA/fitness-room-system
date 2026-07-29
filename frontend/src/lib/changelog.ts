@@ -12,9 +12,22 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "2.0.1";
+export const APP_VERSION = "2.1.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "2.1.0",
+    date: "2026-07-29",
+    title: "Saldo a Favor, Ventas Pendientes (fiado) y mejoras en Caja",
+    items: [
+      { icon: "💰", text: "Nuevo: Saldo a Favor (monedero interno) — los alumnos pueden abonar dinero a su cuenta y aplicarlo al momento de adquirir una membresía" },
+      { icon: "📋", text: "Nuevo: Ventas Pendientes (fiado) — al vender un producto puedes marcar el pago como 'pendiente'; la deuda queda registrada y visible en Check-in y perfil del alumno" },
+      { icon: "🏪", text: "Caja: nueva pestaña 'Abono a Cuenta' para registrar depósitos al saldo del alumno, y toggle Pagado/Pendiente en ventas de producto" },
+      { icon: "⚠️", text: "Check-in: banner rojo de deudas pendientes con botón de cobro rápido, y badge verde de saldo a favor" },
+      { icon: "👤", text: "Perfil del alumno: nuevas secciones de Saldo a Favor (historial de movimientos + botón Abonar) y Deudas Pendientes (cobro individual o masivo)" },
+      { icon: "🎫", text: "Al crear membresía, si el alumno tiene saldo a favor se muestra opción para aplicarlo automáticamente al pago" },
+    ],
+  },
   {
     version: "2.0.1",
     date: "2026-07-13",

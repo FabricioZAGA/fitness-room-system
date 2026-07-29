@@ -21,11 +21,16 @@ import {
   Clock,
   ScanLine,
   CalendarCheck,
+  Wallet,
 } from "lucide-react";
-import { formatDate, getInitials } from "@/lib/utils";
+import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import { CLASS_TYPE_LABELS } from "@/types/class";
+import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
+import type { PaymentMethod } from "@/types/transaction";
 import type { Student } from "@/types/student";
+import { useStudentBalance } from "@/hooks/useBalance";
+import { useStudentDebts, usePayDebt, usePayAllDebts } from "@/hooks/useDebts";
 
 export const Route = createFileRoute("/checkin")({
   component: CheckinPage,
@@ -186,9 +191,19 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
   const { t } = useTranslation();
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
+  const [payMethod, setPayMethod] = useState<PaymentMethod>("cash");
+
   const { mutate: doCheckin, isPending, isSuccess } = useCheckinWithAttendance();
   const { data: membership } = useActiveMembership(student.student_id);
   const { data: membershipsData } = useMembershipsForStudent(student.student_id);
+  const { data: balance } = useStudentBalance(student.student_id);
+  const { data: debts = [] } = useStudentDebts(student.student_id);
+  const payDebtMutation = usePayDebt();
+  const payAllDebtsMutation = usePayAllDebts();
+
+  const totalDebt = debts.reduce((sum, d) => sum + d.amount, 0);
+  const hasBalance = (balance?.current_balance ?? 0) > 0;
+  const hasDebts = debts.length > 0;
   const { data: reservationsData, isLoading: reservationsLoading } =
     useReservationsForStudent(student.student_id);
   const { data: classesData } = useClasses({ limit: 200 });
@@ -278,6 +293,74 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
           </div>
         </div>
       </div>
+
+      {/* ── Debt banner ── */}
+      {hasDebts && (
+        <div className="rounded-xl border-2 border-[--color-danger-bd] bg-[--color-danger-bg] p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-6 w-6 text-[--color-danger]" />
+              <div>
+                <p className="text-lg font-bold text-[--color-danger]">
+                  {t("checkin.debtBanner", { amount: formatCurrency(totalDebt) })}
+                </p>
+                <p className="text-xs text-[--tx-muted]">
+                  {debts.map((d) => `${d.product_name} ${t("debt.quantity", { count: d.quantity })}`).join(", ")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                className="rounded-lg border border-[--bd-default] bg-[--bg-muted] px-2 py-1.5 text-xs text-[--tx-primary]"
+                value={payMethod}
+                onChange={(e) => setPayMethod(e.target.value as PaymentMethod)}
+              >
+                {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+              </select>
+              {debts.length === 1 ? (
+                <button
+                  onClick={() => payDebtMutation.mutate({
+                    studentId: student.student_id,
+                    saleId: debts[0].sale_id,
+                    data: { payment_method: payMethod },
+                  })}
+                  disabled={payDebtMutation.isPending}
+                  className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50"
+                  style={{ background: "var(--color-danger)" }}
+                >
+                  {payDebtMutation.isPending ? t("common.saving") : t("debt.pay")}
+                </button>
+              ) : (
+                <button
+                  onClick={() => payAllDebtsMutation.mutate({
+                    studentId: student.student_id,
+                    data: { payment_method: payMethod },
+                  })}
+                  disabled={payAllDebtsMutation.isPending}
+                  className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50"
+                  style={{ background: "var(--color-danger)" }}
+                >
+                  {payAllDebtsMutation.isPending ? t("common.saving") : t("debt.payAll")}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Balance badge ── */}
+      {hasBalance && (
+        <div className="rounded-xl border-2 border-[--color-success-bd] bg-[--color-success-bg] px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Wallet className="h-5 w-5 text-[--color-success]" />
+            <p className="text-sm font-semibold text-[--color-success]">
+              {t("checkin.balanceBadge", { amount: formatCurrency(balance!.current_balance) })}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Member info ── */}
       <div className="flex items-center gap-4 rounded-xl border border-[--bd-subtle] bg-[--bg-muted] p-4">

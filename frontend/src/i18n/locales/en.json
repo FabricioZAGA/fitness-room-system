@@ -115,7 +115,9 @@
     "noReservationWarning": "Student has no reservations for today. Check-in cannot be registered.",
     "checkinRegistered": "✓ Check-in registered",
     "viewProfile": "View Full Profile",
-    "historyCount": "Membership history ({{count}})"
+    "historyCount": "Membership history ({{count}})",
+    "balanceBadge": "Balance: {{amount}}",
+    "debtBanner": "⚠️ Owes {{amount}}"
   },
   "students": {
     "title": "Members",
@@ -427,7 +429,18 @@
     "total": "Total",
     "sell": "Sell",
     "register": "Register",
-    "printReceipt": "Print receipt PDF"
+    "printReceipt": "Print receipt PDF",
+    "depositTab": "Account Deposit",
+    "selectStudent": "— Select a student —",
+    "depositAmount": "Amount to deposit (MXN)",
+    "depositNotes": "Notes (optional)",
+    "depositNotesPlaceholder": "E.g.: Advance for next month...",
+    "confirmDeposit": "Record Deposit",
+    "pendingPayment": "Paid?",
+    "pendingYes": "Paid",
+    "pendingNo": "Pending (on credit)",
+    "requiresStudent": "Pending sales require selecting a student",
+    "studentOptional": "Student (optional)"
   },
   "reportes": {
     "title": "Reports",
@@ -518,5 +531,38 @@
     "stockLabel": "Current stock",
     "stockChangeWarning": "You are changing stock from {{from}} to {{to}} units. This change is direct and won't be logged as a restock or sale.",
     "confirmStockChange": "I confirm the stock change"
+  },
+  "balance": {
+    "title": "Account Balance",
+    "currentBalance": "Current balance",
+    "deposit": "Deposit",
+    "depositTitle": "Account Deposit",
+    "apply": "Apply Balance",
+    "applyToMembership": "Apply to membership",
+    "history": "Movement History",
+    "noMovements": "No movements recorded",
+    "deposit_type": "Deposit",
+    "membership_apply_type": "Applied to membership",
+    "withdrawal_type": "Withdrawal",
+    "afterBalance": "Balance after",
+    "availableBalance": "Available balance: {{amount}}",
+    "applyQuestion": "Apply account balance?",
+    "applyAmount": "{{amount}} will be deducted from balance",
+    "remaining": "Remaining to pay: {{amount}}",
+    "insufficientBalance": "Insufficient balance"
+  },
+  "debt": {
+    "title": "Pending Debts",
+    "owes": "Owes {{amount}}",
+    "noDebts": "No pending debts",
+    "pay": "Collect",
+    "payAll": "Collect All",
+    "payDebt": "Collect Debt",
+    "payAllDebts": "Collect All Debts",
+    "payConfirm": "Collect {{amount}} for {{product}}?",
+    "payAllConfirm": "Collect all debts ({{amount}})?",
+    "pending": "Pending",
+    "quantity": "x{{count}}",
+    "selectPaymentMethod": "Payment method"
   }
 }

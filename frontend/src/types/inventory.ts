@@ -74,5 +74,6 @@ export interface CreateSaleRequest {
   quantity?: number;
   student_id?: string;
   payment_method: string;
+  payment_status?: "paid" | "pending";
   notes?: string;
 }

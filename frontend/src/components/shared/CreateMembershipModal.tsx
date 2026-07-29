@@ -1,12 +1,16 @@
 /** Modal form for assigning a membership to a student. */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Wallet } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { useAssignMembership } from "@/hooks/useMemberships";
 import { useStudents } from "@/hooks/useStudents";
+import { useStudentBalance, useApplyBalance } from "@/hooks/useBalance";
 import type { CreateMembershipRequest, MembershipType } from "@/types/membership";
 import { MEMBERSHIP_TYPE_LABELS, MEMBERSHIP_DEFAULT_PRICE } from "@/types/membership";
 import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
+import { formatCurrency } from "@/lib/utils";
 
 interface CreateMembershipModalProps {
   open: boolean;
@@ -79,10 +83,20 @@ export function CreateMembershipModal({
   onClose,
   studentId,
 }: CreateMembershipModalProps): React.JSX.Element {
+  const { t } = useTranslation();
   const [form, setForm] = useState({ ...INITIAL_FORM, student_id: studentId ?? "" });
+  const [applyBalance, setApplyBalance] = useState(false);
   const { mutate, isPending } = useAssignMembership();
+  const applyBalanceMutation = useApplyBalance();
   const { data: studentsData } = useStudents({ limit: 200 });
   const students = studentsData?.items ?? [];
+
+  const activeStudentId = form.student_id || studentId || "";
+  const { data: balance } = useStudentBalance(activeStudentId || undefined);
+  const currentBalance = balance?.current_balance ?? 0;
+  const pricePaid = Number(form.price_paid) || 0;
+  const balanceToApply = applyBalance ? Math.min(currentBalance, pricePaid) : 0;
+  const remainingToPay = pricePaid - balanceToApply;
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -121,8 +135,18 @@ export function CreateMembershipModal({
       notes: form.notes || undefined,
     };
     mutate(payload, {
-      onSuccess: () => {
+      onSuccess: (newMembership) => {
+        if (applyBalance && balanceToApply > 0 && newMembership?.membership_id) {
+          applyBalanceMutation.mutate({
+            studentId: activeStudentId,
+            data: {
+              amount: balanceToApply,
+              membership_id: newMembership.membership_id,
+            },
+          });
+        }
         setForm({ ...INITIAL_FORM, student_id: studentId ?? "" });
+        setApplyBalance(false);
         onClose();
       },
     });
@@ -241,6 +265,41 @@ export function CreateMembershipModal({
               className={inputCls}
             />
           </Field>
+        )}
+
+        {/* Apply balance section */}
+        {currentBalance > 0 && (
+          <div className="rounded-xl border border-[--gold-bd] bg-[--gold-bg] p-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={applyBalance}
+                onChange={(e) => setApplyBalance(e.target.checked)}
+                className="h-4 w-4 rounded accent-[--gold]"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-[--gold]" />
+                  <span className="text-sm font-semibold text-[--tx-primary]">
+                    {t("balance.applyQuestion")}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs text-[--tx-muted]">
+                  {t("balance.availableBalance", { amount: formatCurrency(currentBalance) })}
+                </p>
+              </div>
+            </label>
+            {applyBalance && balanceToApply > 0 && (
+              <div className="mt-3 space-y-1 rounded-lg border border-[--bd-subtle] bg-[--bg-muted] px-3 py-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-[--tx-muted]">{t("balance.applyAmount", { amount: formatCurrency(balanceToApply) })}</span>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <span className="text-[--tx-primary]">{t("balance.remaining", { amount: formatCurrency(remainingToPay) })}</span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         <Field label="Notas">

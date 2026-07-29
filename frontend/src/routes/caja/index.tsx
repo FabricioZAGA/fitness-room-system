@@ -14,6 +14,7 @@ import {
   Package,
   AlertTriangle,
   FileText,
+  Wallet,
 } from "lucide-react";
 import {
   useCreateCashCut,
@@ -23,10 +24,13 @@ import {
   useRecordTransaction,
 } from "@/hooks/useTransactions";
 import { useProducts, useSellProduct } from "@/hooks/useInventory";
+import { useDeposit } from "@/hooks/useBalance";
+import { useStudents } from "@/hooks/useStudents";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { CreateTransactionRequest, PaymentMethod, TransactionType } from "@/types/transaction";
 import { PAYMENT_METHOD_LABELS, TRANSACTION_TYPE_LABELS } from "@/types/transaction";
 import type { Product } from "@/types/inventory";
+import type { Student } from "@/types/student";
 import { transactionService } from "@/services/transactionService";
 import { useGymStore } from "@/store/useGymStore";
 
@@ -49,6 +53,15 @@ interface ProductSaleForm {
   product_id: string;
   quantity: number;
   payment_method: PaymentMethod;
+  student_id: string;
+  payment_status: "paid" | "pending";
+}
+
+interface DepositForm {
+  student_id: string;
+  amount: number;
+  payment_method: PaymentMethod;
+  notes: string;
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -63,7 +76,7 @@ function CajaPage(): React.JSX.Element {
   // Which "tab" is active in the register modal.
   // Memberships/packs are created via "Nueva membresía" (auto-records transaction here),
   // so Caja only exposes product sales and miscellaneous "other" payments.
-  const [registerType, setRegisterType] = useState<TransactionType>("product");
+  const [registerType, setRegisterType] = useState<"product" | "other" | "deposit">("product");
   // Standard transaction form
   const [form, setForm] = useState<Partial<CreateTransactionRequest>>({
     payment_method: "cash",
@@ -74,6 +87,15 @@ function CajaPage(): React.JSX.Element {
     product_id: "",
     quantity: 1,
     payment_method: "cash",
+    student_id: "",
+    payment_status: "paid",
+  });
+  // Deposit form
+  const [depositForm, setDepositForm] = useState<DepositForm>({
+    student_id: "",
+    amount: 0,
+    payment_method: "cash",
+    notes: "",
   });
 
   const gymName = useGymStore((s) => s.name);
@@ -87,6 +109,11 @@ function CajaPage(): React.JSX.Element {
   const { data: products = [] } = useProducts();
   const activeProducts = products.filter((p) => p.is_active);
   const sellMutation = useSellProduct();
+
+  // Students for deposit and pending sale
+  const { data: studentsData } = useStudents({ limit: 500 });
+  const allStudents = studentsData?.items ?? [];
+  const depositMutation = useDeposit();
 
   // Derived product info
   const selectedProduct = activeProducts.find((p) => p.product_id === productForm.product_id) ?? null;
@@ -113,12 +140,30 @@ function CajaPage(): React.JSX.Element {
 
   const handleSellProduct = async () => {
     if (!productForm.product_id) return;
+    if (productForm.payment_status === "pending" && !productForm.student_id) return;
     await sellMutation.mutateAsync({
       product_id: productForm.product_id,
       quantity: productForm.quantity,
       payment_method: productForm.payment_method,
+      student_id: productForm.student_id || undefined,
+      payment_status: productForm.payment_status,
     });
-    setProductForm({ product_id: "", quantity: 1, payment_method: "cash" });
+    setProductForm({ product_id: "", quantity: 1, payment_method: "cash", student_id: "", payment_status: "paid" });
+    setRegisterType("product");
+    setShowRegister(false);
+  };
+
+  const handleDeposit = async () => {
+    if (!depositForm.student_id || depositForm.amount <= 0) return;
+    await depositMutation.mutateAsync({
+      studentId: depositForm.student_id,
+      data: {
+        amount: depositForm.amount,
+        payment_method: depositForm.payment_method,
+        notes: depositForm.notes || undefined,
+      },
+    });
+    setDepositForm({ student_id: "", amount: 0, payment_method: "cash", notes: "" });
     setRegisterType("product");
     setShowRegister(false);
   };
@@ -266,25 +311,25 @@ function CajaPage(): React.JSX.Element {
 
             {/* Type selector tabs — memberships get auto-recorded from "Nueva Membresía" */}
             <div className="mb-5 flex rounded-xl border border-[--bd-default] bg-[--bg-muted] p-1">
-              {(["product", "other"] as TransactionType[]).map((t) => (
+              {(["product", "other", "deposit"] as const).map((tab) => (
                 <button
-                  key={t}
+                  key={tab}
                   onClick={() => {
-                    setRegisterType(t);
-                    setForm((f) => ({ ...f, transaction_type: t }));
+                    setRegisterType(tab);
+                    if (tab === "other") setForm((f) => ({ ...f, transaction_type: "other" }));
                   }}
                   className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
-                    registerType === t
+                    registerType === tab
                       ? "text-[--gold-fg]"
                       : "text-[--tx-muted] hover:text-[--tx-primary]"
                   }`}
                   style={
-                    registerType === t
+                    registerType === tab
                       ? { background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)" }
                       : {}
                   }
                 >
-                  {TRANSACTION_TYPE_LABELS[t]}
+                  {tab === "deposit" ? t("caja.depositTab") : TRANSACTION_TYPE_LABELS[tab]}
                 </button>
               ))}
             </div>
@@ -296,7 +341,14 @@ function CajaPage(): React.JSX.Element {
                 products={activeProducts}
                 selectedProduct={selectedProduct}
                 total={productTotal}
+                students={allStudents}
                 onChange={(patch) => setProductForm((f) => ({ ...f, ...patch }))}
+              />
+            ) : registerType === "deposit" ? (
+              <DepositFields
+                form={depositForm}
+                students={allStudents}
+                onChange={(patch) => setDepositForm((f) => ({ ...f, ...patch }))}
               />
             ) : (
               /* Standard payment form */
@@ -349,7 +401,8 @@ function CajaPage(): React.JSX.Element {
                   setShowRegister(false);
                   setRegisterType("product");
                   setForm({ payment_method: "cash", transaction_type: "other" });
-                  setProductForm({ product_id: "", quantity: 1, payment_method: "cash" });
+                  setProductForm({ product_id: "", quantity: 1, payment_method: "cash", student_id: "", payment_status: "paid" });
+                  setDepositForm({ student_id: "", amount: 0, payment_method: "cash", notes: "" });
                 }}
                 className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] transition-all hover:bg-[--bg-muted]"
               >
@@ -357,14 +410,25 @@ function CajaPage(): React.JSX.Element {
               </button>
               <button
                 onClick={() =>
-                  void (registerType === "product" ? handleSellProduct() : handleRegister())
+                  void (
+                    registerType === "product"
+                      ? handleSellProduct()
+                      : registerType === "deposit"
+                        ? handleDeposit()
+                        : handleRegister()
+                  )
                 }
                 disabled={
                   registerType === "product"
                     ? !productForm.product_id ||
                       productForm.quantity < 1 ||
+                      (productForm.payment_status === "pending" && !productForm.student_id) ||
                       sellMutation.isPending
-                    : !form.amount || recordMutation.isPending
+                    : registerType === "deposit"
+                      ? !depositForm.student_id ||
+                        depositForm.amount <= 0 ||
+                        depositMutation.isPending
+                      : !form.amount || recordMutation.isPending
                 }
                 className="flex-1 rounded-xl py-3 text-sm font-semibold transition-all disabled:opacity-50"
                 style={{
@@ -372,11 +436,17 @@ function CajaPage(): React.JSX.Element {
                   color: "var(--gold-fg)",
                 }}
               >
-                {(registerType === "product" ? sellMutation.isPending : recordMutation.isPending)
+                {(registerType === "product"
+                  ? sellMutation.isPending
+                  : registerType === "deposit"
+                    ? depositMutation.isPending
+                    : recordMutation.isPending)
                   ? t("common.saving")
                   : registerType === "product"
                     ? `${t("caja.sell")} ${formatCurrency(productTotal)}`
-                    : t("caja.register")}
+                    : registerType === "deposit"
+                      ? t("caja.confirmDeposit")
+                      : t("caja.register")}
               </button>
             </div>
           </div>
@@ -445,12 +515,14 @@ function ProductSaleFields({
   products,
   selectedProduct,
   total,
+  students,
   onChange,
 }: {
   form: ProductSaleForm;
   products: Product[];
   selectedProduct: Product | null;
   total: number;
+  students: Student[];
   onChange: (patch: Partial<ProductSaleForm>) => void;
 }): React.JSX.Element {
   const { t } = useTranslation();
@@ -519,6 +591,131 @@ function ProductSaleFields({
         </div>
       </div>
 
+      {/* Payment status toggle */}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+          {t("caja.pendingPayment")}
+        </label>
+        <div className="flex rounded-xl border border-[--bd-default] bg-[--bg-muted] p-1">
+          <button
+            type="button"
+            onClick={() => onChange({ payment_status: "paid" })}
+            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
+              form.payment_status === "paid"
+                ? "bg-[--color-success] text-white"
+                : "text-[--tx-muted] hover:text-[--tx-primary]"
+            }`}
+          >
+            {t("caja.pendingYes")}
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ payment_status: "pending" })}
+            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
+              form.payment_status === "pending"
+                ? "bg-[--color-warning] text-white"
+                : "text-[--tx-muted] hover:text-[--tx-primary]"
+            }`}
+          >
+            {t("caja.pendingNo")}
+          </button>
+        </div>
+      </div>
+
+      {/* Student selector */}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+          {form.payment_status === "pending"
+            ? `${t("caja.selectStudent").replace("— ", "").replace(" —", "")} *`
+            : t("caja.studentOptional")}
+        </label>
+        <select
+          className={selectCls}
+          value={form.student_id}
+          onChange={(e) => onChange({ student_id: e.target.value })}
+        >
+          <option value="">{t("caja.selectStudent")}</option>
+          {students.map((s) => (
+            <option key={s.student_id} value={s.student_id}>
+              {s.full_name}
+            </option>
+          ))}
+        </select>
+        {form.payment_status === "pending" && !form.student_id && (
+          <p className="mt-1 text-xs text-[--color-danger]">{t("caja.requiresStudent")}</p>
+        )}
+      </div>
+
+      {/* Payment method (only when paid) */}
+      {form.payment_status === "paid" && (
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+            {t("caja.paymentMethod")} *
+          </label>
+          <select
+            className={selectCls}
+            value={form.payment_method}
+            onChange={(e) => onChange({ payment_method: e.target.value as PaymentMethod })}
+          >
+            {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
+              <option key={val} value={val}>{label}</option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Deposit fields ────────────────────────────────────────────────────────────────────
+
+function DepositFields({
+  form,
+  students,
+  onChange,
+}: {
+  form: DepositForm;
+  students: Student[];
+  onChange: (patch: Partial<DepositForm>) => void;
+}): React.JSX.Element {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-4">
+      {/* Student selector */}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+          {t("caja.selectStudent").replace("— ", "").replace(" —", "")} *
+        </label>
+        <select
+          className={selectCls}
+          value={form.student_id}
+          onChange={(e) => onChange({ student_id: e.target.value })}
+        >
+          <option value="">{t("caja.selectStudent")}</option>
+          {students.map((s) => (
+            <option key={s.student_id} value={s.student_id}>
+              {s.full_name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Amount */}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+          {t("caja.depositAmount")} *
+        </label>
+        <input
+          type="number"
+          min="1"
+          step="0.01"
+          className={inputCls}
+          placeholder="0.00"
+          value={form.amount || ""}
+          onChange={(e) => onChange({ amount: parseFloat(e.target.value) || 0 })}
+        />
+      </div>
+
       {/* Payment method */}
       <div>
         <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
@@ -533,6 +730,30 @@ function ProductSaleFields({
             <option key={val} value={val}>{label}</option>
           ))}
         </select>
+      </div>
+
+      {/* Notes */}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
+          {t("caja.depositNotes")}
+        </label>
+        <input
+          className={inputCls}
+          placeholder={t("caja.depositNotesPlaceholder")}
+          value={form.notes}
+          onChange={(e) => onChange({ notes: e.target.value })}
+        />
+      </div>
+
+      {/* Info box */}
+      <div className="rounded-xl border border-[--gold-bd] bg-[--gold-bg] px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Wallet className="h-4 w-4 text-[--gold]" />
+          <p className="text-xs text-[--tx-muted]">
+            {t("balance.availableBalance", { amount: "" })}
+            Este abono se añadirá al saldo a favor del alumno.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -115,7 +115,9 @@
     "noReservationWarning": "El alumno no tiene reservaciones para hoy. No se puede registrar check-in.",
     "checkinRegistered": "✓ Check-in registrado",
     "viewProfile": "Ver Perfil Completo",
-    "historyCount": "Historial de membresías ({{count}})"
+    "historyCount": "Historial de membresías ({{count}})",
+    "balanceBadge": "Saldo: {{amount}}",
+    "debtBanner": "⚠️ Debe {{amount}}"
   },
   "students": {
     "title": "Miembros",
@@ -427,7 +429,18 @@
     "total": "Total",
     "sell": "Vender",
     "register": "Registrar",
-    "printReceipt": "Imprimir recibo PDF"
+    "printReceipt": "Imprimir recibo PDF",
+    "depositTab": "Abono a Cuenta",
+    "selectStudent": "— Selecciona un alumno —",
+    "depositAmount": "Monto a abonar (MXN)",
+    "depositNotes": "Notas del abono (opcional)",
+    "depositNotesPlaceholder": "Ej: Adelanto para siguiente mes...",
+    "confirmDeposit": "Registrar Abono",
+    "pendingPayment": "¿Pagado?",
+    "pendingYes": "Pagado",
+    "pendingNo": "Pendiente (fiado)",
+    "requiresStudent": "Ventas pendientes requieren seleccionar alumno",
+    "studentOptional": "Alumno (opcional)"
   },
   "reportes": {
     "title": "Reportes",
@@ -518,5 +531,38 @@
     "stockLabel": "Stock actual",
     "stockChangeWarning": "Estás cambiando el stock de {{from}} a {{to}} unidades. Este cambio es directo y no queda registrado como reabastecimiento ni venta.",
     "confirmStockChange": "Confirmo el cambio de stock"
+  },
+  "balance": {
+    "title": "Saldo a Favor",
+    "currentBalance": "Saldo actual",
+    "deposit": "Abonar",
+    "depositTitle": "Abonar a Cuenta",
+    "apply": "Aplicar Saldo",
+    "applyToMembership": "Aplicar a membresía",
+    "history": "Historial de Movimientos",
+    "noMovements": "Sin movimientos registrados",
+    "deposit_type": "Depósito",
+    "membership_apply_type": "Aplicado a membresía",
+    "withdrawal_type": "Retiro",
+    "afterBalance": "Saldo después",
+    "availableBalance": "Saldo disponible: {{amount}}",
+    "applyQuestion": "¿Aplicar saldo a favor?",
+    "applyAmount": "Se descontarán {{amount}} del saldo",
+    "remaining": "Restante a cobrar: {{amount}}",
+    "insufficientBalance": "Saldo insuficiente"
+  },
+  "debt": {
+    "title": "Deudas Pendientes",
+    "owes": "Debe {{amount}}",
+    "noDebts": "Sin deudas pendientes",
+    "pay": "Cobrar",
+    "payAll": "Cobrar Todo",
+    "payDebt": "Cobrar Deuda",
+    "payAllDebts": "Cobrar Todas las Deudas",
+    "payConfirm": "¿Cobrar {{amount}} por {{product}}?",
+    "payAllConfirm": "¿Cobrar todas las deudas ({{amount}})?",
+    "pending": "Pendiente",
+    "quantity": "x{{count}}",
+    "selectPaymentMethod": "Método de pago"
   }
 }

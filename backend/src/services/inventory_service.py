@@ -12,6 +12,7 @@ from src.models.inventory import (
     ProductUpdate,
 )
 from src.models.transaction import PaymentMethod, TransactionCreate, TransactionType
+from src.repositories.debt_repository import DebtRepository
 from src.repositories.inventory_repository import InventoryRepository
 from src.repositories.transaction_repository import TransactionRepository
 from src.services.notification_service import NotificationService
@@ -27,9 +28,11 @@ class InventoryService:
         self,
         inventory_repo: InventoryRepository | None = None,
         transaction_repo: TransactionRepository | None = None,
+        debt_repo: DebtRepository | None = None,
     ) -> None:
         self._inventory = inventory_repo or InventoryRepository()
         self._transactions = transaction_repo or TransactionRepository()
+        self._debts = debt_repo or DebtRepository()
 
     # ------------------------------------------------------------------
     # Products
@@ -210,22 +213,47 @@ class InventoryService:
         # Record the sale
         sale_item = self._inventory.create_sale(data, unit_price=product.price)
 
-        # Create matching transaction
-        try:
-            payment_method = PaymentMethod(data.payment_method)
-        except ValueError:
-            payment_method = PaymentMethod.CASH
+        is_pending = getattr(data, "payment_status", "paid") == "pending"
 
-        self._transactions.create_transaction(
-            TransactionCreate(
+        if is_pending:
+            # Fiado: create debt record instead of transaction
+            if not data.student_id:
+                raise InvalidOperationException(
+                    "Ventas pendientes de pago requieren un alumno asignado"
+                )
+            self._debts.create_debt(
                 student_id=data.student_id,
-                transaction_type=TransactionType.PRODUCT,
+                sale_id=sale_item.sale_id,
+                product_id=data.product_id,
+                product_name=product.name,
                 amount=sale_item.total_amount,
-                payment_method=payment_method,
-                reference_id=sale_item.sale_id,
-                notes=f"Venta: {product.name} x{data.quantity}",
+                quantity=data.quantity,
             )
-        )
+            logger.info(
+                "Pending sale recorded as debt",
+                extra={
+                    "student_id": data.student_id,
+                    "sale_id": sale_item.sale_id,
+                    "amount": sale_item.total_amount,
+                },
+            )
+        else:
+            # Paid: create matching transaction
+            try:
+                payment_method = PaymentMethod(data.payment_method)
+            except ValueError:
+                payment_method = PaymentMethod.CASH
+
+            self._transactions.create_transaction(
+                TransactionCreate(
+                    student_id=data.student_id,
+                    transaction_type=TransactionType.PRODUCT,
+                    amount=sale_item.total_amount,
+                    payment_method=payment_method,
+                    reference_id=sale_item.sale_id,
+                    notes=f"Venta: {product.name} x{data.quantity}",
+                )
+            )
 
         return sale_item.to_response(product_name=product.name)
 

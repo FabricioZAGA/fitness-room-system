@@ -162,6 +162,10 @@ class ProductSaleCreate(BaseModel):
     quantity: int = Field(default=1, ge=1, description="Number of units sold")
     student_id: str | None = Field(default=None, description="Buyer if a gym member")
     payment_method: str = Field(..., description="cash | card | transfer")
+    payment_status: str = Field(
+        default="paid",
+        description="Payment status: paid | pending (pending = fiado/debt)",
+    )
     notes: str | None = Field(default=None, max_length=500)
 
 
