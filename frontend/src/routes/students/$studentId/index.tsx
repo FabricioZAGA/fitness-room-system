@@ -102,6 +102,8 @@ function StudentDetailPage(): React.JSX.Element {
   const [pwdSendEmail, setPwdSendEmail] = useState(false);
   const [pwdResult, setPwdResult] = useState<PasswordResetResponse | null>(null);
   const [pwdVisible, setPwdVisible] = useState(false);
+  const [pwdCustomMode, setPwdCustomMode] = useState(true);
+  const [pwdCustomValue, setPwdCustomValue] = useState("");
 
   const { t } = useTranslation();
 
@@ -342,6 +344,8 @@ function StudentDetailPage(): React.JSX.Element {
                   setPwdVisible(false);
                   setPwdPermanent(true);
                   setPwdSendEmail(false);
+                  setPwdCustomMode(true);
+                  setPwdCustomValue("");
                   setPwdResetOpen(true);
                 }}
                 className="flex items-center gap-2 rounded-xl border border-[--gold-bd] bg-[--gold-bg] px-4 py-2.5 text-sm font-semibold text-[--gold] transition-all hover:opacity-80"
@@ -933,39 +937,92 @@ function StudentDetailPage(): React.JSX.Element {
       >
         {!pwdResult ? (
           <div className="space-y-5">
+            {/* Custom vs auto password */}
             <div className="rounded-xl border border-[--gold-bd] bg-[--gold-bg] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[--gold] mb-3">Opciones</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[--gold] mb-3">Contraseña</p>
 
               <label className="flex items-start gap-3 rounded-lg p-3 cursor-pointer hover:bg-[--bg-muted]/50 transition-colors">
                 <input
                   type="radio"
-                  name="pwd-type"
-                  checked={pwdPermanent}
-                  onChange={() => setPwdPermanent(true)}
+                  name="pwd-source"
+                  checked={pwdCustomMode}
+                  onChange={() => setPwdCustomMode(true)}
                   className="mt-0.5 accent-[--gold]"
                 />
-                <div>
-                  <p className="text-sm font-semibold text-[--tx-primary]">Contraseña permanente</p>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-[--tx-primary]">Escribir contraseña</p>
                   <p className="text-xs text-[--tx-muted]">
-                    El alumno podrá iniciar sesión directamente sin tener que cambiarla.
+                    Tú eliges la contraseña — ideal para que sea fácil de recordar.
                     <span className="ml-1 font-medium text-[--gold]">Recomendado para personas mayores.</span>
                   </p>
+                  {pwdCustomMode && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <input
+                        type={pwdVisible ? "text" : "password"}
+                        value={pwdCustomValue}
+                        onChange={(e) => setPwdCustomValue(e.target.value)}
+                        placeholder="Ej: FitnessRoom2024"
+                        className="flex-1 rounded-lg border border-[--bd-default] bg-[--bg-base] px-3 py-2 text-sm text-[--tx-primary] placeholder:text-[--tx-disabled] focus:border-[--gold] focus:outline-none focus:ring-1 focus:ring-[--gold]"
+                        minLength={6}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPwdVisible(!pwdVisible)}
+                        className="rounded-lg border border-[--bd-subtle] p-2 text-[--tx-muted] hover:text-[--tx-primary] transition-colors"
+                      >
+                        {pwdVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </label>
 
               <label className="flex items-start gap-3 rounded-lg p-3 cursor-pointer hover:bg-[--bg-muted]/50 transition-colors">
                 <input
                   type="radio"
-                  name="pwd-type"
-                  checked={!pwdPermanent}
-                  onChange={() => setPwdPermanent(false)}
+                  name="pwd-source"
+                  checked={!pwdCustomMode}
+                  onChange={() => setPwdCustomMode(false)}
                   className="mt-0.5 accent-[--gold]"
                 />
                 <div>
-                  <p className="text-sm font-semibold text-[--tx-primary]">Contraseña temporal</p>
+                  <p className="text-sm font-semibold text-[--tx-primary]">Generar automáticamente</p>
                   <p className="text-xs text-[--tx-muted]">
-                    El alumno deberá cambiarla en su primer inicio de sesión.
+                    Se generará una contraseña segura aleatoria.
                   </p>
+                </div>
+              </label>
+            </div>
+
+            {/* Permanent vs temp */}
+            <div className="rounded-xl border border-[--bd-subtle] bg-[--bg-muted] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[--tx-disabled] mb-3">Tipo</p>
+
+              <label className="flex items-center gap-3 rounded-lg p-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="pwd-type"
+                  checked={pwdPermanent}
+                  onChange={() => setPwdPermanent(true)}
+                  className="accent-[--gold]"
+                />
+                <div>
+                  <p className="text-sm font-medium text-[--tx-primary]">Permanente <span className="text-xs text-[--gold]">(recomendado)</span></p>
+                  <p className="text-xs text-[--tx-muted]">Inicia sesión directamente, sin tener que cambiarla.</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 rounded-lg p-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="pwd-type"
+                  checked={!pwdPermanent}
+                  onChange={() => setPwdPermanent(false)}
+                  className="accent-[--gold]"
+                />
+                <div>
+                  <p className="text-sm font-medium text-[--tx-primary]">Temporal</p>
+                  <p className="text-xs text-[--tx-muted]">Deberá cambiarla en su primer inicio de sesión.</p>
                 </div>
               </label>
             </div>
@@ -993,10 +1050,15 @@ function StudentDetailPage(): React.JSX.Element {
               </button>
               <button
                 type="button"
-                disabled={adminResetPwd.isPending}
+                disabled={adminResetPwd.isPending || (pwdCustomMode && pwdCustomValue.length < 6)}
                 onClick={() => {
                   adminResetPwd.mutate(
-                    { studentId, permanent: pwdPermanent, sendEmail: pwdSendEmail },
+                    {
+                      studentId,
+                      permanent: pwdPermanent,
+                      sendEmail: pwdSendEmail,
+                      customPassword: pwdCustomMode ? pwdCustomValue : undefined,
+                    },
                     { onSuccess: (res) => setPwdResult(res) },
                   );
                 }}
@@ -1007,7 +1069,7 @@ function StudentDetailPage(): React.JSX.Element {
                   boxShadow: "0 10px 25px var(--gold-bg)",
                 }}
               >
-                {adminResetPwd.isPending ? "Generando..." : "Generar Contraseña"}
+                {adminResetPwd.isPending ? "Guardando..." : "Establecer Contraseña"}
               </button>
             </div>
           </div>

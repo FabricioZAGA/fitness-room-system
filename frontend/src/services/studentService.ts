@@ -124,10 +124,12 @@ export const studentService = {
     studentId: string,
     permanent = true,
     sendEmail = false,
+    customPassword?: string,
   ): Promise<PasswordResetResponse> {
+    const body = customPassword ? { password: customPassword } : null;
     const response = await apiClient.post<PasswordResetResponse>(
       `/students/${studentId}/admin-reset-password`,
-      null,
+      body,
       { params: { permanent, send_email: sendEmail } },
     );
     return response.data;

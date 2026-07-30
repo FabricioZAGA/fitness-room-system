@@ -254,11 +254,13 @@ export function useAdminResetPassword() {
       studentId,
       permanent = true,
       sendEmail = false,
+      customPassword,
     }: {
       studentId: string;
       permanent?: boolean;
       sendEmail?: boolean;
-    }) => studentService.adminResetPassword(studentId, permanent, sendEmail),
+      customPassword?: string;
+    }) => studentService.adminResetPassword(studentId, permanent, sendEmail, customPassword),
     onError: (error: unknown) => {
       toast.error(getApiErrorMessage(error, "Error al resetear contraseña."));
     },

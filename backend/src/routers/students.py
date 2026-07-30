@@ -277,6 +277,17 @@ class ResendResponse(BaseModel):
     delivery_detail: str | None = None
 
 
+class AdminResetPasswordRequest(BaseModel):
+    """Optional body for admin password reset — allows setting a custom password."""
+
+    password: str | None = Field(
+        default=None,
+        min_length=6,
+        max_length=128,
+        description="Custom password. If omitted, a random one is generated.",
+    )
+
+
 class PasswordResetResponse(BaseModel):
     """Response for admin password reset — includes the new password for on-screen display."""
 
@@ -406,6 +417,7 @@ def resend_credentials(
 )
 def admin_reset_password(
     student_id: str,
+    body: AdminResetPasswordRequest | None = None,
     permanent: bool = Query(
         default=True,
         description="If true, password is permanent (no forced change). Recommended for elderly users.",
@@ -421,9 +433,20 @@ def admin_reset_password(
     student = service.get_student(student_id)
     name = f"{student.first_name} {student.last_name}".strip()
 
+    custom_password = body.password if body else None
+
     svc = CognitoService()
     try:
-        if permanent:
+        if custom_password:
+            # Use the admin-provided password directly
+            svc._cognito.admin_set_user_password(  # noqa: SLF001
+                UserPoolId=svc._pool_id,
+                Username=student.email,
+                Password=custom_password,
+                Permanent=permanent,
+            )
+            password = custom_password
+        elif permanent:
             password = svc.set_permanent_password(student.email)
         else:
             password = svc.generate_password()
