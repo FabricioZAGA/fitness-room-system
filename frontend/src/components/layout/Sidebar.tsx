@@ -1,10 +1,10 @@
 import { Link } from "@tanstack/react-router";
+import logoFr from "@/assets/logo-fr.png";
 import {
   BarChart3,
   Calendar,
   CalendarCheck,
   CreditCard,
-  Dumbbell,
   Home,
   LogOut,
   Package,
@@ -83,13 +83,10 @@ export function Sidebar(): React.JSX.Element {
       {/* ── Brand header ── */}
       <div className="flex items-center gap-3 px-5 py-5">
         <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-          style={{
-            background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-            boxShadow: "var(--shadow-gold)",
-          }}
+          className="h-11 w-11 shrink-0 overflow-hidden rounded-xl"
+          style={{ boxShadow: "var(--shadow-gold)" }}
         >
-          <Dumbbell className="h-6 w-6 text-[--gold-fg]" />
+          <img src={logoFr} alt="Fitness Room" className="h-full w-full object-cover" />
         </div>
         <div className="min-w-0">
           <span className="block text-base font-bold tracking-tight text-[--tx-primary] truncate">{gymName}</span>

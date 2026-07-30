@@ -17,10 +17,10 @@ import {
   AlertTriangle,
   Camera,
   ArrowLeft,
-  QrCode,
   CalendarCheck,
 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
+import logoFr from "@/assets/logo-fr.png";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import { CLASS_TYPE_LABELS } from "@/types/class";
 
@@ -454,13 +454,10 @@ function KioskPage(): React.JSX.Element {
         {/* Header */}
         <div className="mb-8 text-center">
           <div
-            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-            style={{
-              background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-              color: "var(--gold-fg)",
-            }}
+            className="mx-auto mb-4 h-16 w-16 overflow-hidden rounded-2xl"
+            style={{ boxShadow: "var(--shadow-gold)" }}
           >
-            <QrCode className="h-8 w-8" />
+            <img src={logoFr} alt="Fitness Room" className="h-full w-full object-cover" />
           </div>
           <h1 className="text-3xl font-bold text-[--tx-primary]">Check-in QR</h1>
           <p className="mt-1 text-[--tx-muted]">

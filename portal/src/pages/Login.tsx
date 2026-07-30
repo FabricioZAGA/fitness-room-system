@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth, type AuthStep } from '../contexts/AuthContext'
 import { Container } from '../components'
 import { isKeepSessionEnabled, setKeepSession } from '../lib/sessionPreferences'
+import logoFr from '../assets/logo-fr.png'
 
 const inputStyle: React.CSSProperties = {
   padding: '16px',
@@ -149,20 +150,15 @@ export default function Login(): React.JSX.Element {
         <div style={{ textAlign: 'center', marginBottom: '36px' }}>
           <div
             style={{
-              width: '64px',
-              height: '64px',
+              width: '80px',
+              height: '80px',
               borderRadius: '20px',
-              background: 'linear-gradient(135deg, #d4af37 0%, #f59e0b 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              overflow: 'hidden',
               margin: '0 auto 16px',
-              fontSize: '24px',
-              fontWeight: 'bold',
-              color: '#000',
+              boxShadow: '0 4px 20px rgba(212, 175, 55, 0.3)',
             }}
           >
-            FR
+            <img src={logoFr} alt="Fitness Room" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#d4af37', margin: 0 }}>
             Fitness Room

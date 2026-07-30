@@ -6,7 +6,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth, type AuthStep } from "@/contexts/AuthContext";
-import { Dumbbell, Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, KeyRound, ShieldCheck, Shield } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, KeyRound, ShieldCheck, Shield } from "lucide-react";
+import logoFr from "@/assets/logo-fr.png";
 import { useTranslation } from "react-i18next";
 import { isKeepSessionEnabled, setKeepSession } from "@/lib/sessionPreferences";
 
@@ -203,13 +204,10 @@ function LoginPage(): React.JSX.Element {
         <div className="max-w-md text-center">
           <div className="mb-8 flex justify-center">
             <div
-              className="rounded-2xl p-6"
-              style={{
-                background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
-                boxShadow: "var(--shadow-gold)",
-              }}
+              className="h-36 w-36 overflow-hidden rounded-2xl"
+              style={{ boxShadow: "var(--shadow-gold)" }}
             >
-              <Dumbbell className="h-20 w-20" style={{ color: "var(--gold-fg)" }} />
+              <img src={logoFr} alt="Fitness Room" className="h-full w-full object-cover" />
             </div>
           </div>
           <h1 className="mb-4 text-4xl font-bold text-[--tx-primary]">Fitness Room</h1>
@@ -237,11 +235,8 @@ function LoginPage(): React.JSX.Element {
           {/* Mobile logo */}
           <div className="mb-6 flex justify-center lg:hidden">
             <div className="flex items-center gap-3">
-              <div
-                className="rounded-xl p-3"
-                style={{ background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)" }}
-              >
-                <Dumbbell className="h-8 w-8" style={{ color: "var(--gold-fg)" }} />
+              <div className="h-12 w-12 overflow-hidden rounded-xl">
+                <img src={logoFr} alt="Fitness Room" className="h-full w-full object-cover" />
               </div>
               <span className="text-2xl font-bold text-[--tx-primary]">Fitness Room</span>
             </div>
