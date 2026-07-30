@@ -3,7 +3,7 @@ import {
   ArrowLeft, CreditCard, Calendar, Plus, Power, PowerOff,
   Pencil, Mail, Phone, User, CheckCircle2, XCircle, Clock,
   Snowflake, QrCode, Download, ShieldBan, ShieldCheck,
-  Send, KeyRound, RefreshCw, Wallet, AlertTriangle,
+  Send, RefreshCw, Wallet, AlertTriangle,
   Lock, Eye, EyeOff, Copy, Mail as MailIcon,
 } from "lucide-react";
 import { useState, useMemo } from "react";
@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 import {
   useStudent, useActivateStudent, useDeactivateStudent,
   useSuspendStudent, useUnsuspendStudent, useStudentQr,
-  useResendWelcome, useResendCredentials, useUpdateContact,
+  useResendWelcome, useUpdateContact,
   useAdminResetPassword,
 } from "@/hooks/useStudents";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,7 +73,6 @@ function StudentDetailPage(): React.JSX.Element {
   const { mutate: unfreeze, isPending: unfreezing } = useUnfreezeMembership();
   const { data: qrData } = useStudentQr(qrOpen ? studentId : "");
   const { mutate: resendWelcome, isPending: sendingWelcome } = useResendWelcome();
-  const { mutate: resendCreds, isPending: sendingCreds } = useResendCredentials();
   const updateContact = useUpdateContact(studentId);
   const { data: balance } = useStudentBalance(studentId);
   const { data: movements = [] } = useBalanceMovements(studentId);
@@ -92,7 +91,6 @@ function StudentDetailPage(): React.JSX.Element {
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [skipPwdChange, setSkipPwdChange] = useState(true);
-  const [credSkipPwd, setCredSkipPwd] = useState(true);
 
   // Admin password reset
   const { isAdmin } = useAuth();
@@ -304,26 +302,6 @@ function StudentDetailPage(): React.JSX.Element {
               <Send className="h-4 w-4" />
               {sendingWelcome ? t("students.sending") : t("students.resendWelcome")}
             </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => resendCreds({ studentId, skipPasswordChange: credSkipPwd })}
-                disabled={sendingCreds}
-                className="flex items-center gap-2 rounded-xl border border-[--bd-default] bg-[--bg-muted] px-4 py-2.5 text-sm font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold] disabled:opacity-50"
-              >
-                <KeyRound className="h-4 w-4" />
-                {sendingCreds ? t("students.sending") : t("students.resendCredentials")}
-              </button>
-              <label className="flex items-center gap-1.5 text-xs text-[--tx-disabled] cursor-pointer" title={t("students.skipPasswordChangeHint")}>
-                <input
-                  type="checkbox"
-                  checked={credSkipPwd}
-                  onChange={(e) => setCredSkipPwd(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded accent-[--gold]"
-                />
-                {t("students.skipPasswordChange")}
-              </label>
-            </div>
 
             <button
               onClick={() => {
