@@ -2,8 +2,9 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.models.common import MessageResponse
 from src.models.inventory import (
     ProductCreate,
     ProductResponse,
@@ -12,7 +13,7 @@ from src.models.inventory import (
     ProductUpdate,
 )
 from src.services.inventory_service import InventoryService
-from src.utils.auth import get_current_user
+from src.utils.auth import get_current_user, require_admin_only
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
 
@@ -109,6 +110,32 @@ def update_product(
     service: InventoryService = Depends(get_service),
 ) -> ProductResponse:
     return service.update_product(product_id, data)
+
+
+@router.delete(
+    "/products/{product_id}",
+    response_model=MessageResponse,
+    summary="Delete Product",
+    description="Permanently delete a product (admin-only).",
+    dependencies=[Depends(require_admin_only())],
+)
+def delete_product(
+    product_id: str,
+    confirm: bool = Query(
+        default=False,
+        description="Must be true to confirm deletion",
+    ),
+    service: InventoryService = Depends(get_service),
+) -> MessageResponse:
+    """Delete a product (admin-only)."""
+    if not confirm:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Eliminar un producto es irreversible. "
+            "Envía confirm=true para continuar.",
+        )
+    service.delete_product(product_id)
+    return MessageResponse(message=f"Product '{product_id}' deleted.")
 
 
 @router.post(

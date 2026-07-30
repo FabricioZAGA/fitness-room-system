@@ -2,15 +2,20 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.models.common import PaginatedResponse
-from src.models.reservation import ReservationCreate, ReservationResponse
+from src.models.reservation import (
+    ReservationCreate,
+    ReservationResponse,
+    ReservationStatus,
+)
 from src.repositories.class_repository import ClassRepository
+from src.repositories.reservation_repository import ReservationRepository
 from src.repositories.student_repository import StudentRepository
 from src.services.event_notifier import EventNotifier
 from src.services.reservation_service import ReservationService
-from src.utils.auth import get_current_user
+from src.utils.auth import get_current_user, require_admin_only
 
 router = APIRouter(prefix="/reservations", tags=["Reservations"])
 
@@ -245,3 +250,49 @@ def mark_attendance(
 ) -> ReservationResponse:
     """Mark student attendance."""
     return service.mark_attendance(class_id, student_id, attended)
+
+
+@router.patch(
+    "/class/{class_id}/student/{student_id}/status",
+    response_model=ReservationResponse,
+    summary="Admin Override Reservation Status",
+    description=(
+        "Admin-only: force-change a reservation status. "
+        "High-risk reversals (attended → cancelled) require confirm=true."
+    ),
+    dependencies=[Depends(require_admin_only())],
+)
+def admin_update_reservation_status(
+    class_id: str,
+    student_id: str,
+    new_status: ReservationStatus = Query(
+        ..., description="Target status"
+    ),
+    confirm: bool = Query(
+        default=False,
+        description="Must be true to confirm high-risk status reversals",
+    ),
+    reservation_repo: ReservationRepository = Depends(
+        lambda: ReservationRepository()
+    ),
+) -> ReservationResponse:
+    """Admin override: set any reservation status."""
+    existing = reservation_repo.get_reservation(class_id, student_id)
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reservation not found",
+        )
+    terminal = {ReservationStatus.ATTENDED, ReservationStatus.NO_SHOW}
+    if existing.status in {s.value for s in terminal} and not confirm:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Cambiar de '{existing.status}' a '{new_status.value}' es una "
+                "operación de alto riesgo. Envía confirm=true para continuar."
+            ),
+        )
+    updated = reservation_repo.admin_update_status(
+        class_id, student_id, new_status
+    )
+    return updated.to_response()

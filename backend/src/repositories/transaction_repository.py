@@ -7,6 +7,7 @@ from src.models.transaction import (
     CashCutDynamoItem,
     TransactionCreate,
     TransactionDynamoItem,
+    TransactionUpdate,
 )
 from src.repositories.dynamo_repository import DynamoRepository
 from src.utils.exceptions import ResourceNotFoundException
@@ -82,6 +83,33 @@ class TransactionRepository(DynamoRepository):
             if i.get("EntityType") == "TRANSACTION"
         ]
         return tx_items, next_key
+
+    def update_transaction(
+        self, transaction_id: str, data: TransactionUpdate
+    ) -> TransactionDynamoItem:
+        """Update a transaction's mutable attributes.
+
+        Access pattern: UPDATE PK=TRANSACTION#{id}, SK=METADATA.
+        """
+        existing = self.get_transaction(transaction_id)
+        updates: dict[str, Any] = {}
+        for field_name, value in data.model_dump(exclude_none=True).items():
+            if hasattr(value, "value"):
+                updates[field_name] = value.value
+            else:
+                updates[field_name] = value
+        if not updates:
+            return existing
+        raw = self.update_item(existing.PK, existing.SK, updates)
+        return TransactionDynamoItem.model_validate(raw)
+
+    def delete_transaction(self, transaction_id: str) -> None:
+        """Delete a transaction by ID.
+
+        Access pattern: DELETE PK=TRANSACTION#{id}, SK=METADATA.
+        """
+        existing = self.get_transaction(transaction_id)
+        self.delete_item(existing.PK, existing.SK)
 
     # ------------------------------------------------------------------
     # Cash Cuts

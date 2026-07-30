@@ -5,6 +5,24 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [2.2.0] — 2026-07-30
+
+### Added
+
+- **Super-Edit Admin**: los administradores pueden editar absolutamente todos los campos de transacciones, membresías, reservaciones, clases e inventario.
+- **Transacciones — CRUD admin**: nuevo modelo `TransactionUpdate`, métodos `update_transaction` y `delete_transaction` en repositorio/servicio, endpoints PATCH/DELETE con `confirm` para cambios de monto.
+- **Membresías — campos admin**: `start_date`, `membership_type`, `payment_method`, `classes_total` editables. El repositorio actualiza GSI keys al cambiar fechas.
+- **Reservaciones — override de estado**: endpoint admin PATCH para forzar cambio de estado con `confirm` requerido al revertir estados terminales (attended/no_show).
+- **Clases — edición de tipo**: campo `class_type` agregado a `ClassUpdate`.
+- **Inventario — eliminar producto**: endpoint DELETE admin-only con `confirm`.
+- **Seguridad — admin-only en destructivos**: todos los endpoints DELETE (alumnos, clases, instructores, transacciones, productos) ahora requieren `require_admin_only`.
+- **Frontend — EditTransactionModal**: modal de edición con doble confirmación para cambios de monto.
+- **Frontend — EditMembershipModal expandido**: sección admin con campos exclusivos y doble confirmación para cambio de tipo.
+- **Frontend — Reservaciones UI**: dropdown admin por reservación para override de estado con ConfirmDialog.
+- **Frontend — Inventario UI**: botón eliminar producto con ConfirmDialog.
+- **Frontend — AdminOnly component**: wrapper que renderiza solo para usuarios admin.
+- **Validaciones de seguridad**: operaciones de alto riesgo requieren parámetro `confirm=true`; la UI presenta diálogos de doble confirmación.
+
 ## [2.1.0] — 2026-07-29
 
 ### Added

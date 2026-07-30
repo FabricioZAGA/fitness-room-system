@@ -66,6 +66,19 @@ class TransactionCreate(BaseModel):
     notes: str | None = Field(default=None, max_length=500)
 
 
+class TransactionUpdate(BaseModel):
+    """Schema for admin-only updates to an existing transaction."""
+
+    amount: float | None = Field(default=None, gt=0, description="Updated amount in MXN")
+    payment_method: PaymentMethod | None = Field(
+        default=None, description="Updated payment method"
+    )
+    transaction_type: TransactionType | None = Field(
+        default=None, description="Updated transaction type"
+    )
+    notes: str | None = Field(default=None, max_length=500)
+
+
 class TransactionResponse(TimestampedModel):
     """Schema returned in API responses."""
 

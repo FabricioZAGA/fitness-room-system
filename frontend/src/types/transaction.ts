@@ -38,6 +38,13 @@ export interface CreateTransactionRequest {
   notes?: string;
 }
 
+export interface UpdateTransactionRequest {
+  amount?: number;
+  payment_method?: PaymentMethod;
+  transaction_type?: TransactionType;
+  notes?: string;
+}
+
 export interface CashCut {
   cut_id: string;
   cut_date: string;

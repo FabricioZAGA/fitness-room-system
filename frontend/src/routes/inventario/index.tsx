@@ -9,6 +9,7 @@ import {
   ArrowUpCircle,
   Search,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   useProducts,
@@ -17,7 +18,9 @@ import {
   useRestock,
   useUpdateProduct,
   useNotifyLowStock,
+  useDeleteProduct,
 } from "@/hooks/useInventory";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { formatCurrency } from "@/lib/utils";
 import type {
   CreateProductRequest,
@@ -63,12 +66,15 @@ function InventarioPage(): React.JSX.Element {
     payment_method: "cash",
   });
 
+  const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
+
   const { data: products = [], isLoading } = useProducts(filterCategory || undefined);
   const createMutation = useCreateProduct();
   const sellMutation = useSellProduct();
   const restockMutation = useRestock();
   const updateMutation = useUpdateProduct();
   const notifyLowStockMutation = useNotifyLowStock();
+  const deleteMutation = useDeleteProduct();
 
   const filtered = products.filter((p) =>
     search
@@ -327,6 +333,7 @@ function InventarioPage(): React.JSX.Element {
                 onRestock={() => setRestockProduct(product)}
                 onEdit={() => openEditModal(product)}
                 onToggleActive={() => void handleToggleActive(product)}
+                onDelete={() => setDeleteProduct(product)}
               />
             ))}
           </div>
@@ -756,6 +763,23 @@ function InventarioPage(): React.JSX.Element {
           </div>
         </div>
       )}
+
+      {/* Admin: Delete product confirm */}
+      <ConfirmDialog
+        open={!!deleteProduct}
+        onClose={() => setDeleteProduct(null)}
+        onConfirm={() => {
+          if (!deleteProduct) return;
+          deleteMutation.mutate(deleteProduct.product_id, {
+            onSuccess: () => setDeleteProduct(null),
+          });
+        }}
+        title="Eliminar Producto"
+        description={`¿Estás seguro de eliminar "${deleteProduct?.name}"? Esta acción es irreversible.`}
+        confirmLabel="Sí, eliminar"
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }
@@ -767,6 +791,7 @@ function ProductRow({
   onRestock,
   onEdit,
   onToggleActive,
+  onDelete,
 }: {
   product: Product;
   isAdmin: boolean;
@@ -774,6 +799,7 @@ function ProductRow({
   onRestock: () => void;
   onEdit: () => void;
   onToggleActive: () => void;
+  onDelete: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation();
   return (
@@ -835,6 +861,15 @@ function ProductRow({
             className="rounded-xl border border-[--bd-default] px-3 py-1.5 text-xs font-medium text-[--tx-disabled] hover:text-[--tx-muted] transition-colors"
           >
             {product.is_active ? t("inventario.deactivate") : t("inventario.activate")}
+          </button>
+        )}
+        {isAdmin && (
+          <button
+            onClick={onDelete}
+            className="rounded-xl border border-[--color-danger-bd] px-3 py-1.5 text-xs font-medium text-[--color-danger] hover:bg-[--color-danger-bg] transition-colors"
+            title="Eliminar producto"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
           </button>
         )}
       </div>

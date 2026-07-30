@@ -83,6 +83,14 @@ class InventoryRepository(DynamoRepository):
         raw = self.update_item(f"PRODUCT#{product_id}", "METADATA", updates)
         return ProductDynamoItem.model_validate(raw)
 
+    def delete_product(self, product_id: str) -> None:
+        """Delete a product by ID.
+
+        Access pattern: DELETE PK=PRODUCT#{id}, SK=METADATA.
+        """
+        self.get_product(product_id)
+        self.delete_item(f"PRODUCT#{product_id}", "METADATA")
+
     def decrement_stock(self, product_id: str, quantity: int = 1) -> int:
         """Atomically decrement stock. Returns new stock count."""
         return self.update_counter(

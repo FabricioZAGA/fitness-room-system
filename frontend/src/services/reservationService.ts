@@ -58,4 +58,17 @@ export const reservationService = {
     );
     return response.data;
   },
+  async adminUpdateStatus(
+    classId: string,
+    studentId: string,
+    newStatus: string,
+    confirm = false,
+  ): Promise<Reservation> {
+    const response = await apiClient.patch<Reservation>(
+      `/reservations/class/${classId}/student/${studentId}/status`,
+      null,
+      { params: { new_status: newStatus, ...(confirm ? { confirm: true } : {}) } },
+    );
+    return response.data;
+  },
 } as const;

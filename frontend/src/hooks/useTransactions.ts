@@ -13,7 +13,10 @@ import type {
   CreateTransactionRequest,
   TodaySummary,
   Transaction,
+  UpdateTransactionRequest,
 } from "@/types/transaction";
+import { getApiErrorMessage } from "@/lib/apiError";
+import { toast } from "sonner";
 import { transactionService } from "@/services/transactionService";
 
 export const TX_KEY = "transactions";
@@ -59,6 +62,41 @@ export function useRecordTransaction(): UseMutationResult<
     mutationFn: (data) => transactionService.record(data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [TX_KEY] });
+    },
+  });
+}
+
+export function useUpdateTransaction(
+  txId: string,
+): UseMutationResult<
+  Transaction,
+  Error,
+  { data: UpdateTransactionRequest; confirm?: boolean }
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ data, confirm }) =>
+      transactionService.update(txId, data, confirm),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [TX_KEY] });
+      toast.success("Transacción actualizada");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Error al actualizar transacción"));
+    },
+  });
+}
+
+export function useDeleteTransaction(): UseMutationResult<void, Error, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (txId) => transactionService.delete(txId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [TX_KEY] });
+      toast.success("Transacción eliminada");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Error al eliminar transacción"));
     },
   });
 }

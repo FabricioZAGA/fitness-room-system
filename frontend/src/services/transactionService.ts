@@ -6,6 +6,7 @@ import type {
   CreateTransactionRequest,
   TodaySummary,
   Transaction,
+  UpdateTransactionRequest,
 } from "@/types/transaction";
 import { apiClient } from "./apiClient";
 
@@ -18,6 +19,25 @@ export const transactionService = {
   async getById(txId: string): Promise<Transaction> {
     const res = await apiClient.get<Transaction>(`/transactions/${txId}`);
     return res.data;
+  },
+
+  async update(
+    txId: string,
+    data: UpdateTransactionRequest,
+    confirm = false,
+  ): Promise<Transaction> {
+    const res = await apiClient.patch<Transaction>(
+      `/transactions/${txId}`,
+      data,
+      { params: confirm ? { confirm: true } : undefined },
+    );
+    return res.data;
+  },
+
+  async delete(txId: string): Promise<void> {
+    await apiClient.delete(`/transactions/${txId}`, {
+      params: { confirm: true },
+    });
   },
 
   async listByDate(date?: string): Promise<Transaction[]> {

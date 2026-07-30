@@ -58,6 +58,12 @@ export const inventoryService = {
     return res.data;
   },
 
+  async deleteProduct(productId: string): Promise<void> {
+    await apiClient.delete(`/inventory/products/${productId}`, {
+      params: { confirm: true },
+    });
+  },
+
   async sellProduct(data: CreateSaleRequest): Promise<ProductSale> {
     const res = await apiClient.post<ProductSale>("/inventory/sales", data);
     return res.data;

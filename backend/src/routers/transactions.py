@@ -2,16 +2,18 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.models.common import MessageResponse
 from src.models.transaction import (
     CashCutCreate,
     CashCutResponse,
     TransactionCreate,
     TransactionResponse,
+    TransactionUpdate,
 )
 from src.services.transaction_service import TransactionService
-from src.utils.auth import get_current_user
+from src.utils.auth import get_current_user, require_admin_only
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -35,17 +37,56 @@ def record_transaction(
     return service.record_transaction(data)
 
 
-@router.get(
+@router.patch(
     "/{transaction_id}",
     response_model=TransactionResponse,
-    summary="Get Transaction",
+    summary="Update Transaction",
+    description="Update a transaction's attributes (admin-only).",
+    dependencies=[Depends(require_admin_only())],
 )
-def get_transaction(
+def update_transaction(
     transaction_id: str,
-    _current_user: dict[str, Any] = Depends(get_current_user),
+    data: TransactionUpdate,
+    confirm: bool = Query(
+        default=False,
+        description="Must be true to confirm high-risk changes (e.g. amount)",
+    ),
     service: TransactionService = Depends(get_service),
 ) -> TransactionResponse:
-    return service.get_transaction(transaction_id)
+    """Update a transaction (admin-only)."""
+    if data.amount is not None and not confirm:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cambiar el monto es una operación de alto riesgo. "
+            "Envía confirm=true para continuar.",
+        )
+    return service.update_transaction(transaction_id, data)
+
+
+@router.delete(
+    "/{transaction_id}",
+    response_model=MessageResponse,
+    summary="Delete Transaction",
+    description="Permanently delete a transaction (admin-only).",
+    dependencies=[Depends(require_admin_only())],
+)
+def delete_transaction(
+    transaction_id: str,
+    confirm: bool = Query(
+        default=False,
+        description="Must be true to confirm deletion",
+    ),
+    service: TransactionService = Depends(get_service),
+) -> MessageResponse:
+    """Delete a transaction (admin-only)."""
+    if not confirm:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Eliminar una transacción es irreversible. "
+            "Envía confirm=true para continuar.",
+        )
+    service.delete_transaction(transaction_id)
+    return MessageResponse(message=f"Transaction '{transaction_id}' deleted.")
 
 
 @router.get(
@@ -90,6 +131,19 @@ def today_summary(
     service: TransactionService = Depends(get_service),
 ) -> dict[str, Any]:
     return service.get_today_summary()
+
+
+@router.get(
+    "/{transaction_id}",
+    response_model=TransactionResponse,
+    summary="Get Transaction",
+)
+def get_transaction(
+    transaction_id: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: TransactionService = Depends(get_service),
+) -> TransactionResponse:
+    return service.get_transaction(transaction_id)
 
 
 # ---------------------------------------------------------------------------

@@ -136,9 +136,13 @@ class MembershipRepository(DynamoRepository):
         """
         updates: dict[str, Any] = {"updated_at": utc_now().isoformat()}
 
+        if data.start_date is not None:
+            updates["start_date"] = data.start_date.isoformat()
         if data.end_date is not None:
             updates["end_date"] = data.end_date.isoformat()
             updates["GSI1SK"] = f"EXPIRY#{data.end_date.isoformat()}#STUDENT#{student_id}"
+        if data.membership_type is not None:
+            updates["membership_type"] = data.membership_type.value
         if data.status is not None:
             updates["status"] = data.status.value
             if data.status != MembershipStatus.ACTIVE:
@@ -147,6 +151,10 @@ class MembershipRepository(DynamoRepository):
                 updates["GSI3SK"] = "ACTIVE_MEMBERSHIP"
         if data.price_paid is not None:
             updates["price_paid"] = data.price_paid
+        if data.payment_method is not None:
+            updates["payment_method"] = data.payment_method
+        if data.classes_total is not None:
+            updates["classes_total"] = data.classes_total
         if data.classes_remaining is not None:
             updates["classes_remaining"] = data.classes_remaining
         if data.notes is not None:

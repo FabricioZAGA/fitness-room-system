@@ -11,6 +11,7 @@ from src.models.transaction import (
     CashCutResponse,
     TransactionCreate,
     TransactionResponse,
+    TransactionUpdate,
 )
 from src.repositories.transaction_repository import TransactionRepository
 
@@ -39,6 +40,25 @@ class TransactionService:
     def get_transaction(self, transaction_id: str) -> TransactionResponse:
         """Get a specific transaction by ID."""
         return self._repo.get_transaction(transaction_id).to_response()
+
+    def update_transaction(
+        self, transaction_id: str, data: TransactionUpdate
+    ) -> TransactionResponse:
+        """Update a transaction (admin-only)."""
+        logger.info(
+            "Updating transaction",
+            extra={
+                "transaction_id": transaction_id,
+                "fields": list(data.model_dump(exclude_none=True).keys()),
+            },
+        )
+        item = self._repo.update_transaction(transaction_id, data)
+        return item.to_response()
+
+    def delete_transaction(self, transaction_id: str) -> None:
+        """Delete a transaction (admin-only)."""
+        logger.info("Deleting transaction", extra={"transaction_id": transaction_id})
+        self._repo.delete_transaction(transaction_id)
 
     def list_by_date(
         self,

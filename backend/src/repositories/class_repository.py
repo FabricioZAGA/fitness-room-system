@@ -101,6 +101,8 @@ class ClassRepository(DynamoRepository):
         """
         updates: dict[str, Any] = {"updated_at": utc_now().isoformat()}
 
+        if data.class_type is not None:
+            updates["class_type"] = data.class_type
         if data.instructor_name is not None:
             updates["instructor_name"] = data.instructor_name
         if data.class_date is not None:

@@ -128,6 +128,20 @@ export function useNotifyLowStock(): UseMutationResult<
   });
 }
 
+export function useDeleteProduct(): UseMutationResult<void, Error, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (productId) => inventoryService.deleteProduct(productId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [PRODUCT_KEY] });
+      toast.success("Producto eliminado");
+    },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, "No pudimos eliminar el producto."));
+    },
+  });
+}
+
 export function useSellProduct(): UseMutationResult<
   ProductSale,
   Error,

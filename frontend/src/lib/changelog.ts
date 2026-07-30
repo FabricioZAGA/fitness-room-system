@@ -12,9 +12,23 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "2.1.0";
+export const APP_VERSION = "2.2.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "2.2.0",
+    date: "2026-07-30",
+    title: "Super-Edit Admin — edición completa de datos para administradores",
+    items: [
+      { icon: "🛡️", text: "Nuevo: los administradores ahora pueden editar absolutamente todos los campos de transacciones, membresías, reservaciones, clases e inventario" },
+      { icon: "✏️", text: "Caja: botones de editar y eliminar transacciones (solo admin) con modal de edición y doble confirmación para cambios de monto" },
+      { icon: "📋", text: "Membresías: sección admin con edición de fecha de inicio, tipo de membresía, método de pago y clases totales, con doble confirmación para cambio de tipo" },
+      { icon: "📅", text: "Reservaciones: dropdown admin para forzar cambio de estado con confirmación extra al revertir estados terminales (asistió/no-show)" },
+      { icon: "🗑️", text: "Inventario: botón de eliminar producto (solo admin) con diálogo de confirmación" },
+      { icon: "🔒", text: "Todos los endpoints destructivos (eliminar alumnos, clases, instructores, transacciones, productos) ahora requieren rol de administrador" },
+      { icon: "⚠️", text: "Validaciones de seguridad: operaciones de alto riesgo requieren parámetro confirm=true con doble confirmación en la UI" },
+    ],
+  },
   {
     version: "2.1.0",
     date: "2026-07-29",

@@ -68,6 +68,31 @@ export function useCancelReservation() {
   });
 }
 
+export function useAdminUpdateReservationStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      classId,
+      studentId,
+      newStatus,
+      confirm,
+    }: {
+      classId: string;
+      studentId: string;
+      newStatus: string;
+      confirm?: boolean;
+    }) => reservationService.adminUpdateStatus(classId, studentId, newStatus, confirm),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [RESERVATIONS_KEY] });
+      qc.invalidateQueries({ queryKey: [CLASSES_KEY] });
+      toast.success("Estado de reservación actualizado.");
+    },
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Error al actualizar estado."));
+    },
+  });
+}
+
 export function useMarkAttendance() {
   const qc = useQueryClient();
   return useMutation({

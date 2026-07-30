@@ -83,9 +83,16 @@ class MembershipCreate(BaseModel):
 class MembershipUpdate(BaseModel):
     """Schema for updating an existing membership."""
 
+    start_date: date | None = None
     end_date: date | None = None
+    membership_type: MembershipType | None = None
     status: MembershipStatus | None = None
     price_paid: float | None = Field(default=None, ge=0)
+    payment_method: str | None = Field(
+        default=None,
+        description="Payment method: cash | card | transfer",
+    )
+    classes_total: int | None = Field(default=None, ge=1)
     classes_remaining: int | None = Field(default=None, ge=0)
     notes: str | None = Field(default=None, max_length=500)
 

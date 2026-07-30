@@ -17,7 +17,7 @@ from src.models.instructor import (
 from src.services.cognito_service import CognitoService
 from src.services.event_notifier import EventNotifier
 from src.services.instructor_service import InstructorService
-from src.utils.auth import get_current_user
+from src.utils.auth import get_current_user, require_admin_only
 
 logger = Logger()
 
@@ -161,10 +161,10 @@ def deactivate_instructor(
     response_model=MessageResponse,
     summary="Delete Instructor",
     description="Permanently delete an instructor.",
+    dependencies=[Depends(require_admin_only())],
 )
 def delete_instructor(
     instructor_id: str,
-    _current_user: dict[str, Any] = Depends(get_current_user),
     service: InstructorService = Depends(get_service),
 ) -> MessageResponse:
     """Delete an instructor."""

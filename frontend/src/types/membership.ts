@@ -46,9 +46,13 @@ export interface CreateMembershipRequest {
 }
 
 export interface UpdateMembershipRequest {
+  start_date?: string;
   end_date?: string;
+  membership_type?: MembershipType;
   status?: MembershipStatus;
   price_paid?: number;
+  payment_method?: string;
+  classes_total?: number;
   classes_remaining?: number;
   notes?: string;
 }

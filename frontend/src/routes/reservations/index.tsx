@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { CalendarCheck, Plus, UserPlus, Users, XCircle, CheckCircle2, Clock } from "lucide-react";
+import { CalendarCheck, Plus, UserPlus, Users, XCircle, CheckCircle2, Clock, ShieldAlert } from "lucide-react";
 import { useClasses } from "@/hooks/useClasses";
 import { useStudents } from "@/hooks/useStudents";
-import { useReservationsForClass, useCancelReservation, useMarkAttendance } from "@/hooks/useReservations";
+import { useReservationsForClass, useCancelReservation, useMarkAttendance, useAdminUpdateReservationStatus } from "@/hooks/useReservations";
+import { useAuth } from "@/contexts/AuthContext";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { ReservationStatusBadge } from "@/components/shared/StatusBadge";
 import { getClassTypeLabel } from "@/types/class";
 import { RESERVATION_TYPE_LABELS, RESERVATION_TYPE_COLORS } from "@/types/reservation";
@@ -55,8 +57,34 @@ function ReservationsPage(): React.JSX.Element {
     return map;
   }, [studentsData]);
 
+  const { isAdmin } = useAuth();
   const { mutate: cancelReservation } = useCancelReservation();
   const { mutate: markAttendance } = useMarkAttendance();
+  const { mutate: adminUpdateStatus, isPending: adminStatusPending } = useAdminUpdateReservationStatus();
+  const [statusConfirm, setStatusConfirm] = useState<{
+    classId: string;
+    studentId: string;
+    newStatus: string;
+    currentStatus: string;
+  } | null>(null);
+
+  const RESERVATION_STATUSES = [
+    { value: "confirmed", label: "Confirmada" },
+    { value: "cancelled", label: "Cancelada" },
+    { value: "attended", label: "Asistio" },
+    { value: "no_show", label: "No-Show" },
+    { value: "waitlisted", label: "Lista de espera" },
+  ];
+
+  const terminalStatuses = new Set(["attended", "no_show"]);
+
+  function handleAdminStatusChange(classId: string, studentId: string, newStatus: string, currentStatus: string): void {
+    if (terminalStatuses.has(currentStatus)) {
+      setStatusConfirm({ classId, studentId, newStatus, currentStatus });
+    } else {
+      adminUpdateStatus({ classId, studentId, newStatus });
+    }
+  }
 
   const classes = classesData?.items ?? [];
   const selectedClass = classes.find((c) => c.class_id === selectedClassId);
@@ -274,6 +302,30 @@ function ReservationsPage(): React.JSX.Element {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2">
+                      {/* Admin status override */}
+                      {isAdmin && (
+                        <div className="flex items-center gap-1.5">
+                          <ShieldAlert className="h-3.5 w-3.5 text-[--gold]" />
+                          <select
+                            value={res.status}
+                            onChange={(e) =>
+                              handleAdminStatusChange(
+                                selectedClassId,
+                                res.student_id,
+                                e.target.value,
+                                res.status,
+                              )
+                            }
+                            className="rounded-lg border border-[--bd-subtle] bg-[--bg-muted] px-2 py-1.5 text-xs text-[--tx-primary] focus:border-[--gold] focus:outline-none"
+                          >
+                            {RESERVATION_STATUSES.map((s) => (
+                              <option key={s.value} value={s.value}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                       {res.status === "confirmed" && (
                         <>
                           <button
@@ -324,6 +376,29 @@ function ReservationsPage(): React.JSX.Element {
           )}
         </>
       )}
+
+      {/* Admin: Confirm status reversal */}
+      <ConfirmDialog
+        open={!!statusConfirm}
+        onClose={() => setStatusConfirm(null)}
+        onConfirm={() => {
+          if (!statusConfirm) return;
+          adminUpdateStatus(
+            {
+              classId: statusConfirm.classId,
+              studentId: statusConfirm.studentId,
+              newStatus: statusConfirm.newStatus,
+              confirm: true,
+            },
+            { onSuccess: () => setStatusConfirm(null) },
+          );
+        }}
+        title="Confirmar cambio de estado"
+        description={`Cambiar de "${statusConfirm?.currentStatus}" a "${statusConfirm?.newStatus}" es una operacion de alto riesgo. ¿Continuar?`}
+        confirmLabel="Si, cambiar"
+        variant="warning"
+        loading={adminStatusPending}
+      />
 
       {/* Add to Class Modal */}
       <AddToClassModal

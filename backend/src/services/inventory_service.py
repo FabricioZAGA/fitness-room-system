@@ -99,6 +99,11 @@ class InventoryService:
         product.stock = new_stock
         return product.to_response()
 
+    def delete_product(self, product_id: str) -> None:
+        """Delete a product from the inventory (admin-only)."""
+        logger.info("Deleting product", extra={"product_id": product_id})
+        self._inventory.delete_product(product_id)
+
     def get_low_stock(self) -> list[ProductResponse]:
         """Return all active products that are at or below their low-stock threshold."""
         items, _ = self._inventory.list_products(limit=500)

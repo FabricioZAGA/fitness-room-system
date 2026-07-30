@@ -15,6 +15,8 @@ import {
   AlertTriangle,
   FileText,
   Wallet,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   useCreateCashCut,
@@ -22,12 +24,16 @@ import {
   useTransactionsByDate,
   useTodaySummary,
   useRecordTransaction,
+  useDeleteTransaction,
 } from "@/hooks/useTransactions";
+import { useAuth } from "@/contexts/AuthContext";
+import { EditTransactionModal } from "@/components/shared/EditTransactionModal";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { useProducts, useSellProduct } from "@/hooks/useInventory";
 import { useDeposit } from "@/hooks/useBalance";
 import { useStudents } from "@/hooks/useStudents";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import type { CreateTransactionRequest, PaymentMethod, TransactionType } from "@/types/transaction";
+import type { CreateTransactionRequest, PaymentMethod, Transaction, TransactionType } from "@/types/transaction";
 import { PAYMENT_METHOD_LABELS, TRANSACTION_TYPE_LABELS } from "@/types/transaction";
 import type { Product } from "@/types/inventory";
 import type { Student } from "@/types/student";
@@ -98,7 +104,13 @@ function CajaPage(): React.JSX.Element {
     notes: "",
   });
 
+  const { isAdmin } = useAuth();
   const gymName = useGymStore((s) => s.name);
+
+  // Admin edit/delete state
+  const [editTx, setEditTx] = useState<Transaction | null>(null);
+  const [deleteTx, setDeleteTx] = useState<Transaction | null>(null);
+  const deleteMutation = useDeleteTransaction();
   const { data: summary } = useTodaySummary();
   const { data: todayTransactions = [] } = useTransactionsByDate(today);
   const { data: cashCuts = [] } = useCashCuts();
@@ -256,6 +268,24 @@ function CajaPage(): React.JSX.Element {
                     {tx.notes ? ` · ${tx.notes}` : ""}
                   </p>
                 </div>
+                {isAdmin && (
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setEditTx(tx)}
+                      className="rounded-lg p-1.5 text-[--tx-disabled] transition-colors hover:bg-[--bg-muted] hover:text-[--gold]"
+                      title="Editar"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTx(tx)}
+                      className="rounded-lg p-1.5 text-[--tx-disabled] transition-colors hover:bg-[--color-danger-bg] hover:text-[--color-danger]"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
                 <span className="font-semibold text-[--tx-primary]">{formatCurrency(tx.amount)}</span>
               </div>
             ))}
@@ -452,6 +482,30 @@ function CajaPage(): React.JSX.Element {
           </div>
         </div>
       )}
+
+      {/* Admin: Edit transaction modal */}
+      <EditTransactionModal
+        open={!!editTx}
+        onClose={() => setEditTx(null)}
+        transaction={editTx}
+      />
+
+      {/* Admin: Delete transaction confirm */}
+      <ConfirmDialog
+        open={!!deleteTx}
+        onClose={() => setDeleteTx(null)}
+        onConfirm={() => {
+          if (!deleteTx) return;
+          deleteMutation.mutate(deleteTx.transaction_id, {
+            onSuccess: () => setDeleteTx(null),
+          });
+        }}
+        title="Eliminar Transacción"
+        description={`¿Estás seguro de eliminar esta transacción de ${formatCurrency(deleteTx?.amount ?? 0)}? Esta acción es irreversible.`}
+        confirmLabel="Sí, eliminar"
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
 
       {/* Cash cut confirm modal */}
       {showCutConfirm && (

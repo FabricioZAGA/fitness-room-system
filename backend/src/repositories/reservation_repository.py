@@ -128,6 +128,27 @@ class ReservationRepository(DynamoRepository):
         )
         return ReservationDynamoItem.model_validate(raw)
 
+    def admin_update_status(
+        self,
+        class_id: str,
+        student_id: str,
+        new_status: ReservationStatus,
+    ) -> ReservationDynamoItem:
+        """Admin override: set any status on a reservation.
+
+        Access pattern: UPDATE PK=CLASS#id, SK=RESERVATION#student_id.
+        """
+        updates: dict[str, Any] = {
+            "status": new_status.value,
+            "updated_at": utc_now().isoformat(),
+        }
+        raw = self.update_item(
+            f"CLASS#{class_id}",
+            f"RESERVATION#{student_id}",
+            updates,
+        )
+        return ReservationDynamoItem.model_validate(raw)
+
     def add_to_waitlist(
         self,
         data: ReservationCreate,

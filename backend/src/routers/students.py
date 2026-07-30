@@ -23,7 +23,7 @@ from src.services.cognito_service import CognitoService
 from src.services.event_notifier import EventNotifier
 from src.services.notification_service import NotificationService
 from src.services.student_service import StudentService
-from src.utils.auth import get_current_user
+from src.utils.auth import get_current_user, require_admin_only
 
 logger = Logger()
 
@@ -255,10 +255,10 @@ def unsuspend_student(
     response_model=MessageResponse,
     summary="Delete Student",
     description="Permanently delete a student. This action cannot be undone.",
+    dependencies=[Depends(require_admin_only())],
 )
 def delete_student(
     student_id: str,
-    _current_user: dict[str, Any] = Depends(get_current_user),
     service: StudentService = Depends(get_service),
 ) -> MessageResponse:
     """Delete a student by ID."""

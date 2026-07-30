@@ -10,7 +10,7 @@ from src.repositories.reservation_repository import ReservationRepository
 from src.repositories.student_repository import StudentRepository
 from src.services.class_service import ClassService
 from src.services.event_notifier import EventNotifier
-from src.utils.auth import get_current_user
+from src.utils.auth import get_current_user, require_admin_only
 
 router = APIRouter(prefix="/classes", tags=["Classes"])
 
@@ -269,10 +269,10 @@ def cancel_class(
     response_model=MessageResponse,
     summary="Delete Class",
     description="Permanently delete a class session. Prefer cancellation for classes with reservations.",  # noqa: E501
+    dependencies=[Depends(require_admin_only())],
 )
 def delete_class(
     class_id: str,
-    _current_user: dict[str, Any] = Depends(get_current_user),
     service: ClassService = Depends(get_service),
 ) -> MessageResponse:
     """Delete a class session."""
