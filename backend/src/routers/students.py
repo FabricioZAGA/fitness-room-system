@@ -277,6 +277,17 @@ class ResendResponse(BaseModel):
     delivery_detail: str | None = None
 
 
+class PasswordResetResponse(BaseModel):
+    """Response for admin password reset — includes the new password for on-screen display."""
+
+    message: str
+    password: str
+    permanent: bool
+    email_sent: bool
+    delivery_status: str | None = None
+    delivery_detail: str | None = None
+
+
 class UpdateContactRequest(BaseModel):
     """Request to update a student's contact info (email/phone) and sync Cognito."""
 
@@ -377,6 +388,76 @@ def resend_credentials(
     return ResendResponse(
         message=f"Credentials resent to {student.email}"
         + (" (permanent password)" if skip_password_change else " (temp password)"),
+        delivery_status=delivery.get("status"),
+        delivery_detail=delivery.get("detail") or None,
+    )
+
+
+@router.post(
+    "/{student_id}/admin-reset-password",
+    response_model=PasswordResetResponse,
+    summary="Admin Reset Password",
+    description=(
+        "Generate a new password for a student and optionally email it. "
+        "Returns the password so the admin can share it verbally with the student. "
+        "Use permanent=true to skip FORCE_CHANGE_PASSWORD (recommended for elderly users)."
+    ),
+    dependencies=[Depends(require_admin_only())],
+)
+def admin_reset_password(
+    student_id: str,
+    permanent: bool = Query(
+        default=True,
+        description="If true, password is permanent (no forced change). Recommended for elderly users.",
+    ),
+    send_email: bool = Query(
+        default=False,
+        description="If true, also send the credentials email to the student.",
+    ),
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: StudentService = Depends(get_service),
+) -> PasswordResetResponse:
+    """Reset a student's Cognito password and return it for on-screen display."""
+    student = service.get_student(student_id)
+    name = f"{student.first_name} {student.last_name}".strip()
+
+    svc = CognitoService()
+    try:
+        if permanent:
+            password = svc.set_permanent_password(student.email)
+        else:
+            password = svc.generate_password()
+            svc._cognito.admin_set_user_password(  # noqa: SLF001
+                UserPoolId=svc._pool_id,
+                Username=student.email,
+                Password=password,
+                Permanent=False,
+            )
+    except Exception as exc:
+        logger.exception("Admin password reset failed", extra={"student_id": student_id})
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"No se pudo resetear la contraseña: {exc}",
+        ) from exc
+
+    email_sent = False
+    delivery: dict[str, str] = {}
+    if send_email:
+        settings = get_settings()
+        delivery = EventNotifier().notify_portal_credentials(
+            student_name=name,
+            student_email=student.email,
+            password=password,
+            portal_url=settings.portal_url,
+        )
+        email_sent = delivery.get("status") == "sent"
+
+    label = "permanente" if permanent else "temporal"
+    return PasswordResetResponse(
+        message=f"Contraseña {label} generada para {student.email}",
+        password=password,
+        permanent=permanent,
+        email_sent=email_sent,
         delivery_status=delivery.get("status"),
         delivery_detail=delivery.get("detail") or None,
     )

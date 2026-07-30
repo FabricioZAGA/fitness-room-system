@@ -248,6 +248,23 @@ export function useUpdateContact(studentId: string) {
   });
 }
 
+export function useAdminResetPassword() {
+  return useMutation({
+    mutationFn: ({
+      studentId,
+      permanent = true,
+      sendEmail = false,
+    }: {
+      studentId: string;
+      permanent?: boolean;
+      sendEmail?: boolean;
+    }) => studentService.adminResetPassword(studentId, permanent, sendEmail),
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Error al resetear contraseña."));
+    },
+  });
+}
+
 export function useStudentQr(studentId: string) {
   return useQuery({
     queryKey: [STUDENTS_KEY, studentId, "qr"],

@@ -119,7 +119,29 @@ export const studentService = {
     );
     return response.data;
   },
+  /** Admin: reset password and return it for on-screen display. */
+  async adminResetPassword(
+    studentId: string,
+    permanent = true,
+    sendEmail = false,
+  ): Promise<PasswordResetResponse> {
+    const response = await apiClient.post<PasswordResetResponse>(
+      `/students/${studentId}/admin-reset-password`,
+      null,
+      { params: { permanent, send_email: sendEmail } },
+    );
+    return response.data;
+  },
 } as const;
+
+export interface PasswordResetResponse {
+  message: string;
+  password: string;
+  permanent: boolean;
+  email_sent: boolean;
+  delivery_status: string | null;
+  delivery_detail: string | null;
+}
 
 export interface ResendResponse {
   message: string;

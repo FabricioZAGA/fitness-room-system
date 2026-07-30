@@ -4,14 +4,19 @@ import {
   Pencil, Mail, Phone, User, CheckCircle2, XCircle, Clock,
   Snowflake, QrCode, Download, ShieldBan, ShieldCheck,
   Send, KeyRound, RefreshCw, Wallet, AlertTriangle,
+  Lock, Eye, EyeOff, Copy, Mail as MailIcon,
 } from "lucide-react";
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
   useStudent, useActivateStudent, useDeactivateStudent,
   useSuspendStudent, useUnsuspendStudent, useStudentQr,
   useResendWelcome, useResendCredentials, useUpdateContact,
+  useAdminResetPassword,
 } from "@/hooks/useStudents";
+import { useAuth } from "@/contexts/AuthContext";
+import type { PasswordResetResponse } from "@/services/studentService";
 import { useMembershipsForStudent, useFreezeMembership, useUnfreezeMembership } from "@/hooks/useMemberships";
 import { useReservationsForStudent } from "@/hooks/useReservations";
 import { useClasses } from "@/hooks/useClasses";
@@ -88,6 +93,15 @@ function StudentDetailPage(): React.JSX.Element {
   const [newPhone, setNewPhone] = useState("");
   const [skipPwdChange, setSkipPwdChange] = useState(true);
   const [credSkipPwd, setCredSkipPwd] = useState(true);
+
+  // Admin password reset
+  const { isAdmin } = useAuth();
+  const adminResetPwd = useAdminResetPassword();
+  const [pwdResetOpen, setPwdResetOpen] = useState(false);
+  const [pwdPermanent, setPwdPermanent] = useState(true);
+  const [pwdSendEmail, setPwdSendEmail] = useState(false);
+  const [pwdResult, setPwdResult] = useState<PasswordResetResponse | null>(null);
+  const [pwdVisible, setPwdVisible] = useState(false);
 
   const { t } = useTranslation();
 
@@ -320,6 +334,22 @@ function StudentDetailPage(): React.JSX.Element {
               <RefreshCw className="h-4 w-4" />
               {t("students.updateContact")}
             </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setPwdResult(null);
+                  setPwdVisible(false);
+                  setPwdPermanent(true);
+                  setPwdSendEmail(false);
+                  setPwdResetOpen(true);
+                }}
+                className="flex items-center gap-2 rounded-xl border border-[--gold-bd] bg-[--gold-bg] px-4 py-2.5 text-sm font-semibold text-[--gold] transition-all hover:opacity-80"
+              >
+                <Lock className="h-4 w-4" />
+                Resetear Contraseña
+              </button>
+            )}
           </div>
           <p className="mt-3 text-xs text-[--tx-disabled]">
             {t("students.updateContactDesc")}
@@ -892,6 +922,157 @@ function StudentDetailPage(): React.JSX.Element {
             </button>
           </div>
         </div>
+      </Dialog>
+
+      {/* Admin: Password Reset Dialog */}
+      <Dialog
+        open={pwdResetOpen}
+        onClose={() => setPwdResetOpen(false)}
+        title="Resetear Contraseña"
+        description={`Genera una nueva contraseña para ${student.full_name}`}
+      >
+        {!pwdResult ? (
+          <div className="space-y-5">
+            <div className="rounded-xl border border-[--gold-bd] bg-[--gold-bg] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[--gold] mb-3">Opciones</p>
+
+              <label className="flex items-start gap-3 rounded-lg p-3 cursor-pointer hover:bg-[--bg-muted]/50 transition-colors">
+                <input
+                  type="radio"
+                  name="pwd-type"
+                  checked={pwdPermanent}
+                  onChange={() => setPwdPermanent(true)}
+                  className="mt-0.5 accent-[--gold]"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-[--tx-primary]">Contraseña permanente</p>
+                  <p className="text-xs text-[--tx-muted]">
+                    El alumno podrá iniciar sesión directamente sin tener que cambiarla.
+                    <span className="ml-1 font-medium text-[--gold]">Recomendado para personas mayores.</span>
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 rounded-lg p-3 cursor-pointer hover:bg-[--bg-muted]/50 transition-colors">
+                <input
+                  type="radio"
+                  name="pwd-type"
+                  checked={!pwdPermanent}
+                  onChange={() => setPwdPermanent(false)}
+                  className="mt-0.5 accent-[--gold]"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-[--tx-primary]">Contraseña temporal</p>
+                  <p className="text-xs text-[--tx-muted]">
+                    El alumno deberá cambiarla en su primer inicio de sesión.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <label className="flex items-center gap-3 rounded-xl border border-[--bd-subtle] bg-[--bg-muted] p-4 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pwdSendEmail}
+                onChange={(e) => setPwdSendEmail(e.target.checked)}
+                className="h-4 w-4 rounded accent-[--gold]"
+              />
+              <div>
+                <p className="text-sm font-medium text-[--tx-primary]">También enviar por email</p>
+                <p className="text-xs text-[--tx-muted]">Se enviará la contraseña al correo {student.email}</p>
+              </div>
+            </label>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setPwdResetOpen(false)}
+                className="rounded-xl border border-[--bd-subtle] px-5 py-2.5 text-sm font-medium text-[--tx-muted] transition-colors hover:border-[--bd-default] hover:text-[--tx-primary]"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={adminResetPwd.isPending}
+                onClick={() => {
+                  adminResetPwd.mutate(
+                    { studentId, permanent: pwdPermanent, sendEmail: pwdSendEmail },
+                    { onSuccess: (res) => setPwdResult(res) },
+                  );
+                }}
+                className="rounded-xl px-5 py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
+                style={{
+                  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                  color: "var(--gold-fg)",
+                  boxShadow: "0 10px 25px var(--gold-bg)",
+                }}
+              >
+                {adminResetPwd.isPending ? "Generando..." : "Generar Contraseña"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="rounded-xl border-2 border-[--color-success-bd] bg-[--color-success-bg] p-5 text-center">
+              <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-[--color-success]" />
+              <p className="text-sm font-semibold text-[--tx-primary]">
+                {pwdResult.permanent ? "Contraseña permanente generada" : "Contraseña temporal generada"}
+              </p>
+              <p className="mt-1 text-xs text-[--tx-muted]">{pwdResult.message}</p>
+            </div>
+
+            <div className="rounded-xl border border-[--bd-default] bg-[--bg-muted] p-4">
+              <p className="mb-2 text-xs font-medium text-[--tx-disabled] uppercase tracking-wider">Nueva Contraseña</p>
+              <div className="flex items-center gap-3">
+                <code className="flex-1 rounded-lg bg-[--bg-base] px-4 py-3 text-lg font-mono font-bold text-[--tx-primary] tracking-widest select-all">
+                  {pwdVisible ? pwdResult.password : "••••••••••••"}
+                </code>
+                <button
+                  onClick={() => setPwdVisible(!pwdVisible)}
+                  className="rounded-lg border border-[--bd-subtle] p-2.5 text-[--tx-muted] hover:text-[--tx-primary] transition-colors"
+                  title={pwdVisible ? "Ocultar" : "Mostrar"}
+                >
+                  {pwdVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+                <button
+                  onClick={() => {
+                    void navigator.clipboard.writeText(pwdResult.password);
+                    toast.success("Contraseña copiada al portapapeles");
+                  }}
+                  className="rounded-lg border border-[--bd-subtle] p-2.5 text-[--tx-muted] hover:text-[--tx-primary] transition-colors"
+                  title="Copiar"
+                >
+                  <Copy className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {pwdResult.email_sent && (
+              <div className="flex items-center gap-2 rounded-xl bg-[--color-info-bg] px-4 py-3 text-sm text-[--color-info]">
+                <MailIcon className="h-4 w-4" />
+                Contraseña enviada por email a {student.email}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPwdResetOpen(false);
+                  setPwdResult(null);
+                }}
+                className="rounded-xl px-5 py-2.5 text-sm font-semibold transition-all"
+                style={{
+                  background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+                  color: "var(--gold-fg)",
+                  boxShadow: "0 10px 25px var(--gold-bg)",
+                }}
+              >
+                Listo
+              </button>
+            </div>
+          </div>
+        )}
       </Dialog>
     </>
   );
