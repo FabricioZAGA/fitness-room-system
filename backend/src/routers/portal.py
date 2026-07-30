@@ -679,10 +679,29 @@ def create_reservation(
     except (ValueError, TypeError):
         pass
 
-    # Daily limit: 1-session/day memberships
-    _ONE_SESSION_TYPES = {"founder", "room_daily", "room_pass", "founder_monthly"}
+    # Membership validation: student must have an active, non-expired membership
     membership_repo = MembershipRepository()
     active_mem = membership_repo.get_active_for_student(student_id)
+    if not active_mem:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No tienes una membresía activa. Contacta a recepción para renovar.",
+        )
+
+    mem_end_date = (
+        date.fromisoformat(active_mem.end_date)
+        if isinstance(active_mem.end_date, str)
+        else active_mem.end_date
+    )
+    today = mexico_today()
+    if mem_end_date < today:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tu membresía ha expirado. Contacta a recepción para renovar.",
+        )
+
+    # Daily limit: 1-session/day memberships
+    _ONE_SESSION_TYPES = {"founder", "room_daily", "room_pass", "founder_monthly"}
     if active_mem and active_mem.membership_type in _ONE_SESSION_TYPES:
         stu_reservations, _ = reservation_repo.list_for_student(student_id, limit=200)
         # Include "attended" so a Founder who already checked in to today's class
