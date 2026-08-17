@@ -33,6 +33,8 @@ class MembershipType(StrEnum):
     ROOM_ELITE = "room_elite"      # Room Elite — $1,600 — ilimitado L-S
     ROOM_FLEX = "room_flex"        # Room Flex — $1,150 — 12 sesiones/mes
     ROOM_PASS = "room_pass"        # Room Pass — $150 — 1 sesión mismo día
+    ROOM_DUO = "room_duo"          # Room Dúo — descuento pareja — 1 sesión/día, renovación ligada
+    KILO_A_KILO = "kilo_a_kilo"    # Kilo a Kilo — 90 días — un solo pago
     COURTESY = "courtesy"          # Cortesía — $0 — duración configurable, ilimitado (regalos/staff)
 
 
@@ -64,6 +66,15 @@ class MembershipCreate(BaseModel):
         description="Total classes included (for class packs only)",
     )
     notes: str | None = Field(default=None, max_length=500, description="Internal notes")
+    duo_partner_id: str | None = Field(
+        default=None,
+        description="Student ID of the duo partner (required for room_duo)",
+    )
+    duo_partner_name: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Display name of the duo partner (auto-filled)",
+    )
 
     @model_validator(mode="after")
     def validate_dates(self) -> "MembershipCreate":
@@ -77,6 +88,13 @@ class MembershipCreate(BaseModel):
         """Require classes_total for session-based packs (Room Flex)."""
         if self.membership_type == MembershipType.ROOM_FLEX and self.classes_total is None:
             raise ValueError("classes_total is required for Room Flex memberships")
+        return self
+
+    @model_validator(mode="after")
+    def validate_duo_partner(self) -> "MembershipCreate":
+        """Require duo_partner_id for Room Dúo memberships."""
+        if self.membership_type == MembershipType.ROOM_DUO and not self.duo_partner_id:
+            raise ValueError("duo_partner_id is required for Room Dúo memberships")
         return self
 
 
@@ -95,6 +113,8 @@ class MembershipUpdate(BaseModel):
     classes_total: int | None = Field(default=None, ge=1)
     classes_remaining: int | None = Field(default=None, ge=0)
     notes: str | None = Field(default=None, max_length=500)
+    duo_partner_id: str | None = None
+    duo_partner_name: str | None = Field(default=None, max_length=200)
 
 
 class FreezeMembershipRequest(BaseModel):
@@ -116,6 +136,8 @@ class MembershipResponse(TimestampedModel):
     classes_total: int | None = None
     classes_remaining: int | None = None
     notes: str | None = None
+    duo_partner_id: str | None = None
+    duo_partner_name: str | None = None
     days_until_expiry: int | None = None
     is_frozen: bool = False
     freeze_start_date: date | None = None
@@ -153,6 +175,8 @@ class MembershipDynamoItem(BaseModel):
     classes_total: int | None = None
     classes_remaining: int | None = None
     notes: str | None = None
+    duo_partner_id: str | None = None
+    duo_partner_name: str | None = None
     is_frozen: bool = False
     freeze_start_date: str | None = None
     freeze_end_date: str | None = None
@@ -190,6 +214,8 @@ class MembershipDynamoItem(BaseModel):
             classes_total=data.classes_total,
             classes_remaining=classes_remaining,
             notes=data.notes,
+            duo_partner_id=data.duo_partner_id,
+            duo_partner_name=data.duo_partner_name,
             created_at=now,
             updated_at=now,
         )
@@ -207,6 +233,8 @@ class MembershipDynamoItem(BaseModel):
             classes_total=self.classes_total,
             classes_remaining=self.classes_remaining,
             notes=self.notes,
+            duo_partner_id=self.duo_partner_id,
+            duo_partner_name=self.duo_partner_name,
             is_frozen=self.is_frozen,
             freeze_start_date=date.fromisoformat(self.freeze_start_date) if self.freeze_start_date else None,
             freeze_end_date=date.fromisoformat(self.freeze_end_date) if self.freeze_end_date else None,

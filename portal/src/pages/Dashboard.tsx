@@ -13,6 +13,8 @@ const MEMBERSHIP_TYPE_LABELS: Record<string, string> = {
   room_elite: 'Room Elite',
   room_flex: 'Room Flex',
   room_pass: 'Room Pass',
+  room_duo: 'Room Dúo',
+  kilo_a_kilo: 'Kilo a Kilo',
   // Legacy (hasta que la migración termine)
   monthly: 'Mensual',
   quarterly: 'Trimestral',

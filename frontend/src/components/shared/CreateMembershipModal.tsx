@@ -57,9 +57,13 @@ function endDateFor(type: MembershipType, startDate: string): string {
     case "room_flex":
       // 12 sessions, no strict expiry — give 60 days so reports stay bounded.
       return addMonths(startDate, 2);
+    case "kilo_a_kilo":
+      // 90-day single-payment plan.
+      return addDays(startDate, 90);
     case "founder":
     case "room_daily":
     case "room_elite":
+    case "room_duo":
     default:
       return addMonths(startDate, 1);
   }
@@ -69,13 +73,14 @@ const DEFAULT_TYPE: MembershipType = "room_daily";
 
 const INITIAL_FORM = {
   student_id: "",
-  membership_type: DEFAULT_TYPE,
+  membership_type: DEFAULT_TYPE as MembershipType,
   start_date: todayStr(),
   end_date: endDateFor(DEFAULT_TYPE, todayStr()),
   price_paid: MEMBERSHIP_DEFAULT_PRICE[DEFAULT_TYPE],
   payment_method: "cash",
   classes_total: undefined as number | undefined,
   notes: "",
+  duo_partner_id: "",
 };
 
 export function CreateMembershipModal({
@@ -133,6 +138,7 @@ export function CreateMembershipModal({
       payment_method: form.payment_method,
       classes_total: form.classes_total,
       notes: form.notes || undefined,
+      duo_partner_id: isDuo ? form.duo_partner_id || undefined : undefined,
     };
     mutate(payload, {
       onSuccess: (newMembership) => {
@@ -153,6 +159,10 @@ export function CreateMembershipModal({
   }
 
   const isSessionPack = SESSION_PACKS.has(form.membership_type);
+  const isDuo = form.membership_type === "room_duo";
+  const availablePartners = students.filter(
+    (s) => s.student_id !== form.student_id && s.student_id !== (studentId ?? "")
+  );
 
   return (
     <Dialog
@@ -248,6 +258,25 @@ export function CreateMembershipModal({
             </select>
           </Field>
         </div>
+
+        {isDuo && (
+          <Field label="Pareja Dúo *">
+            <select
+              name="duo_partner_id"
+              value={form.duo_partner_id}
+              onChange={handleChange}
+              required
+              className={inputCls}
+            >
+              <option value="">— Selecciona la pareja —</option>
+              {availablePartners.map((s) => (
+                <option key={s.student_id} value={s.student_id}>
+                  {s.full_name} — {s.email}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
 
         {isSessionPack && (
           <Field label="Total de sesiones">

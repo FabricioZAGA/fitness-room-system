@@ -159,6 +159,10 @@ class MembershipRepository(DynamoRepository):
             updates["classes_remaining"] = data.classes_remaining
         if data.notes is not None:
             updates["notes"] = data.notes
+        if data.duo_partner_id is not None:
+            updates["duo_partner_id"] = data.duo_partner_id
+        if data.duo_partner_name is not None:
+            updates["duo_partner_name"] = data.duo_partner_name
 
         raw = self.update_item(
             f"STUDENT#{student_id}",

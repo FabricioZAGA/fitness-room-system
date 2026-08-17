@@ -499,6 +499,11 @@ function MembershipCard({
                 {t("memberships.sessionsRemaining", { count: m.classes_remaining })}
               </span>
             )}
+            {m.duo_partner_name && (
+              <span className="rounded-full border border-[--gold-bd] bg-[--gold-bg] px-2 py-0.5 text-xs font-medium text-[--gold]">
+                Pareja: {m.duo_partner_name}
+              </span>
+            )}
           </div>
         </div>
       </div>

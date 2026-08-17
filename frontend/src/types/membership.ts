@@ -6,6 +6,8 @@ export type MembershipType =
   | "room_elite"
   | "room_flex"
   | "room_pass"
+  | "room_duo"
+  | "kilo_a_kilo"
   | "courtesy";
 
 export type MembershipStatus = "active" | "frozen" | "expired" | "cancelled" | "pending";
@@ -22,6 +24,8 @@ export interface Membership {
   classes_remaining: number | null;
   days_until_expiry: number | null;
   notes: string | null;
+  duo_partner_id: string | null;
+  duo_partner_name: string | null;
   is_frozen: boolean;
   freeze_start_date: string | null;
   freeze_end_date: string | null;
@@ -43,6 +47,7 @@ export interface CreateMembershipRequest {
   payment_method?: string;
   classes_total?: number;
   notes?: string;
+  duo_partner_id?: string;
 }
 
 export interface UpdateMembershipRequest {
@@ -55,6 +60,8 @@ export interface UpdateMembershipRequest {
   classes_total?: number;
   classes_remaining?: number;
   notes?: string;
+  duo_partner_id?: string;
+  duo_partner_name?: string;
 }
 
 export const MEMBERSHIP_TYPE_LABELS: Record<MembershipType, string> = {
@@ -63,6 +70,8 @@ export const MEMBERSHIP_TYPE_LABELS: Record<MembershipType, string> = {
   room_elite: "Room Elite",
   room_flex: "Room Flex",
   room_pass: "Room Pass",
+  room_duo: "Room Dúo",
+  kilo_a_kilo: "Kilo a Kilo",
   courtesy: "Cortesía",
 };
 
@@ -73,5 +82,7 @@ export const MEMBERSHIP_DEFAULT_PRICE: Record<MembershipType, number> = {
   room_elite: 1600,
   room_flex: 1150,
   room_pass: 150,
+  room_duo: 1100,
+  kilo_a_kilo: 3000,
   courtesy: 0,
 };

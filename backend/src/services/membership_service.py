@@ -12,7 +12,12 @@ from src.models.membership import (
     MembershipType,
     MembershipUpdate,
 )
-from src.models.transaction import PaymentMethod, TransactionCreate, TransactionType
+from src.models.transaction import (
+    PaymentMethod,
+    TransactionCreate,
+    TransactionType,
+    TransactionUpdate,
+)
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.student_repository import StudentRepository
 from src.repositories.transaction_repository import TransactionRepository
@@ -40,6 +45,7 @@ class MembershipService:
         Validates:
         - Student exists
         - Student does not already have an active membership
+        - For Room Dúo: partner exists, partner has active duo, both renew together
 
         Args:
             data: Validated membership creation payload.
@@ -50,6 +56,27 @@ class MembershipService:
         logger.info("Assigning membership", extra={"student_id": data.student_id})
 
         self._student_repo.get_by_id(data.student_id)
+
+        # Duo-specific validations
+        if data.membership_type == MembershipType.ROOM_DUO:
+            partner = self._student_repo.get_by_id(data.duo_partner_id)  # type: ignore[arg-type]
+            partner_name = f"{partner.first_name} {partner.last_name}".strip()
+            data.duo_partner_name = partner_name
+
+            # Block renewal if partner's DUO is still active (both must renew together)
+            partner_active = self._membership_repo.get_active_for_student(
+                data.duo_partner_id  # type: ignore[arg-type]
+            )
+            if (
+                partner_active
+                and partner_active.membership_type == MembershipType.ROOM_DUO.value
+            ):
+                partner_end = partner_active.end_date
+                raise_bad_request(
+                    f"No se puede renovar: la membresía DÚO requiere que ambos "
+                    f"renueven al mismo tiempo. La membresía de {partner_name} "
+                    f"sigue activa hasta {partner_end}."
+                )
 
         existing_active = self._membership_repo.get_active_for_student(data.student_id)
         if existing_active:
@@ -130,6 +157,9 @@ class MembershipService:
     ) -> MembershipResponse:
         """Update membership details (e.g., extend expiry, cancel).
 
+        Also syncs the linked Transaction when price, type, or payment_method
+        change so that income reports stay accurate.
+
         Args:
             student_id: The student's ID.
             membership_id: The membership's ID.
@@ -140,6 +170,71 @@ class MembershipService:
         """
         logger.info("Updating membership", extra={"membership_id": membership_id})
         item = self._membership_repo.update(student_id, membership_id, data)
+
+        # Sync linked transaction when financial fields change
+        needs_tx_sync = (
+            data.price_paid is not None
+            or data.membership_type is not None
+            or data.payment_method is not None
+        )
+        if needs_tx_sync:
+            try:
+                linked_tx = self._transaction_repo.find_by_reference_id(
+                    student_id, membership_id
+                )
+                if linked_tx:
+                    tx_update_fields: dict[str, Any] = {}
+                    if data.price_paid is not None:
+                        tx_update_fields["amount"] = data.price_paid
+                    if data.payment_method is not None:
+                        tx_update_fields["payment_method"] = data.payment_method
+                    if data.membership_type is not None:
+                        is_session_pack = data.membership_type == MembershipType.ROOM_FLEX
+                        tx_type = (
+                            TransactionType.CLASS_PACK if is_session_pack
+                            else TransactionType.MEMBERSHIP
+                        )
+                        tx_update_fields["transaction_type"] = tx_type.value
+                        tx_update_fields["notes"] = f"Membresía: {data.membership_type}"
+                    if tx_update_fields:
+                        pm = (
+                            PaymentMethod(tx_update_fields["payment_method"])
+                            if "payment_method" in tx_update_fields
+                            else None
+                        )
+                        tt = (
+                            TransactionType(tx_update_fields["transaction_type"])
+                            if "transaction_type" in tx_update_fields
+                            else None
+                        )
+                        tx_data = TransactionUpdate(
+                            amount=tx_update_fields.get("amount"),
+                            payment_method=pm,
+                            transaction_type=tt,
+                            notes=tx_update_fields.get("notes"),
+                        )
+                        self._transaction_repo.update_transaction(
+                            linked_tx.transaction_id, tx_data
+                        )
+                        logger.info(
+                            "Synced linked transaction after membership update",
+                            extra={
+                                "membership_id": membership_id,
+                                "transaction_id": linked_tx.transaction_id,
+                                "updates": tx_update_fields,
+                            },
+                        )
+                else:
+                    logger.warning(
+                        "No linked transaction found for membership update",
+                        extra={"membership_id": membership_id, "student_id": student_id},
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to sync linked transaction after membership update",
+                    extra={"membership_id": membership_id},
+                )
+
         return item.to_response()
 
     def cancel_membership(self, student_id: str, membership_id: str) -> MembershipResponse:
