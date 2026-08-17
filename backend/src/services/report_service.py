@@ -172,7 +172,7 @@ class ReportService:
                 continue
 
             mtype = getattr(m, "membership_type", "")
-            price = float(getattr(m, "price", 0) or 0)
+            price = float(getattr(m, "price_paid", 0) or 0)
             end_d = getattr(m, "end_date", None)
             end_d_str = end_d.isoformat() if hasattr(end_d, "isoformat") else str(end_d or "")
 
@@ -396,7 +396,7 @@ class ReportService:
                     "membership_type": getattr(membership, "membership_type", "") if membership else "",
                     "membership_status": getattr(membership, "status", "") if membership else "",
                     "membership_expiry": end_d_str,
-                    "membership_price": float(getattr(membership, "price", 0) or 0) if membership else 0,
+                    "membership_price": float(getattr(membership, "price_paid", 0) or 0) if membership else 0,
                     "created_at": (
                         s.created_at.isoformat()
                         if hasattr(s.created_at, "isoformat")

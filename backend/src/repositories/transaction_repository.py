@@ -84,6 +84,27 @@ class TransactionRepository(DynamoRepository):
         ]
         return tx_items, next_key
 
+    def find_by_reference_id(
+        self, student_id: str, reference_id: str
+    ) -> TransactionDynamoItem | None:
+        """Find a transaction linked to a specific reference (e.g. membership_id).
+
+        Access pattern: GSI2 PK=STUDENT#{id}, SK begins_with TX#, filter reference_id.
+        Returns the first matching transaction or None.
+        """
+        items, _ = self.query_gsi(
+            index_name="GSI2",
+            pk_name="GSI2PK",
+            pk_value=f"STUDENT#{student_id}",
+            sk_name="GSI2SK",
+            sk_begins_with="TX#",
+            limit=200,
+        )
+        for i in items:
+            if i.get("EntityType") == "TRANSACTION" and i.get("reference_id") == reference_id:
+                return TransactionDynamoItem.model_validate(i)
+        return None
+
     def update_transaction(
         self, transaction_id: str, data: TransactionUpdate
     ) -> TransactionDynamoItem:
