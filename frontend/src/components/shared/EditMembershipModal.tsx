@@ -305,7 +305,7 @@ export function EditMembershipModal({
           });
         }}
         title="Confirmar cambio de tipo"
-        description={`¿Estas seguro de cambiar el tipo de membresia de "${planLabel}" a "${MEMBERSHIP_TYPE_LABELS[form.membership_type] ?? form.membership_type}"? Esto puede afectar el acceso del alumno.`}
+        description={`¿Estas seguro de cambiar el tipo de membresia de "${planLabel}" a "${MEMBERSHIP_TYPE_LABELS[form.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS] ?? form.membership_type}"? Esto puede afectar el acceso del alumno.`}
         confirmLabel="Si, cambiar tipo"
         variant="warning"
         loading={isPending}

@@ -42,7 +42,7 @@ const INITIAL_FORM = {
   membership_type: DEFAULT_TYPE as MembershipType,
   start_date: todayStr(),
   end_date: addDays(todayStr(), 30),
-  price_paid: MEMBERSHIP_DEFAULT_PRICE[DEFAULT_TYPE],
+  price_paid: MEMBERSHIP_DEFAULT_PRICE[DEFAULT_TYPE as keyof typeof MEMBERSHIP_DEFAULT_PRICE],
   payment_method: "cash",
   classes_total: undefined as number | undefined,
   notes: "",
@@ -72,7 +72,7 @@ export function CreateMembershipModal({
   const planMap = new Map((plans ?? []).map((p) => [p.slug, p]));
 
   function priceForType(type: MembershipType): number {
-    return planMap.get(type)?.default_price ?? MEMBERSHIP_DEFAULT_PRICE[type] ?? 0;
+    return planMap.get(type)?.default_price ?? MEMBERSHIP_DEFAULT_PRICE[type as keyof typeof MEMBERSHIP_DEFAULT_PRICE] ?? 0;
   }
 
   function endDateForType(type: MembershipType, startDate: string): string {

@@ -9,36 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as CheckinRouteImport } from './routes/checkin'
-import { Route as CheckinKioskRouteImport } from './routes/checkin-kiosk'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as CajaIndexRouteImport } from './routes/caja/index'
-import { Route as ClassesIndexRouteImport } from './routes/classes/index'
-import { Route as InstructorsIndexRouteImport } from './routes/instructors/index'
-import { Route as InventarioIndexRouteImport } from './routes/inventario/index'
-import { Route as MembershipPlansIndexRouteImport } from './routes/membership-plans/index'
-import { Route as MembershipsIndexRouteImport } from './routes/memberships/index'
-import { Route as ReportesIndexRouteImport } from './routes/reportes/index'
-import { Route as ReservationsIndexRouteImport } from './routes/reservations/index'
-import { Route as StudentsIndexRouteImport } from './routes/students/index'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as CheckinKioskRouteImport } from './routes/checkin-kiosk'
+import { Route as CheckinRouteImport } from './routes/checkin'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersIndexRouteImport } from './routes/users/index'
+import { Route as StudentsIndexRouteImport } from './routes/students/index'
+import { Route as ReservationsIndexRouteImport } from './routes/reservations/index'
+import { Route as ReportesIndexRouteImport } from './routes/reportes/index'
+import { Route as MembershipsIndexRouteImport } from './routes/memberships/index'
+import { Route as MembershipPlansIndexRouteImport } from './routes/membership-plans/index'
+import { Route as InventarioIndexRouteImport } from './routes/inventario/index'
+import { Route as InstructorsIndexRouteImport } from './routes/instructors/index'
+import { Route as ClassesIndexRouteImport } from './routes/classes/index'
+import { Route as CajaIndexRouteImport } from './routes/caja/index'
 import { Route as StudentsStudentIdIndexRouteImport } from './routes/students/$studentId/index'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CheckinRoute = CheckinRouteImport.update({
-  id: '/checkin',
-  path: '/checkin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CheckinKioskRoute = CheckinKioskRouteImport.update({
-  id: '/checkin-kiosk',
-  path: '/checkin-kiosk',
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -46,49 +36,24 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const CheckinKioskRoute = CheckinKioskRouteImport.update({
+  id: '/checkin-kiosk',
+  path: '/checkin-kiosk',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CajaIndexRoute = CajaIndexRouteImport.update({
-  id: '/caja/',
-  path: '/caja/',
+const CheckinRoute = CheckinRouteImport.update({
+  id: '/checkin',
+  path: '/checkin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ClassesIndexRoute = ClassesIndexRouteImport.update({
-  id: '/classes/',
-  path: '/classes/',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InstructorsIndexRoute = InstructorsIndexRouteImport.update({
-  id: '/instructors/',
-  path: '/instructors/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InventarioIndexRoute = InventarioIndexRouteImport.update({
-  id: '/inventario/',
-  path: '/inventario/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MembershipPlansIndexRoute = MembershipPlansIndexRouteImport.update({
-  id: '/membership-plans/',
-  path: '/membership-plans/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MembershipsIndexRoute = MembershipsIndexRouteImport.update({
-  id: '/memberships/',
-  path: '/memberships/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportesIndexRoute = ReportesIndexRouteImport.update({
-  id: '/reportes/',
-  path: '/reportes/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReservationsIndexRoute = ReservationsIndexRouteImport.update({
-  id: '/reservations/',
-  path: '/reservations/',
+const UsersIndexRoute = UsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudentsIndexRoute = StudentsIndexRouteImport.update({
@@ -96,9 +61,44 @@ const StudentsIndexRoute = StudentsIndexRouteImport.update({
   path: '/students/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UsersIndexRoute = UsersIndexRouteImport.update({
-  id: '/users/',
-  path: '/users/',
+const ReservationsIndexRoute = ReservationsIndexRouteImport.update({
+  id: '/reservations/',
+  path: '/reservations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportesIndexRoute = ReportesIndexRouteImport.update({
+  id: '/reportes/',
+  path: '/reportes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MembershipsIndexRoute = MembershipsIndexRouteImport.update({
+  id: '/memberships/',
+  path: '/memberships/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MembershipPlansIndexRoute = MembershipPlansIndexRouteImport.update({
+  id: '/membership-plans/',
+  path: '/membership-plans/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventarioIndexRoute = InventarioIndexRouteImport.update({
+  id: '/inventario/',
+  path: '/inventario/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstructorsIndexRoute = InstructorsIndexRouteImport.update({
+  id: '/instructors/',
+  path: '/instructors/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClassesIndexRoute = ClassesIndexRouteImport.update({
+  id: '/classes/',
+  path: '/classes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CajaIndexRoute = CajaIndexRouteImport.update({
+  id: '/caja/',
+  path: '/caja/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudentsStudentIdIndexRoute = StudentsStudentIdIndexRouteImport.update({
@@ -240,25 +240,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checkin': {
-      id: '/checkin'
-      path: '/checkin'
-      fullPath: '/checkin'
-      preLoaderRoute: typeof CheckinRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checkin-kiosk': {
-      id: '/checkin-kiosk'
-      path: '/checkin-kiosk'
-      fullPath: '/checkin-kiosk'
-      preLoaderRoute: typeof CheckinKioskRouteImport
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -268,67 +254,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
+    '/checkin-kiosk': {
+      id: '/checkin-kiosk'
+      path: '/checkin-kiosk'
+      fullPath: '/checkin-kiosk'
+      preLoaderRoute: typeof CheckinKioskRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/caja/': {
-      id: '/caja/'
-      path: '/caja'
-      fullPath: '/caja/'
-      preLoaderRoute: typeof CajaIndexRouteImport
+    '/checkin': {
+      id: '/checkin'
+      path: '/checkin'
+      fullPath: '/checkin'
+      preLoaderRoute: typeof CheckinRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/classes/': {
-      id: '/classes/'
-      path: '/classes'
-      fullPath: '/classes/'
-      preLoaderRoute: typeof ClassesIndexRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/instructors/': {
-      id: '/instructors/'
-      path: '/instructors'
-      fullPath: '/instructors/'
-      preLoaderRoute: typeof InstructorsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/inventario/': {
-      id: '/inventario/'
-      path: '/inventario'
-      fullPath: '/inventario/'
-      preLoaderRoute: typeof InventarioIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/membership-plans/': {
-      id: '/membership-plans/'
-      path: '/membership-plans'
-      fullPath: '/membership-plans/'
-      preLoaderRoute: typeof MembershipPlansIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/memberships/': {
-      id: '/memberships/'
-      path: '/memberships'
-      fullPath: '/memberships/'
-      preLoaderRoute: typeof MembershipsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reportes/': {
-      id: '/reportes/'
-      path: '/reportes'
-      fullPath: '/reportes/'
-      preLoaderRoute: typeof ReportesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reservations/': {
-      id: '/reservations/'
-      path: '/reservations'
-      fullPath: '/reservations/'
-      preLoaderRoute: typeof ReservationsIndexRouteImport
+    '/users/': {
+      id: '/users/'
+      path: '/users'
+      fullPath: '/users/'
+      preLoaderRoute: typeof UsersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/students/': {
@@ -338,11 +289,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/users/': {
-      id: '/users/'
-      path: '/users'
-      fullPath: '/users/'
-      preLoaderRoute: typeof UsersIndexRouteImport
+    '/reservations/': {
+      id: '/reservations/'
+      path: '/reservations'
+      fullPath: '/reservations/'
+      preLoaderRoute: typeof ReservationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reportes/': {
+      id: '/reportes/'
+      path: '/reportes'
+      fullPath: '/reportes/'
+      preLoaderRoute: typeof ReportesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/memberships/': {
+      id: '/memberships/'
+      path: '/memberships'
+      fullPath: '/memberships/'
+      preLoaderRoute: typeof MembershipsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/membership-plans/': {
+      id: '/membership-plans/'
+      path: '/membership-plans'
+      fullPath: '/membership-plans/'
+      preLoaderRoute: typeof MembershipPlansIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventario/': {
+      id: '/inventario/'
+      path: '/inventario'
+      fullPath: '/inventario/'
+      preLoaderRoute: typeof InventarioIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instructors/': {
+      id: '/instructors/'
+      path: '/instructors'
+      fullPath: '/instructors/'
+      preLoaderRoute: typeof InstructorsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/classes/': {
+      id: '/classes/'
+      path: '/classes'
+      fullPath: '/classes/'
+      preLoaderRoute: typeof ClassesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/caja/': {
+      id: '/caja/'
+      path: '/caja'
+      fullPath: '/caja/'
+      preLoaderRoute: typeof CajaIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/students/$studentId/': {
