@@ -4,6 +4,7 @@ import {
   BarChart3,
   Calendar,
   CalendarCheck,
+  ClipboardList,
   CreditCard,
   Home,
   LogOut,
@@ -43,6 +44,7 @@ function useNavItems(): NavItem[] {
     { label: t("nav.inventario"), to: "/inventario", icon: Package, section: "main" },
     { label: t("nav.reportes"), to: "/reportes", icon: BarChart3, section: "main", adminOnly: true },
     { label: t("nav.instructors"), to: "/instructors", icon: UserCog, section: "admin" },
+    { label: t("nav.plans"), to: "/membership-plans", icon: ClipboardList, section: "admin", adminOnly: true },
     { label: t("nav.users"), to: "/users", icon: Shield, section: "admin" },
     { label: t("nav.settings"), to: "/settings", icon: Settings, section: "admin", adminOnly: true },
   ];

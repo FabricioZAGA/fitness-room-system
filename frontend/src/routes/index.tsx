@@ -441,7 +441,7 @@ function DashboardPage(): React.JSX.Element {
                         {m.student_name || m.student_id.slice(0, 8) + "…"}
                       </p>
                       <p className="text-xs text-[--tx-muted] truncate">
-                        {MEMBERSHIP_TYPE_LABELS[m.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS]} · {formatDate(m.end_date)}
+                        {MEMBERSHIP_TYPE_LABELS[m.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS] ?? m.membership_type} · {formatDate(m.end_date)}
                       </p>
                     </div>
                   </div>

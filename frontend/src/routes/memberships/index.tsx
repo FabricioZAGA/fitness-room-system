@@ -22,6 +22,7 @@ import { EditMembershipModal } from "@/components/shared/EditMembershipModal";
 import { useSendCustomNotification } from "@/hooks/useNotifications";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import type { Membership, MembershipStatus } from "@/types/membership";
+import { useMembershipPlans } from "@/hooks/useMembershipPlans";
 import { formatDate, formatCurrency, getInitials, todayMX } from "@/lib/utils";
 
 export const Route = createFileRoute("/memberships/")({
@@ -40,9 +41,16 @@ function MembershipsPage(): React.JSX.Element {
 
   const { data: allData, isLoading } = useAllMemberships({ limit: 500 });
   const { data: studentsData } = useStudents({ limit: 500 });
+  const { data: plans } = useMembershipPlans();
   const notifyMutation = useSendCustomNotification();
 
   const allMemberships: Membership[] = useMemo(() => allData?.items ?? [], [allData]);
+
+  const planLabels: Record<string, string> = useMemo(() => {
+    const map: Record<string, string> = { ...MEMBERSHIP_TYPE_LABELS };
+    for (const p of plans ?? []) map[p.slug] = p.label;
+    return map;
+  }, [plans]);
 
   const studentMap = useMemo(() => {
     const map: Record<string, { name: string; photo_url: string | null }> = {};
@@ -260,6 +268,7 @@ function MembershipsPage(): React.JSX.Element {
                 membership={m}
                 today={today}
                 student={studentMap[m.student_id]}
+                planLabels={planLabels}
                 onEdit={() => setEditMembership(m)}
                 onRenew={
                   m.status === "expired" ||
@@ -406,6 +415,7 @@ function MembershipCard({
   membership: m,
   today,
   student,
+  planLabels,
   onRenew,
   onNotify,
   onEdit,
@@ -413,6 +423,7 @@ function MembershipCard({
   membership: Membership;
   today: string;
   student?: { name: string; photo_url: string | null };
+  planLabels: Record<string, string>;
   onRenew?: () => void;
   onNotify?: () => void;
   onEdit?: () => void;
@@ -477,8 +488,7 @@ function MembershipCard({
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[--tx-muted]">
             <span className="flex items-center gap-1.5">
               <CreditCard className="h-3.5 w-3.5" />
-              {MEMBERSHIP_TYPE_LABELS[m.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS] ??
-                m.membership_type}
+              {planLabels[m.membership_type] ?? m.membership_type}
             </span>
             <span className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5" />

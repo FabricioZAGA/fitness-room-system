@@ -18,6 +18,7 @@ from src.models.transaction import (
     TransactionType,
     TransactionUpdate,
 )
+from src.repositories.membership_plan_repository import MembershipPlanRepository
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.student_repository import StudentRepository
 from src.repositories.transaction_repository import TransactionRepository
@@ -34,10 +35,12 @@ class MembershipService:
         membership_repo: MembershipRepository | None = None,
         student_repo: StudentRepository | None = None,
         transaction_repo: TransactionRepository | None = None,
+        plan_repo: MembershipPlanRepository | None = None,
     ) -> None:
         self._membership_repo = membership_repo or MembershipRepository()
         self._student_repo = student_repo or StudentRepository()
         self._transaction_repo = transaction_repo or TransactionRepository()
+        self._plan_repo = plan_repo or MembershipPlanRepository()
 
     def assign_membership(self, data: MembershipCreate) -> MembershipResponse:
         """Assign a new membership to a student.
@@ -45,85 +48,206 @@ class MembershipService:
         Validates:
         - Student exists
         - Student does not already have an active membership
-        - For Room Dúo: partner exists, partner has active duo, both renew together
+        - For DÚO plans: partner exists, neither has active DÚO;
+          creates TWO linked memberships (one per person) and ONE transaction.
 
         Args:
             data: Validated membership creation payload.
 
         Returns:
-            The created membership response.
+            The created membership response (primary student).
         """
         logger.info("Assigning membership", extra={"student_id": data.student_id})
 
-        self._student_repo.get_by_id(data.student_id)
+        student = self._student_repo.get_by_id(data.student_id)
+        student_name = f"{student.first_name} {student.last_name}".strip()
 
-        # Duo-specific validations
-        if data.membership_type == MembershipType.ROOM_DUO:
-            partner = self._student_repo.get_by_id(data.duo_partner_id)  # type: ignore[arg-type]
-            partner_name = f"{partner.first_name} {partner.last_name}".strip()
-            data.duo_partner_name = partner_name
-
-            # Block renewal if partner's DUO is still active (both must renew together)
-            partner_active = self._membership_repo.get_active_for_student(
-                data.duo_partner_id  # type: ignore[arg-type]
-            )
-            if (
-                partner_active
-                and partner_active.membership_type == MembershipType.ROOM_DUO.value
-            ):
-                partner_end = partner_active.end_date
+        # Session-pack validation (replaces removed model validator)
+        if self._is_session_pack(data.membership_type) and data.classes_total is None:
+            plan = self._plan_repo.get_by_slug_or_none(data.membership_type)
+            if plan and plan.total_sessions:
+                data.classes_total = plan.total_sessions
+            else:
                 raise_bad_request(
-                    f"No se puede renovar: la membresía DÚO requiere que ambos "
-                    f"renueven al mismo tiempo. La membresía de {partner_name} "
-                    f"sigue activa hasta {partner_end}."
+                    "Este plan requiere indicar el número de sesiones (classes_total)."
                 )
 
-        existing_active = self._membership_repo.get_active_for_student(data.student_id)
-        if existing_active:
+        # Check if the plan requires a partner (DÚO)
+        is_duo = self._is_duo_plan(data.membership_type)
+
+        if is_duo:
+            if not data.duo_partner_id:
+                raise_bad_request(
+                    "Este plan requiere seleccionar un compañero (duo_partner_id)."
+                )
+            return self._assign_duo_membership(data, student_name)
+
+        return self._assign_single_membership(data)
+
+    def _is_session_pack(self, membership_type: str) -> bool:
+        """Check if a plan is session-based (has total_sessions)."""
+        plan = self._plan_repo.get_by_slug_or_none(membership_type)
+        if plan is not None:
+            return plan.total_sessions is not None and plan.total_sessions > 0
+        # Fallback for legacy slug without a plan record
+        return membership_type == MembershipType.ROOM_FLEX
+
+    def _is_duo_plan(self, membership_type: str) -> bool:
+        """Check if the membership type corresponds to a DÚO-type plan."""
+        if membership_type == MembershipType.ROOM_DUO:
+            return True
+        plan = self._plan_repo.get_by_slug_or_none(membership_type)
+        return plan is not None and plan.requires_partner
+
+    def _cancel_existing_active(
+        self, student_id: str, context: str = "",
+    ) -> None:
+        """Cancel the student's current active membership if any."""
+        existing = self._membership_repo.get_active_for_student(student_id)
+        if existing:
             logger.info(
                 "Auto-cancelling existing active membership for renewal",
                 extra={
-                    "student_id": data.student_id,
-                    "previous_membership_id": existing_active.membership_id,
+                    "student_id": student_id,
+                    "previous_membership_id": existing.membership_id,
+                    "context": context,
                 },
             )
             self._membership_repo.update(
-                data.student_id,
-                existing_active.membership_id,
+                student_id,
+                existing.membership_id,
                 MembershipUpdate(status=MembershipStatus.CANCELLED),
             )
+
+    def _create_transaction(
+        self,
+        student_id: str,
+        membership_id: str,
+        amount: float,
+        payment_method_str: str,
+        membership_type: str,
+        notes: str | None = None,
+    ) -> None:
+        """Create the income transaction for a membership."""
+        if amount <= 0:
+            return
+        session_pack = self._is_session_pack(membership_type)
+        tx_type = TransactionType.CLASS_PACK if session_pack else TransactionType.MEMBERSHIP
+
+        try:
+            payment_method = PaymentMethod(payment_method_str)
+        except ValueError:
+            payment_method = PaymentMethod.CASH
+
+        try:
+            self._transaction_repo.create_transaction(
+                TransactionCreate(
+                    student_id=student_id,
+                    transaction_type=tx_type,
+                    amount=amount,
+                    payment_method=payment_method,
+                    reference_id=membership_id,
+                    notes=notes or f"Membresía: {membership_type}",
+                )
+            )
+        except Exception:
+            logger.warning(
+                "Failed to create transaction for membership",
+                extra={"membership_id": membership_id},
+            )
+
+    def _assign_single_membership(self, data: MembershipCreate) -> MembershipResponse:
+        """Standard (non-DÚO) membership assignment."""
+        self._cancel_existing_active(data.student_id, context="single_renewal")
 
         item = self._membership_repo.create(data)
         logger.info("Membership assigned", extra={"membership_id": item.membership_id})
 
-        # Auto-record transaction so income appears in Caja/Reports immediately.
-        if data.price_paid > 0:
-            is_session_pack = data.membership_type == MembershipType.ROOM_FLEX
-            tx_type = TransactionType.CLASS_PACK if is_session_pack else TransactionType.MEMBERSHIP
-
-            try:
-                payment_method = PaymentMethod(data.payment_method)
-            except ValueError:
-                payment_method = PaymentMethod.CASH
-
-            try:
-                self._transaction_repo.create_transaction(
-                    TransactionCreate(
-                        student_id=data.student_id,
-                        transaction_type=tx_type,
-                        amount=data.price_paid,
-                        payment_method=payment_method,
-                        reference_id=item.membership_id,
-                        notes=f"Membresía: {data.membership_type}",
-                    )
-                )
-            except Exception:
-                logger.warning(
-                    "Failed to create transaction for membership",
-                    extra={"membership_id": item.membership_id},
-                )
+        self._create_transaction(
+            student_id=data.student_id,
+            membership_id=item.membership_id,
+            amount=data.price_paid,
+            payment_method_str=data.payment_method,
+            membership_type=data.membership_type,
+        )
 
         return item.to_response()
+
+    def _assign_duo_membership(
+        self, data: MembershipCreate, student_name: str,
+    ) -> MembershipResponse:
+        """DÚO membership: create TWO linked memberships + ONE transaction.
+
+        Flow:
+        1. Validate partner exists
+        2. Block if either student already has an active DÚO
+        3. Cancel existing active memberships for both
+        4. Create membership A (student) with full price
+        5. Create membership B (partner) with price_paid=0
+        6. Create 1 transaction for the total amount
+        """
+        partner = self._student_repo.get_by_id(data.duo_partner_id)  # type: ignore[arg-type]
+        partner_name = f"{partner.first_name} {partner.last_name}".strip()
+
+        # Block if partner already has an active DÚO
+        partner_active = self._membership_repo.get_active_for_student(
+            data.duo_partner_id  # type: ignore[arg-type]
+        )
+        if (
+            partner_active
+            and partner_active.membership_type == MembershipType.ROOM_DUO
+        ):
+            raise_bad_request(
+                f"No se puede crear: la membresía DÚO requiere que ambos "
+                f"renueven al mismo tiempo. La membresía de {partner_name} "
+                f"sigue activa hasta {partner_active.end_date}."
+            )
+
+        # Cancel existing memberships for both students
+        self._cancel_existing_active(data.student_id, context="duo_renewal_student")
+        self._cancel_existing_active(
+            data.duo_partner_id,  # type: ignore[arg-type]
+            context="duo_renewal_partner",
+        )
+
+        # Create primary membership (student A — holds the payment)
+        data.duo_partner_name = partner_name
+        item_a = self._membership_repo.create(data)
+        logger.info(
+            "DÚO membership A created",
+            extra={"membership_id": item_a.membership_id, "student_id": data.student_id},
+        )
+
+        # Create partner membership (student B — price_paid=0, linked back to A)
+        partner_data = MembershipCreate(
+            student_id=data.duo_partner_id,  # type: ignore[arg-type]
+            membership_type=data.membership_type,
+            start_date=data.start_date,
+            end_date=data.end_date,
+            price_paid=0,
+            payment_method=data.payment_method,
+            classes_total=data.classes_total,
+            notes=data.notes,
+            duo_partner_id=data.student_id,
+            duo_partner_name=student_name,
+        )
+        item_b = self._membership_repo.create(partner_data)
+        logger.info(
+            "DÚO membership B created",
+            extra={"membership_id": item_b.membership_id, "student_id": data.duo_partner_id},
+        )
+
+        # ONE transaction for the total amount
+        self._create_transaction(
+            student_id=data.student_id,
+            membership_id=item_a.membership_id,
+            amount=data.price_paid,
+            payment_method_str=data.payment_method,
+            membership_type=data.membership_type,
+            notes=f"Membresía DÚO: {student_name} + {partner_name}",
+        )
+
+        return item_a.to_response()
 
     def get_membership(self, student_id: str, membership_id: str) -> MembershipResponse:
         """Get a specific membership by student and membership ID."""
@@ -189,7 +313,7 @@ class MembershipService:
                     if data.payment_method is not None:
                         tx_update_fields["payment_method"] = data.payment_method
                     if data.membership_type is not None:
-                        is_session_pack = data.membership_type == MembershipType.ROOM_FLEX
+                        is_session_pack = self._is_session_pack(data.membership_type)
                         tx_type = (
                             TransactionType.CLASS_PACK if is_session_pack
                             else TransactionType.MEMBERSHIP

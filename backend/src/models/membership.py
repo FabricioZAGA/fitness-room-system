@@ -25,17 +25,22 @@ from pydantic import BaseModel, Field, model_validator
 from src.models.common import TimestampedModel, mexico_today, new_id, utc_now
 
 
-class MembershipType(StrEnum):
-    """Available membership plan types (Fitness Room León)."""
+class MembershipType:
+    """Well-known membership plan slugs (reference constants).
 
-    FOUNDER = "founder"            # Socio Fundador — $950 — 1 sesión/día L-S (AGOTADO)
-    ROOM_DAILY = "room_daily"      # Room Daily — $1,300 — 1 sesión/día L-S
-    ROOM_ELITE = "room_elite"      # Room Elite — $1,600 — ilimitado L-S
-    ROOM_FLEX = "room_flex"        # Room Flex — $1,150 — 12 sesiones/mes
-    ROOM_PASS = "room_pass"        # Room Pass — $150 — 1 sesión mismo día
-    ROOM_DUO = "room_duo"          # Room Dúo — descuento pareja — 1 sesión/día, renovación ligada
-    KILO_A_KILO = "kilo_a_kilo"    # Kilo a Kilo — 90 días — un solo pago
-    COURTESY = "courtesy"          # Cortesía — $0 — duración configurable, ilimitado (regalos/staff)
+    New plans created via the admin UI are stored in DynamoDB and do NOT
+    need to be listed here.  These constants exist only so backend code
+    can reference legacy plan slugs without magic strings.
+    """
+
+    FOUNDER = "founder"
+    ROOM_DAILY = "room_daily"
+    ROOM_ELITE = "room_elite"
+    ROOM_FLEX = "room_flex"
+    ROOM_PASS = "room_pass"
+    ROOM_DUO = "room_duo"
+    KILO_A_KILO = "kilo_a_kilo"
+    COURTESY = "courtesy"
 
 
 class MembershipStatus(StrEnum):
@@ -52,7 +57,7 @@ class MembershipCreate(BaseModel):
     """Schema for assigning a membership to a student."""
 
     student_id: str = Field(..., description="Student ID to assign membership to")
-    membership_type: MembershipType = Field(..., description="Type of membership plan")
+    membership_type: str = Field(..., min_length=1, description="Plan slug (e.g. 'room_daily')")
     start_date: date = Field(..., description="Membership start date")
     end_date: date = Field(..., description="Membership expiry date")
     price_paid: float = Field(..., ge=0, description="Amount paid in local currency")
@@ -83,27 +88,13 @@ class MembershipCreate(BaseModel):
             raise ValueError("end_date must be after start_date")
         return self
 
-    @model_validator(mode="after")
-    def validate_session_pack_total(self) -> "MembershipCreate":
-        """Require classes_total for session-based packs (Room Flex)."""
-        if self.membership_type == MembershipType.ROOM_FLEX and self.classes_total is None:
-            raise ValueError("classes_total is required for Room Flex memberships")
-        return self
-
-    @model_validator(mode="after")
-    def validate_duo_partner(self) -> "MembershipCreate":
-        """Require duo_partner_id for Room Dúo memberships."""
-        if self.membership_type == MembershipType.ROOM_DUO and not self.duo_partner_id:
-            raise ValueError("duo_partner_id is required for Room Dúo memberships")
-        return self
-
 
 class MembershipUpdate(BaseModel):
     """Schema for updating an existing membership."""
 
     start_date: date | None = None
     end_date: date | None = None
-    membership_type: MembershipType | None = None
+    membership_type: str | None = None
     status: MembershipStatus | None = None
     price_paid: float | None = Field(default=None, ge=0)
     payment_method: str | None = Field(
@@ -128,7 +119,7 @@ class MembershipResponse(TimestampedModel):
 
     membership_id: str
     student_id: str
-    membership_type: MembershipType
+    membership_type: str
     status: MembershipStatus
     start_date: date
     end_date: date
@@ -190,10 +181,10 @@ class MembershipDynamoItem(BaseModel):
         membership_id = new_id()
         now = utc_now()
         status = MembershipStatus.ACTIVE.value
-        membership_type = data.membership_type.value
+        membership_type = data.membership_type
 
-        is_session_pack = data.membership_type == MembershipType.ROOM_FLEX
-        classes_remaining = data.classes_total if is_session_pack else None
+        # Any plan with classes_total is a session pack → track remaining
+        classes_remaining = data.classes_total if data.classes_total is not None else None
 
         return cls(
             PK=f"STUDENT#{data.student_id}",
@@ -225,7 +216,7 @@ class MembershipDynamoItem(BaseModel):
         return MembershipResponse(
             membership_id=self.membership_id,
             student_id=self.student_id,
-            membership_type=MembershipType(self.membership_type),
+            membership_type=self.membership_type,
             status=MembershipStatus(self.status),
             start_date=date.fromisoformat(self.start_date),
             end_date=date.fromisoformat(self.end_date),

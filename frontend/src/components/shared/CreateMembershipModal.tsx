@@ -7,6 +7,7 @@ import { Dialog } from "./Dialog";
 import { useAssignMembership } from "@/hooks/useMemberships";
 import { useStudents } from "@/hooks/useStudents";
 import { useStudentBalance, useApplyBalance } from "@/hooks/useBalance";
+import { useMembershipPlans } from "@/hooks/useMembershipPlans";
 import type { CreateMembershipRequest, MembershipType } from "@/types/membership";
 import { MEMBERSHIP_TYPE_LABELS, MEMBERSHIP_DEFAULT_PRICE } from "@/types/membership";
 import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
@@ -19,17 +20,10 @@ interface CreateMembershipModalProps {
   studentId?: string;
 }
 
-const MEMBERSHIP_TYPES = Object.entries(MEMBERSHIP_TYPE_LABELS) as [
+const STATIC_MEMBERSHIP_TYPES = Object.entries(MEMBERSHIP_TYPE_LABELS) as [
   MembershipType,
   string,
 ][];
-
-// Room Flex is session-based: user picks when to attend, we track classes_remaining.
-const SESSION_PACKS = new Set<MembershipType>(["room_flex"]);
-
-const SESSION_PACK_TOTALS: Partial<Record<MembershipType, number>> = {
-  room_flex: 12,
-};
 
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
@@ -41,41 +35,13 @@ function addDays(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-function addMonths(date: string, months: number): string {
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + months);
-  return d.toISOString().slice(0, 10);
-}
-
-/** End date defaults (from start_date). Keeps bookkeeping consistent with landing copy. */
-function endDateFor(type: MembershipType, startDate: string): string {
-  switch (type) {
-    case "room_pass":
-    case "courtesy":
-      // Same-day pass: end_date must be > start_date, so we give +1 day.
-      return addDays(startDate, 1);
-    case "room_flex":
-      // 12 sessions, no strict expiry — give 60 days so reports stay bounded.
-      return addMonths(startDate, 2);
-    case "kilo_a_kilo":
-      // 90-day single-payment plan.
-      return addDays(startDate, 90);
-    case "founder":
-    case "room_daily":
-    case "room_elite":
-    case "room_duo":
-    default:
-      return addMonths(startDate, 1);
-  }
-}
-
 const DEFAULT_TYPE: MembershipType = "room_daily";
 
 const INITIAL_FORM = {
   student_id: "",
   membership_type: DEFAULT_TYPE as MembershipType,
   start_date: todayStr(),
-  end_date: endDateFor(DEFAULT_TYPE, todayStr()),
+  end_date: addDays(todayStr(), 30),
   price_paid: MEMBERSHIP_DEFAULT_PRICE[DEFAULT_TYPE],
   payment_method: "cash",
   classes_total: undefined as number | undefined,
@@ -95,6 +61,40 @@ export function CreateMembershipModal({
   const applyBalanceMutation = useApplyBalance();
   const { data: studentsData } = useStudents({ limit: 200 });
   const students = studentsData?.items ?? [];
+  const { data: plans } = useMembershipPlans();
+
+  // Build type options from dynamic plans, falling back to static
+  const typeOptions: [MembershipType, string][] = plans && plans.length > 0
+    ? plans.map((p) => [p.slug as MembershipType, p.label])
+    : STATIC_MEMBERSHIP_TYPES;
+
+  // Lookup helpers from plans
+  const planMap = new Map((plans ?? []).map((p) => [p.slug, p]));
+
+  function priceForType(type: MembershipType): number {
+    return planMap.get(type)?.default_price ?? MEMBERSHIP_DEFAULT_PRICE[type] ?? 0;
+  }
+
+  function endDateForType(type: MembershipType, startDate: string): string {
+    const plan = planMap.get(type);
+    const days = plan?.duration_days ?? 30;
+    return addDays(startDate, days);
+  }
+
+  function isSessionPack(type: MembershipType): boolean {
+    const plan = planMap.get(type);
+    return plan ? (plan.total_sessions ?? 0) > 0 : type === "room_flex";
+  }
+
+  function defaultTotalSessions(type: MembershipType): number | undefined {
+    const plan = planMap.get(type);
+    return plan?.total_sessions ?? (type === "room_flex" ? 12 : undefined);
+  }
+
+  function isDuoType(type: MembershipType): boolean {
+    const plan = planMap.get(type);
+    return plan ? plan.requires_partner : type === "room_duo";
+  }
 
   const activeStudentId = form.student_id || studentId || "";
   const { data: balance } = useStudentBalance(activeStudentId || undefined);
@@ -113,14 +113,14 @@ export function CreateMembershipModal({
 
       if (name === "membership_type") {
         const type = value as MembershipType;
-        next.end_date = endDateFor(type, prev.start_date);
-        next.classes_total = SESSION_PACK_TOTALS[type];
-        next.price_paid = MEMBERSHIP_DEFAULT_PRICE[type];
+        next.end_date = endDateForType(type, prev.start_date);
+        next.classes_total = defaultTotalSessions(type);
+        next.price_paid = priceForType(type);
       }
 
       if (name === "start_date") {
         const type = prev.membership_type;
-        next.end_date = endDateFor(type, value);
+        next.end_date = endDateForType(type, value);
       }
 
       return next;
@@ -158,8 +158,8 @@ export function CreateMembershipModal({
     });
   }
 
-  const isSessionPack = SESSION_PACKS.has(form.membership_type);
-  const isDuo = form.membership_type === "room_duo";
+  const showSessionPack = isSessionPack(form.membership_type);
+  const isDuo = isDuoType(form.membership_type);
   const availablePartners = students.filter(
     (s) => s.student_id !== form.student_id && s.student_id !== (studentId ?? "")
   );
@@ -199,7 +199,7 @@ export function CreateMembershipModal({
             onChange={handleChange}
             className={inputCls}
           >
-            {MEMBERSHIP_TYPES.map(([val, label]) => (
+            {typeOptions.map(([val, label]) => (
               <option key={val} value={val}>
                 {label}
               </option>
@@ -278,7 +278,7 @@ export function CreateMembershipModal({
           </Field>
         )}
 
-        {isSessionPack && (
+        {showSessionPack && (
           <Field label="Total de sesiones">
             <input
               name="classes_total"

@@ -1,5 +1,6 @@
 """Reservation service — business logic for class reservations and waitlist."""
 
+from datetime import date as date_cls
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -8,6 +9,7 @@ from aws_lambda_powertools import Logger
 from src.models.common import MX_TZ, mexico_now, new_id
 from src.models.reservation import ReservationCreate, ReservationResponse, ReservationType
 from src.repositories.class_repository import ClassRepository
+from src.repositories.membership_plan_repository import MembershipPlanRepository
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.reservation_repository import ReservationRepository
 from src.repositories.student_repository import StudentRepository
@@ -31,11 +33,13 @@ class ReservationService:
         class_repo: ClassRepository | None = None,
         student_repo: StudentRepository | None = None,
         membership_repo: MembershipRepository | None = None,
+        plan_repo: MembershipPlanRepository | None = None,
     ) -> None:
         self._reservation_repo = reservation_repo or ReservationRepository()
         self._class_repo = class_repo or ClassRepository()
         self._student_repo = student_repo or StudentRepository()
         self._membership_repo = membership_repo or MembershipRepository()
+        self._plan_repo = plan_repo or MembershipPlanRepository()
 
     def create_reservation(
         self, data: ReservationCreate, *, staff_override: bool = False,
@@ -83,6 +87,7 @@ class ReservationService:
         if not staff_override and not is_visitor:
             self._check_booking_window(class_item)
             self._check_daily_limit(data.student_id, class_item.class_date)
+            self._check_schedule_restrictions(data.student_id, class_item)
 
         existing = self._reservation_repo.get_reservation(data.class_id, data.student_id)
         if existing and existing.status in ("confirmed", "waitlisted"):
@@ -256,32 +261,90 @@ class ReservationService:
         return [i.to_response() for i in items]
 
     # ------------------------------------------------------------------
-    # Daily limit per membership type
+    # Daily limit — dynamic from plan or fallback set
     # ------------------------------------------------------------------
 
-    ONE_SESSION_MEMBERSHIPS = {"founder", "room_daily", "room_pass", "founder_monthly"}
+    # Fallback for memberships created before plans existed in DynamoDB.
+    _FALLBACK_ONE_SESSION = {"founder", "room_daily", "room_pass", "founder_monthly", "room_duo", "kilo_a_kilo"}
+
+    def _get_sessions_per_day(self, membership_type: str) -> int:
+        """Look up sessions_per_day from the plan, falling back to hardcoded set."""
+        plan = self._plan_repo.get_by_slug_or_none(membership_type)
+        if plan is not None:
+            return plan.sessions_per_day
+        # Fallback: 1 if in legacy set, else 0 (unlimited)
+        return 1 if membership_type in self._FALLBACK_ONE_SESSION else 0
 
     def _check_daily_limit(self, student_id: str, class_date: str) -> None:
-        """Raise 400 if a 1-session/day member already has a confirmed reservation on the same day."""
+        """Raise 400 if a student has reached their daily session limit."""
         active = self._membership_repo.get_active_for_student(student_id)
         if active is None:
             return
-        if active.membership_type not in self.ONE_SESSION_MEMBERSHIPS:
-            return
+
+        sessions_per_day = self._get_sessions_per_day(active.membership_type)
+        if sessions_per_day == 0:
+            return  # unlimited
 
         reservations, _ = self._reservation_repo.list_for_student(student_id, limit=200)
-        # Include "attended" so a Founder who already checked in to today's class
-        # cannot reserve a second one the same day.
+        # Include "attended" so a member who already checked in today
+        # cannot reserve a second class the same day.
         same_day_active = [
             r for r in reservations
             if r.class_date == class_date
             and r.status in ("confirmed", "attended", "waitlisted")
         ]
-        if same_day_active:
+        if len(same_day_active) >= sessions_per_day:
             raise_bad_request(
-                "Tu membresía solo permite 1 clase por día. "
+                f"Tu membresía solo permite {sessions_per_day} clase(s) por día. "
                 "Ya tienes una reservación para esta fecha."
             )
+
+    # ------------------------------------------------------------------
+    # Schedule restrictions — allowed_days + blocked_schedules
+    # ------------------------------------------------------------------
+
+    _DAY_INDEX_TO_ABBR = {
+        0: "mon", 1: "tue", 2: "wed", 3: "thu", 4: "fri", 5: "sat", 6: "sun",
+    }
+
+    def _check_schedule_restrictions(self, student_id: str, class_item: Any) -> None:
+        """Raise 400 if the student's plan blocks this class day/time."""
+        active = self._membership_repo.get_active_for_student(student_id)
+        if active is None:
+            return
+
+        plan = self._plan_repo.get_by_slug_or_none(active.membership_type)
+        if plan is None:
+            return  # no plan config → no restrictions
+
+        # Check allowed_days
+        class_date = date_cls.fromisoformat(str(class_item.class_date))
+        day_abbr = self._DAY_INDEX_TO_ABBR[class_date.weekday()]
+        day_names = {
+            "mon": "Lunes", "tue": "Martes", "wed": "Miércoles",
+            "thu": "Jueves", "fri": "Viernes", "sat": "Sábado", "sun": "Domingo",
+        }
+
+        if day_abbr not in plan.allowed_days:
+            raise_bad_request(
+                f"Tu membresía ({plan.label}) no permite reservar los "
+                f"{day_names.get(day_abbr, day_abbr)}."
+            )
+
+        # Check blocked_schedules
+        if not plan.blocked_schedules:
+            return
+
+        class_time = str(class_item.start_time)[:5]  # "HH:MM"
+        for bs in plan.blocked_schedules:
+            if bs.get("day") == day_abbr:
+                bs_start = bs.get("start", "00:00")
+                bs_end = bs.get("end", "23:59")
+                if bs_start <= class_time < bs_end:
+                    raise_bad_request(
+                        f"Tu membresía ({plan.label}) tiene bloqueado el horario "
+                        f"{bs_start}–{bs_end} los {day_names.get(day_abbr, day_abbr)}."
+                    )
 
     # ------------------------------------------------------------------
     # Time window checks

@@ -1,6 +1,7 @@
 /** TypeScript types for the Membership entity — mirrors backend Pydantic models. */
 
-export type MembershipType =
+/** Well-known membership plan slugs (seeded from backend). */
+export type KnownMembershipType =
   | "founder"
   | "room_daily"
   | "room_elite"
@@ -10,12 +11,19 @@ export type MembershipType =
   | "kilo_a_kilo"
   | "courtesy";
 
+/**
+ * membership_type is now a free-form plan slug.
+ * Dynamic plans created in the admin UI won't be in the union above,
+ * so we widen to `string` while keeping known slugs for autocomplete.
+ */
+export type MembershipType = KnownMembershipType | (string & {});
+
 export type MembershipStatus = "active" | "frozen" | "expired" | "cancelled" | "pending";
 
 export interface Membership {
   membership_id: string;
   student_id: string;
-  membership_type: MembershipType;
+  membership_type: string;
   status: MembershipStatus;
   start_date: string;
   end_date: string;
@@ -40,7 +48,7 @@ export interface FreezeMembershipRequest {
 
 export interface CreateMembershipRequest {
   student_id: string;
-  membership_type: MembershipType;
+  membership_type: string;
   start_date: string;
   end_date: string;
   price_paid: number;
@@ -53,7 +61,7 @@ export interface CreateMembershipRequest {
 export interface UpdateMembershipRequest {
   start_date?: string;
   end_date?: string;
-  membership_type?: MembershipType;
+  membership_type?: string;
   status?: MembershipStatus;
   price_paid?: number;
   payment_method?: string;
@@ -64,7 +72,8 @@ export interface UpdateMembershipRequest {
   duo_partner_name?: string;
 }
 
-export const MEMBERSHIP_TYPE_LABELS: Record<MembershipType, string> = {
+/** Static fallback labels for known membership types. */
+export const MEMBERSHIP_TYPE_LABELS: Record<KnownMembershipType, string> = {
   founder: "Socio Fundador",
   room_daily: "Room Daily",
   room_elite: "Room Elite",
@@ -75,8 +84,8 @@ export const MEMBERSHIP_TYPE_LABELS: Record<MembershipType, string> = {
   courtesy: "Cortesía",
 };
 
-/** Recommended price per plan (MXN). Editable in the create modal. */
-export const MEMBERSHIP_DEFAULT_PRICE: Record<MembershipType, number> = {
+/** Static fallback prices for known membership types (MXN). */
+export const MEMBERSHIP_DEFAULT_PRICE: Record<KnownMembershipType, number> = {
   founder: 950,
   room_daily: 1300,
   room_elite: 1600,

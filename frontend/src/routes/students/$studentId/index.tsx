@@ -268,7 +268,7 @@ function StudentDetailPage(): React.JSX.Element {
           <StatCard
             icon={<CreditCard className="h-6 w-6 text-[--color-success]" />}
             label="Membresía activa"
-            value={activeMembership ? MEMBERSHIP_TYPE_LABELS[activeMembership.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS] : "Sin membresía"}
+            value={activeMembership ? (MEMBERSHIP_TYPE_LABELS[activeMembership.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS] ?? activeMembership.membership_type) : "Sin membresía"}
             sub={activeMembership ? `Vence ${formatDate(activeMembership.end_date)}` : "Asigna una membresía"}
             color="emerald"
           />
@@ -503,7 +503,7 @@ function StudentDetailPage(): React.JSX.Element {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold text-[--tx-primary]">
-                        {MEMBERSHIP_TYPE_LABELS[m.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS]}
+                        {MEMBERSHIP_TYPE_LABELS[m.membership_type as keyof typeof MEMBERSHIP_TYPE_LABELS] ?? m.membership_type}
                       </p>
                       <div className="flex items-center gap-2">
                         <MembershipStatusBadge status={m.status} />
