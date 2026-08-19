@@ -142,7 +142,7 @@ class MembershipRepository(DynamoRepository):
             updates["end_date"] = data.end_date.isoformat()
             updates["GSI1SK"] = f"EXPIRY#{data.end_date.isoformat()}#STUDENT#{student_id}"
         if data.membership_type is not None:
-            updates["membership_type"] = data.membership_type.value
+            updates["membership_type"] = data.membership_type
         if data.status is not None:
             updates["status"] = data.status.value
             if data.status != MembershipStatus.ACTIVE:
