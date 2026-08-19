@@ -12,9 +12,24 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "2.2.0";
+export const APP_VERSION = "2.3.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "2.3.0",
+    date: "2026-08-19",
+    title: "Planes dinámicos — configura membresías desde el panel admin",
+    items: [
+      { icon: "🎛️", text: "Nuevo: página de Planes en el menú lateral — crea, edita, activa/desactiva planes de membresía sin tocar código" },
+      { icon: "💰", text: "Cada plan define precio sugerido, duración, sesiones por día, sesiones totales (paquetes) y si requiere pareja (DÚO)" },
+      { icon: "📅", text: "Restricciones de horario por plan: días permitidos y franjas horarias bloqueadas (ej. Room Daily solo L-V mañanas)" },
+      { icon: "🔗", text: "Crear membresía ahora toma el tipo, precio, duración y reglas del plan configurado en vez de valores hardcodeados" },
+      { icon: "👥", text: "Planes DÚO mejorados: crea 2 membresías ligadas + 1 sola transacción automáticamente" },
+      { icon: "🏷️", text: "Etiquetas de plan dinámicas en todas las pantallas — Membresías, Dashboard, Check-in, Kiosco y perfil del alumno" },
+      { icon: "🌱", text: "Botón 'Sembrar planes por defecto' para inicializar los 8 planes estándar de Fitness Room" },
+      { icon: "🔧", text: "Refactor interno: membership_type ahora es texto libre (slug del plan) en vez de un enum fijo — permite planes personalizados sin deploy" },
+    ],
+  },
   {
     version: "2.2.0",
     date: "2026-07-30",

@@ -5,6 +5,33 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [2.3.0] — 2026-08-19
+
+### Added
+
+- **Planes dinámicos**: nueva página admin `/membership-plans` para crear, editar, activar/desactivar planes de membresía sin tocar código.
+- **Configuración por plan**: precio sugerido, duración en días, sesiones por día, sesiones totales (paquetes tipo Flex), días permitidos, franjas horarias bloqueadas y flag de pareja (DÚO).
+- **Backend CRUD de planes**: modelo `PlanCreate/PlanUpdate/PlanResponse/PlanDynamoItem`, repositorio DynamoDB (`PK=MEMBERSHIP_PLANS, SK=PLAN#{slug}`), servicio con seed de 8 planes por defecto, y router REST con endpoints list/get/create/update/delete/seed.
+- **Enforcement dinámico de restricciones**: `reservation_service` ahora consulta el plan del alumno en DynamoDB para aplicar límite diario (`sessions_per_day`) y restricciones de horario (`allowed_days`, `blocked_schedules`).
+- **DÚO mejorado**: `membership_service` crea 2 membresías ligadas + 1 sola transacción automáticamente para planes con `requires_partner`.
+- **Detección dinámica de session packs**: `_is_session_pack()` consulta `total_sessions` del plan en vez de comparar contra un slug hardcodeado.
+- **Sidebar**: nuevo item "Planes" con icono `ClipboardList` (solo admin).
+- **CreateMembershipModal**: usa planes dinámicos para selector de tipo, precio sugerido, duración y detección de DÚO, con fallback a valores estáticos.
+- **Etiquetas dinámicas**: la lista de membresías, dashboard, check-in, kiosco y perfil del alumno resuelven el label del plan desde la API con fallback al map estático.
+- **i18n**: key `nav.plans` en `es.json` ("Planes") y `en.json` ("Plans").
+- **Seed**: botón "Sembrar planes por defecto" en la página de planes para inicializar los 8 planes estándar.
+
+### Changed
+
+- **`MembershipType`**: convertido de `StrEnum` a clase de constantes `str`. Los campos `membership_type` en `MembershipCreate`, `MembershipUpdate`, `MembershipResponse` y `MembershipDynamoItem` ahora aceptan cualquier slug de plan como `str`.
+- **Frontend `MembershipType`**: ampliado a `KnownMembershipType | (string & {})`. Todos los lookups de `MEMBERSHIP_TYPE_LABELS` usan `?? fallback`.
+- **Validación de session pack**: movida del modelo Pydantic al servicio (`assign_membership`), donde puede consultar el plan y auto-llenar `classes_total` si no se envía.
+- **`MembershipDynamoItem.from_create`**: `classes_remaining` se asigna para cualquier plan con `classes_total`, no solo `room_flex`.
+
+### Fixed
+
+- **Regresión `membership_repository.py`**: `data.membership_type.value` crasheaba al actualizar membresías porque `membership_type` ya era `str` y no tiene `.value`. Corregido a `data.membership_type`.
+
 ## [2.2.0] — 2026-07-30
 
 ### Added
