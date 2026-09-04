@@ -436,6 +436,20 @@ def admin_reset_password(
     custom_password = body.password if body else None
 
     svc = CognitoService()
+
+    # Ensure the student has a Cognito account; create one if missing.
+    try:
+        svc._cognito.admin_get_user(  # noqa: SLF001
+            UserPoolId=svc._pool_id,
+            Username=student.email,
+        )
+    except svc._cognito.exceptions.UserNotFoundException:  # noqa: SLF001
+        logger.info(
+            "Cognito user not found — creating account for student",
+            extra={"student_id": student_id, "email": student.email},
+        )
+        svc.create_student_user(student.email, name)
+
     try:
         if custom_password:
             # Use the admin-provided password directly
