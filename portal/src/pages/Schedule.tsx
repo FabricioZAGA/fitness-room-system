@@ -161,11 +161,16 @@ export default function Schedule(): React.JSX.Element {
   })
 
   const classes = isDev ? mockClasses : (classesData?.items ?? [])
-  const reservations = isDev
+  const allReservations = isDev
     ? mockReservations
-    : ((reservationsData?.items ?? []) as Reservation[]).filter(
-        (r) => r.status === 'confirmed' || r.status === 'waitlisted'
-      )
+    : ((reservationsData?.items ?? []) as Reservation[])
+
+  const upcomingReservations = allReservations.filter(
+    (r) => !r.is_past && (r.status === 'confirmed' || r.status === 'waitlisted')
+  )
+  const pastReservations = allReservations.filter(
+    (r) => r.is_past || r.status === 'attended' || r.status === 'no_show'
+  )
 
   const isLoading = activeTab === 'classes' ? classesLoading : reservationsLoading
 
@@ -244,7 +249,7 @@ export default function Schedule(): React.JSX.Element {
                 color: activeTab === tab ? '#000' : 'rgba(255,255,255,0.5)',
               }}
             >
-              {tab === 'classes' ? `Disponibles (${classes.length})` : `Mis Reservaciones (${reservations.length})`}
+              {tab === 'classes' ? `Disponibles (${classes.length})` : `Mis Reservaciones (${upcomingReservations.length})`}
             </button>
           ))}
         </div>
@@ -297,8 +302,9 @@ export default function Schedule(): React.JSX.Element {
 
         {/* Tab: My Reservations */}
         {activeTab === 'reservations' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {reservations.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Upcoming reservations */}
+            {upcomingReservations.length === 0 ? (
               <Card>
                 <div style={{ textAlign: 'center', padding: '24px 8px' }}>
                   <p style={{ fontSize: '32px', marginBottom: '8px' }}>📋</p>
@@ -324,14 +330,49 @@ export default function Schedule(): React.JSX.Element {
                 </div>
               </Card>
             ) : (
-              reservations.map((r) => (
-                <ReservationCard
-                  key={r.reservation_id}
-                  reservation={r}
-                  onCancel={handleCancel}
-                  cancellingId={cancellingId}
-                />
-              ))
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <p
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: '#d4af37',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    margin: 0,
+                  }}
+                >
+                  Próximas ({upcomingReservations.length})
+                </p>
+                {upcomingReservations.map((r: Reservation) => (
+                  <ReservationCard
+                    key={r.reservation_id}
+                    reservation={r}
+                    onCancel={handleCancel}
+                    cancellingId={cancellingId}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Past reservations / History */}
+            {pastReservations.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                <p
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: 'rgba(255,255,255,0.4)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    margin: 0,
+                  }}
+                >
+                  Historial ({pastReservations.length})
+                </p>
+                {pastReservations.map((r: Reservation) => (
+                  <PastReservationCard key={r.reservation_id} reservation={r} />
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -793,6 +834,63 @@ function ReservationCard({
           )}
         </div>
       )}
+    </Card>
+  )
+}
+
+// ─── Past Reservation Card (History) ─────────────────────────────────────────
+
+const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  attended: { label: 'Asistió', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)' },
+  no_show: { label: 'No asistió', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
+  cancelled: { label: 'Cancelada', color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)' },
+  confirmed: { label: 'Confirmada', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+}
+
+function PastReservationCard({
+  reservation,
+}: {
+  reservation: Reservation
+}): React.JSX.Element {
+  const typeName = CLASS_TYPE_LABELS[reservation.class_type || ''] || reservation.class_type || 'Clase'
+  const statusInfo = STATUS_LABELS[reservation.status] || STATUS_LABELS.confirmed
+
+  return (
+    <Card>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', opacity: 0.7 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <p style={{ color: '#fff', fontWeight: 700, fontSize: '16px', margin: 0 }}>
+              {typeName}
+            </p>
+            <span
+              style={{
+                padding: '2px 8px',
+                borderRadius: '9999px',
+                fontSize: '11px',
+                fontWeight: 600,
+                background: statusInfo.bg,
+                color: statusInfo.color,
+              }}
+            >
+              {statusInfo.label}
+            </span>
+          </div>
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: '0 0 4px 0' }}>
+            {formatDateLabel(reservation.class_date)} · {reservation.start_time?.slice(0, 5) || ''}
+          </p>
+          {reservation.instructor_name && (
+            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '12px', margin: '0 0 2px 0' }}>
+              👤 {reservation.instructor_name}
+            </p>
+          )}
+          {reservation.location && (
+            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '12px', margin: 0 }}>
+              📍 {reservation.location}
+            </p>
+          )}
+        </div>
+      </div>
     </Card>
   )
 }

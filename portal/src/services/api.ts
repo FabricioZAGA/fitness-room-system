@@ -116,6 +116,7 @@ export interface Reservation {
   class_id: string
   class_date: string
   status: string
+  is_past?: boolean
   created_at: string
   class_type?: string
   start_time?: string

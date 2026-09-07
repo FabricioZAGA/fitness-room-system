@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
 from ..models.class_model import ClassDynamoItem
-from ..models.reservation import ReservationCreate
+from ..models.reservation import ReservationCreate, ReservationStatus
 from ..models.student import StudentDynamoItem
 from ..repositories.class_repository import ClassRepository
 from ..repositories.instructor_repository import InstructorRepository
@@ -306,15 +306,43 @@ def get_reservations(
             if status_filter:
                 reservations = [r for r in reservations if r.status == status_filter]
 
+            today_str = mexico_today().isoformat()
+
+            # Auto-expire past reservations that were never checked in:
+            # confirmed → attended (benefit of the doubt)
+            # waitlisted → no_show
+            for r in reservations:
+                if r.class_date >= today_str:
+                    continue
+                if r.status == "confirmed":
+                    try:
+                        reservation_repo.mark_attendance(
+                            r.class_id, r.student_id, attended=True,
+                        )
+                        r.status = "attended"
+                    except Exception:
+                        pass
+                elif r.status == "waitlisted":
+                    try:
+                        reservation_repo.admin_update_status(
+                            r.class_id, r.student_id,
+                            ReservationStatus.NO_SHOW,
+                        )
+                        r.status = "no_show"
+                    except Exception:
+                        pass
+
             # Enrich each reservation with class details and cancellation policy
             items: list[dict[str, Any]] = []
             for r in reservations:
+                is_past = r.class_date < today_str
                 item_data: dict[str, Any] = {
                     "reservation_id": r.reservation_id,
                     "student_id": r.student_id,
                     "class_id": r.class_id,
                     "class_date": r.class_date,
                     "status": r.status,
+                    "is_past": is_past,
                     "created_at": r.created_at.isoformat() if r.created_at else None,
                 }
                 # Add class info if available
@@ -324,7 +352,7 @@ def get_reservations(
                     item_data["start_time"] = cls.start_time
                     item_data["instructor_name"] = cls.instructor_name
                     item_data["location"] = cls.location
-                    if r.status == "confirmed":
+                    if not is_past and r.status == "confirmed":
                         can_cancel, reason = _can_cancel_reservation(cls)
                         item_data["can_cancel"] = can_cancel
                         item_data["cancel_reason"] = reason
