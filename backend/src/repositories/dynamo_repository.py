@@ -229,3 +229,32 @@ class DynamoRepository:
             ReturnValues="UPDATED_NEW",
         )
         return int(str(response["Attributes"][attribute]))
+
+    def try_increment_below_limit(
+        self, pk: str, sk: str, attribute: str, limit_attribute: str
+    ) -> int | None:
+        """Atomically increment ``attribute`` by 1 only if it is < ``limit_attribute``.
+
+        Used to claim a class spot without a read-then-write race.
+
+        Returns:
+            The new value on success, or None if the condition failed (full).
+        """
+        try:
+            response = self._table.update_item(
+                Key={"PK": pk, "SK": sk},
+                UpdateExpression="ADD #attr :one",
+                ConditionExpression="attribute_exists(PK) AND #attr < #lim",
+                ExpressionAttributeNames={"#attr": attribute, "#lim": limit_attribute},
+                ExpressionAttributeValues={":one": 1},
+                ReturnValues="UPDATED_NEW",
+            )
+            return int(str(response["Attributes"][attribute]))
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                return None
+            raise
+
+    def set_attributes(self, pk: str, sk: str, values: dict[str, Any]) -> None:
+        """Set attributes on an existing item without returning it."""
+        self.update_item(pk, sk, values)

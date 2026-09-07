@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
 from ..models.class_model import ClassDynamoItem
-from ..models.reservation import ReservationCreate, ReservationStatus
+from ..models.reservation import ReservationCreate
 from ..models.student import StudentDynamoItem
 from ..repositories.class_repository import ClassRepository
 from ..repositories.instructor_repository import InstructorRepository
@@ -23,6 +23,7 @@ from ..repositories.membership_repository import MembershipRepository
 from ..repositories.reservation_repository import ReservationRepository
 from ..repositories.student_repository import StudentRepository
 from ..services.event_notifier import EventNotifier
+from ..services.reservation_service import ReservationService
 from ..utils.auth import require_student_or_staff_group
 from ..utils.exceptions import ResourceNotFoundException
 
@@ -301,17 +302,24 @@ def get_reservations(
         if role == "student":
             student = _resolve_student(current_user, student_repo)
             student_id = student.student_id
-            reservations, _ = reservation_repo.list_for_student(student_id, limit=50)
+            # Reservations AND waitlist entries (different SK prefixes).
+            records = reservation_repo.list_all_for_student(student_id, limit=50)
 
             if status_filter:
-                reservations = [r for r in reservations if r.status == status_filter]
+                records = [r for r in records if r.status == status_filter]
 
             today_str = mexico_today().isoformat()
+            svc = ReservationService(
+                reservation_repo=reservation_repo,
+                class_repo=class_repo,
+                student_repo=student_repo,
+            )
 
-            # Auto-expire past reservations that were never checked in:
+            # Auto-expire past records that were never checked in:
             # confirmed → attended (benefit of the doubt)
-            # waitlisted → no_show
-            for r in reservations:
+            # waitlisted → removed (the seat never materialised)
+            touched_classes: set[str] = set()
+            for r in records:
                 if r.class_date >= today_str:
                     continue
                 if r.status == "confirmed":
@@ -320,21 +328,27 @@ def get_reservations(
                             r.class_id, r.student_id, attended=True,
                         )
                         r.status = "attended"
+                        touched_classes.add(r.class_id)
                     except Exception:
                         pass
                 elif r.status == "waitlisted":
                     try:
-                        reservation_repo.admin_update_status(
+                        reservation_repo.remove_from_waitlist_by_student(
                             r.class_id, r.student_id,
-                            ReservationStatus.NO_SHOW,
                         )
                         r.status = "no_show"
+                        touched_classes.add(r.class_id)
                     except Exception:
                         pass
+            for cid in touched_classes:
+                try:
+                    svc.sync_counts(cid)
+                except Exception:
+                    pass
 
-            # Enrich each reservation with class details and cancellation policy
+            # Enrich each record with class details and cancellation policy
             items: list[dict[str, Any]] = []
-            for r in reservations:
+            for r in records:
                 is_past = r.class_date < today_str
                 item_data: dict[str, Any] = {
                     "reservation_id": r.reservation_id,
@@ -343,6 +357,7 @@ def get_reservations(
                     "class_date": r.class_date,
                     "status": r.status,
                     "is_past": is_past,
+                    "waitlist_position": getattr(r, "position", None),
                     "created_at": r.created_at.isoformat() if r.created_at else None,
                 }
                 # Add class info if available
@@ -356,6 +371,10 @@ def get_reservations(
                         can_cancel, reason = _can_cancel_reservation(cls)
                         item_data["can_cancel"] = can_cancel
                         item_data["cancel_reason"] = reason
+                    elif not is_past and r.status == "waitlisted":
+                        # Leaving the waitlist is always allowed.
+                        item_data["can_cancel"] = True
+                        item_data["cancel_reason"] = ""
                     else:
                         item_data["can_cancel"] = False
                         item_data["cancel_reason"] = ""
@@ -409,10 +428,10 @@ def cancel_reservation(
     reservation_repo: ReservationRepository = Depends(get_reservation_repository),
     class_repo: ClassRepository = Depends(get_class_repository),
 ) -> JSONResponse:
-    """Cancel the calling student's reservation for a given class.
+    """Cancel the calling student's reservation or leave the waitlist.
 
-    Enforces 2-hour cancellation policy: students cannot cancel
-    less than 2 hours before the class start time.
+    Confirmed reservations follow the CANCELLATION_CUTOFF_MINUTES policy;
+    leaving a waitlist is always allowed.
     """
     role = get_user_role(current_user)
 
@@ -429,33 +448,25 @@ def cancel_reservation(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
     try:
-        reservation = reservation_repo.get_reservation(class_id, student_id)
-        if not reservation:
+        record = reservation_repo.get_reservation_or_waitlist(class_id, student_id)
+        if record is None or record.status not in ("confirmed", "waitlisted"):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Reservation not found",
             )
+        was_waitlisted = record.status == "waitlisted"
 
-        # Enforce 2-hour cancellation policy
-        try:
-            class_item = class_repo.get_by_id(class_id)
-            can_cancel, reason = _can_cancel_reservation(class_item)
-            if not can_cancel:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=reason,
-                )
-        except ResourceNotFoundException:
-            pass  # Allow cancellation if class not found (edge case)
-
-        # Use ReservationService for consistent cancel + waitlist promotion
-        from src.services.reservation_service import ReservationService
+        # Service enforces the cancellation window (confirmed only), handles
+        # waitlist-leave, promotes the next student and re-syncs counters.
         svc = ReservationService(
             reservation_repo=reservation_repo,
             class_repo=class_repo,
             student_repo=student_repo,
         )
         _, promoted_student_id = svc.cancel_reservation(class_id, student_id)
+
+        if was_waitlisted:
+            return JSONResponse(content={"message": "Saliste de la lista de espera"})
 
         student_name = f"{student.first_name} {student.last_name}".strip()
         notifier = EventNotifier()
@@ -532,12 +543,15 @@ def get_class_detail(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Class not found")
 
     reservations, _ = reservation_repo.list_for_class(class_id, limit=500)
+    waitlist_entries, _ = reservation_repo.get_waitlist_for_class(class_id, limit=500)
 
     confirmed: list[dict[str, Any]] = []
     waitlisted: list[dict[str, Any]] = []
-    for r in reservations:
-        if r.status not in ("confirmed", "attended", "waitlisted"):
-            continue
+    all_records: list[Any] = [
+        *[r for r in reservations if r.status in ("confirmed", "attended")],
+        *waitlist_entries,
+    ]
+    for r in all_records:
         attendee: dict[str, Any] = {"status": r.status}
         try:
             item = student_repo.get_item(f"STUDENT#{r.student_id}", "PROFILE")
@@ -635,9 +649,9 @@ def get_upcoming_classes(
                 "description": c.description,
             }
 
-            # Check if student already has a reservation
+            # Check if student already has a reservation or waitlist seat
             if student_id:
-                existing = reservation_repo.get_reservation(c.class_id, student_id)
+                existing = reservation_repo.get_reservation_or_waitlist(c.class_id, student_id)
                 if existing and existing.status in ("confirmed", "waitlisted"):
                     item_data["my_status"] = existing.status
                     item_data["my_reservation_id"] = existing.reservation_id
@@ -686,28 +700,8 @@ def create_reservation(
     except ResourceNotFoundException:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Class not found")
 
-    if class_item.is_cancelled:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Esta clase ha sido cancelada",
-        )
-
-    # Booking window: at least 5 minutes before class start
-    try:
-        class_datetime_str = f"{class_item.class_date}T{class_item.start_time}"
-        mx_tz = ZoneInfo("America/Mexico_City")
-        class_start = datetime.fromisoformat(class_datetime_str).replace(tzinfo=mx_tz)
-        now = datetime.now(tz=mx_tz)
-        minutes_until = (class_start - now).total_seconds() / 60
-        if minutes_until < 5:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se puede reservar con menos de 5 minutos de anticipación",
-            )
-    except (ValueError, TypeError):
-        pass
-
-    # Membership validation: student must have an active, non-expired membership
+    # Portal-only rule: student must hold an active, non-expired membership.
+    # (Front desk can enrol without one — e.g. day pass sold on the spot.)
     membership_repo = MembershipRepository()
     active_mem = membership_repo.get_active_for_student(student_id)
     if not active_mem:
@@ -715,55 +709,34 @@ def create_reservation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No tienes una membresía activa. Contacta a recepción para renovar.",
         )
-
     mem_end_date = (
         date.fromisoformat(active_mem.end_date)
         if isinstance(active_mem.end_date, str)
         else active_mem.end_date
     )
-    today = mexico_today()
-    if mem_end_date < today:
+    if mem_end_date < mexico_today():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Tu membresía ha expirado. Contacta a recepción para renovar.",
         )
 
-    # Daily limit: 1-session/day memberships
-    _ONE_SESSION_TYPES = {"founder", "room_daily", "room_pass", "founder_monthly"}
-    if active_mem and active_mem.membership_type in _ONE_SESSION_TYPES:
-        stu_reservations, _ = reservation_repo.list_for_student(student_id, limit=200)
-        # Include "attended" so a Founder who already checked in to today's class
-        # cannot reserve a second one the same day.
-        same_day = [
-            r for r in stu_reservations
-            if r.class_date == class_item.class_date
-            and r.status in ("confirmed", "attended", "waitlisted")
-        ]
-        if same_day:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Tu membresía solo permite 1 clase por día. Ya tienes una reservación para esta fecha.",
-            )
-
-    # Check for existing reservation
-    existing = reservation_repo.get_reservation(class_id, student_id)
-    if existing and existing.status in ("confirmed", "waitlisted"):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Ya tienes una reservación para esta clase",
-        )
-
-    class_date = class_item.class_date
-    available_spots = class_item.capacity - class_item.reservations_count
+    # Everything else — cancelled class, booking window, dynamic daily limit,
+    # schedule restrictions, duplicate check, stale-record cleanup, atomic spot
+    # claim, waitlist fallback and counter sync — lives in the service so the
+    # portal and the admin panel can never diverge.
+    svc = ReservationService(
+        reservation_repo=reservation_repo,
+        class_repo=class_repo,
+        student_repo=student_repo,
+        membership_repo=membership_repo,
+    )
     data = ReservationCreate(student_id=student_id, class_id=class_id)
+    result = svc.create_reservation(data)
 
     student_name = f"{student.first_name} {student.last_name}".strip()
     notifier = EventNotifier()
 
-    if available_spots > 0:
-        reservation = reservation_repo.create_reservation(data, class_date)
-        class_repo.increment_reservations_count(class_id)
-
+    if result.status == "confirmed":
         # Notify student
         notifier.notify_reservation_confirmed(
             student_name=student_name,
@@ -808,34 +781,32 @@ def create_reservation(
             content={
                 "message": "Reservación confirmada",
                 "status": "confirmed",
-                "reservation_id": reservation.reservation_id,
+                "reservation_id": result.reservation_id,
             },
         )
-    else:
-        position = reservation_repo.get_next_waitlist_position(class_id)
-        waitlist_item = reservation_repo.add_to_waitlist(data, class_date, position)
-        class_repo.increment_waitlist_count(class_id)
 
-        # Notify student about waitlist
-        notifier.notify_waitlist_joined(
-            student_name=student_name,
-            student_email=student.email or "",
-            student_phone=student.phone,
-            class_type=class_item.class_type,
-            class_date=class_item.class_date,
-            start_time=class_item.start_time,
-            position=position,
-        )
+    position = result.waitlist_position or 1
 
-        return JSONResponse(
-            status_code=201,
-            content={
-                "message": f"Te agregamos a la lista de espera (posición #{position})",
-                "status": "waitlisted",
-                "reservation_id": waitlist_item.reservation_id,
-                "waitlist_position": position,
-            },
-        )
+    # Notify student about waitlist
+    notifier.notify_waitlist_joined(
+        student_name=student_name,
+        student_email=student.email or "",
+        student_phone=student.phone,
+        class_type=class_item.class_type,
+        class_date=class_item.class_date,
+        start_time=class_item.start_time,
+        position=position,
+    )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "message": f"Te agregamos a la lista de espera (posición #{position})",
+            "status": "waitlisted",
+            "reservation_id": result.reservation_id,
+            "waitlist_position": position,
+        },
+    )
 
 
 @router.get("/checkins")

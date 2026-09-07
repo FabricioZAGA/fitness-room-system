@@ -140,6 +140,30 @@ class ClassRepository(DynamoRepository):
             delta=1,
         )
 
+    def try_claim_spot(self, class_id: str) -> int | None:
+        """Atomically claim a spot: increment reservations_count only if < capacity.
+
+        Returns the new count, or None if the class is full.
+        """
+        return self.try_increment_below_limit(
+            pk=f"CLASS#{class_id}",
+            sk="PROFILE",
+            attribute="reservations_count",
+            limit_attribute="capacity",
+        )
+
+    def set_counts(self, class_id: str, reservations_count: int, waitlist_count: int) -> None:
+        """Overwrite both counters with authoritative values (used by recount)."""
+        self.set_attributes(
+            f"CLASS#{class_id}",
+            "PROFILE",
+            {
+                "reservations_count": reservations_count,
+                "waitlist_count": waitlist_count,
+                "updated_at": utc_now().isoformat(),
+            },
+        )
+
     def decrement_reservations_count(self, class_id: str) -> int:
         """Atomically decrement the reservation counter."""
         return self.update_counter(

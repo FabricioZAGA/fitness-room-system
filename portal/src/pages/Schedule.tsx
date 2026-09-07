@@ -145,8 +145,8 @@ export default function Schedule(): React.JSX.Element {
 
   const cancelMutation = useMutation({
     mutationFn: (classId: string) => portalApi.cancelReservation(classId).then((r) => r.data),
-    onSuccess: () => {
-      setFeedback({ type: 'success', message: 'Reservación cancelada exitosamente' })
+    onSuccess: (data) => {
+      setFeedback({ type: 'success', message: data.message || 'Reservación cancelada exitosamente' })
       queryClient.invalidateQueries({ queryKey: ['upcoming-classes'] })
       queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
       setCancellingId(null)
@@ -696,7 +696,9 @@ function ClassCard({
             {isCancelling ? 'Cancelando...' : 'Cancelar inscripción'}
           </button>
         ) : isWaitlisted ? (
-          <div
+          <button
+            onClick={() => onCancel(cls.class_id)}
+            disabled={isCancelling}
             style={{
               width: '100%',
               padding: '10px',
@@ -706,11 +708,12 @@ function ClassCard({
               color: '#f59e0b',
               fontSize: '13px',
               fontWeight: 600,
-              textAlign: 'center',
+              cursor: isCancelling ? 'not-allowed' : 'pointer',
+              opacity: isCancelling ? 0.5 : 1,
             }}
           >
-            En lista de espera
-          </div>
+            {isCancelling ? 'Saliendo...' : 'Salir de la lista de espera'}
+          </button>
         ) : (
           <button
             onClick={() => onEnroll(cls.class_id)}
@@ -776,7 +779,9 @@ function ReservationCard({
                 color: isWaitlisted ? '#f59e0b' : '#22c55e',
               }}
             >
-              {isWaitlisted ? 'En espera' : 'Confirmada'}
+              {isWaitlisted
+                ? `En espera${reservation.waitlist_position ? ` #${reservation.waitlist_position}` : ''}`
+                : 'Confirmada'}
             </span>
           </div>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: '0 0 4px 0' }}>
@@ -794,6 +799,30 @@ function ReservationCard({
           )}
         </div>
       </div>
+
+      {/* Leave waitlist */}
+      {isWaitlisted && (
+        <div style={{ marginTop: '12px' }}>
+          <button
+            onClick={() => onCancel(reservation.class_id)}
+            disabled={isCancelling}
+            style={{
+              width: '100%',
+              padding: '10px',
+              borderRadius: '12px',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              background: 'rgba(245, 158, 11, 0.1)',
+              color: '#f59e0b',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: isCancelling ? 'not-allowed' : 'pointer',
+              opacity: isCancelling ? 0.5 : 1,
+            }}
+          >
+            {isCancelling ? 'Saliendo...' : 'Salir de la lista de espera'}
+          </button>
+        </div>
+      )}
 
       {/* Cancel button */}
       {reservation.status === 'confirmed' && (
@@ -829,7 +858,7 @@ function ReservationCard({
                 textAlign: 'center',
               }}
             >
-              {reservation.cancel_reason || 'No se puede cancelar a menos de 2 horas de la clase'}
+              {reservation.cancel_reason || 'No se puede cancelar a menos de 15 minutos de la clase'}
             </div>
           )}
         </div>

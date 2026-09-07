@@ -110,6 +110,15 @@ class ClassService:
             HTTP 404 if class is not found.
         """
         logger.info("Updating class", extra={"class_id": class_id})
+
+        if data.capacity is not None:
+            current = self._repo.get_by_id(class_id)
+            if data.capacity < current.reservations_count:
+                raise_bad_request(
+                    f"No se puede reducir la capacidad a {data.capacity}: "
+                    f"ya hay {current.reservations_count} lugares ocupados."
+                )
+
         item = self._repo.update(class_id, data)
         return item.to_response()
 
@@ -145,6 +154,10 @@ class ClassService:
                     "Failed to remove waitlist entry during class cancel",
                     extra={"class_id": class_id, "student_id": w.student_id},
                 )
+
+        # Re-sync counters from what actually remains (all cancelled → 0 / 0).
+        reservations_count, waitlist_count = res_repo.recount(class_id)
+        self._repo.set_counts(class_id, reservations_count, waitlist_count)
 
         item = self._repo.update(class_id, ClassUpdate(is_cancelled=True))
         return item.to_response()

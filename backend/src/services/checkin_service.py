@@ -3,6 +3,7 @@
 from aws_lambda_powertools import Logger
 
 from src.models.checkin import CheckinDynamoItem, CheckinReason, CheckinResponse
+from src.models.common import mexico_now, mexico_today
 from src.models.student import StudentStatus
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.student_repository import StudentRepository
@@ -105,6 +106,8 @@ class CheckinService:
             "Check-in approved",
             extra={"student_id": student_id, "days_until_expiry": days},
         )
+
+        self._auto_mark_todays_reservation(student_id)
         return CheckinResponse(
             checkin_id=item.checkin_id,
             student_id=student_id,
@@ -114,3 +117,53 @@ class CheckinService:
             days_until_expiry=days,
             membership_type=active_membership.membership_type,
         )
+
+    def _auto_mark_todays_reservation(self, student_id: str) -> None:
+        """Best-effort: mark the student's confirmed reservation for today as attended.
+
+        Picks the class whose start time is closest to now (a student may have
+        more than one class the same day). Never raises — a failure here must
+        not block the physical check-in.
+        """
+        try:
+            from src.repositories.class_repository import ClassRepository
+            from src.repositories.reservation_repository import ReservationRepository
+            from src.services.reservation_service import ReservationService
+
+            res_repo = ReservationRepository()
+            class_repo = ClassRepository()
+            today = mexico_today().isoformat()
+            now_minutes = mexico_now().hour * 60 + mexico_now().minute
+
+            reservations, _ = res_repo.list_for_student(student_id, limit=50)
+            candidates = [
+                r for r in reservations
+                if r.class_date == today and r.status == "confirmed"
+            ]
+            if not candidates:
+                return
+
+            def _distance(r: object) -> int:
+                try:
+                    cls = class_repo.get_by_id(getattr(r, "class_id"))
+                    hh, mm = str(cls.start_time)[:5].split(":")
+                    return abs(int(hh) * 60 + int(mm) - now_minutes)
+                except Exception:
+                    return 10_000
+
+            target = min(candidates, key=_distance)
+            ReservationService(
+                reservation_repo=res_repo,
+                class_repo=class_repo,
+                student_repo=self._student_repo,
+                membership_repo=self._membership_repo,
+            ).mark_attendance(target.class_id, student_id, attended=True)
+            logger.info(
+                "Auto-marked reservation as attended on check-in",
+                extra={"student_id": student_id, "class_id": target.class_id},
+            )
+        except Exception:
+            logger.warning(
+                "Auto-mark attendance on check-in failed",
+                extra={"student_id": student_id},
+            )

@@ -125,20 +125,24 @@ def get_class_attendees(
     stu_repo = StudentRepository()
 
     reservations, _ = res_repo.list_for_class(class_id, limit=500)
+    waitlist_entries, _ = res_repo.get_waitlist_for_class(class_id, limit=500)
 
     confirmed: list[dict[str, Any]] = []
     waitlisted: list[dict[str, Any]] = []
 
     # `attended` reservations have already been counted toward the class —
     # they belong in the enrolled list, not excluded as if they were cancelled.
-    for r in reservations:
-        if r.status not in ("confirmed", "attended", "waitlisted"):
-            continue
+    # Waitlist entries are a separate item type (WAITLIST# SK) — merge them in.
+    all_records: list[Any] = [
+        *[r for r in reservations if r.status in ("confirmed", "attended")],
+        *waitlist_entries,
+    ]
+    for r in all_records:
         student_info: dict[str, Any] = {
             "student_id": r.student_id,
             "reservation_id": r.reservation_id,
             "status": r.status,
-            "waitlist_position": r.waitlist_position,
+            "waitlist_position": getattr(r, "position", None),
             "created_at": r.created_at.isoformat() if r.created_at else None,
             "reservation_type": getattr(r, "reservation_type", "member"),
             "visitor_name": getattr(r, "visitor_name", None),
@@ -219,6 +223,15 @@ def cancel_class(
     service: ClassService = Depends(get_service),
 ) -> ClassResponse:
     """Cancel a class session."""
+    # Snapshot student IDs to notify BEFORE cancelling — the service will
+    # cancel reservations and delete waitlist entries.
+    res_repo = ReservationRepository()
+    pre_reservations, _ = res_repo.list_for_class(class_id, limit=200)
+    pre_waitlist, _ = res_repo.get_waitlist_for_class(class_id, limit=200)
+    student_ids_to_notify = [
+        r.student_id for r in pre_reservations if r.status == "confirmed"
+    ] + [w.student_id for w in pre_waitlist]
+
     result = service.cancel_class(class_id)
     try:
         notifier = EventNotifier()
@@ -233,17 +246,10 @@ def cancel_class(
                 class_date=result.class_date,
                 start_time=result.start_time,
             )
-        # Notify all enrolled students
-        res_repo = ReservationRepository()
+        # Notify all enrolled + waitlisted students (from pre-cancel snapshot)
         stu_repo = StudentRepository()
-        reservations, _ = res_repo.list_for_class(class_id, limit=200)
-        enrolled = [
-            r for r in reservations
-            if r.status in ("confirmed", "waitlisted")
-        ]
         students_to_notify: list[dict[str, str | None]] = []
-        for r in enrolled:
-            sid = r.student_id
+        for sid in dict.fromkeys(student_ids_to_notify):
             s_item = stu_repo.get_item(f"STUDENT#{sid}", "PROFILE")
             if s_item and s_item.get("email"):
                 students_to_notify.append({

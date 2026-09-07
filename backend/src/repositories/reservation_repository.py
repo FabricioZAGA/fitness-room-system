@@ -15,6 +15,16 @@ from src.repositories.dynamo_repository import DynamoRepository
 from src.utils.exceptions import ResourceAlreadyExistsException
 
 
+# Statuses that occupy a physical spot in the class (count toward capacity).
+COUNTED_STATUSES: frozenset[str] = frozenset(
+    {
+        ReservationStatus.CONFIRMED.value,
+        ReservationStatus.ATTENDED.value,
+        ReservationStatus.NO_SHOW.value,
+    }
+)
+
+
 class ReservationRepository(DynamoRepository):
     """Repository for reservation and waitlist entity access patterns."""
 
@@ -50,6 +60,57 @@ class ReservationRepository(DynamoRepository):
             return None
         return ReservationDynamoItem.model_validate(raw)
 
+    def get_waitlist_entry(self, class_id: str, student_id: str) -> WaitlistDynamoItem | None:
+        """Find a student's waitlist entry for a class (any position).
+
+        Access pattern: QUERY PK=CLASS#id, SK begins_with WAITLIST#, filter student_id.
+        """
+        items, _ = self.query_by_pk(pk=f"CLASS#{class_id}", sk_begins_with="WAITLIST#")
+        for raw in items:
+            if raw.get("student_id") == student_id:
+                return WaitlistDynamoItem.model_validate(raw)
+        return None
+
+    def get_reservation_or_waitlist(
+        self, class_id: str, student_id: str
+    ) -> ReservationDynamoItem | WaitlistDynamoItem | None:
+        """Return the student's active record for a class, whichever kind exists.
+
+        Checks RESERVATION# first, then WAITLIST#.
+        """
+        reservation = self.get_reservation(class_id, student_id)
+        if reservation is not None:
+            return reservation
+        return self.get_waitlist_entry(class_id, student_id)
+
+    def delete_stale_reservation(self, class_id: str, student_id: str) -> None:
+        """Delete a RESERVATION# record if it exists (ignore if missing)."""
+        try:
+            self.delete_item(f"CLASS#{class_id}", f"RESERVATION#{student_id}")
+        except Exception:
+            pass
+
+    def recount(self, class_id: str) -> tuple[int, int]:
+        """Recompute authoritative counters for a class from its items.
+
+        reservations_count = RESERVATION# items whose status occupies a spot
+        waitlist_count     = number of WAITLIST# items
+
+        Returns (reservations_count, waitlist_count). Does NOT write — the
+        caller (service) persists via ClassRepository.set_counts.
+        """
+        items, _ = self.query_by_pk(pk=f"CLASS#{class_id}")
+        reservations = 0
+        waitlist = 0
+        for raw in items:
+            sk = str(raw.get("SK", ""))
+            if sk.startswith("RESERVATION#"):
+                if raw.get("status") in COUNTED_STATUSES:
+                    reservations += 1
+            elif sk.startswith("WAITLIST#"):
+                waitlist += 1
+        return reservations, waitlist
+
     def list_for_class(
         self,
         class_id: str,
@@ -77,6 +138,7 @@ class ReservationRepository(DynamoRepository):
         """List all reservations for a student across all classes.
 
         Access pattern: GSI1 PK=STUDENT#id, SK begins_with CLASS#.
+        Only RESERVATION# items — use list_all_for_student to include waitlist.
         """
         items, next_key = self.query_gsi(
             index_name="GSI1",
@@ -89,6 +151,30 @@ class ReservationRepository(DynamoRepository):
             scan_index_forward=False,
         )
         return [ReservationDynamoItem.model_validate(i) for i in items], next_key
+
+    def list_waitlist_for_student(self, student_id: str) -> list[WaitlistDynamoItem]:
+        """List all waitlist entries for a student.
+
+        Access pattern: GSI1 PK=STUDENT#id, SK begins_with WAITLIST#.
+        """
+        items, _ = self.query_gsi(
+            index_name="GSI1",
+            pk_name="GSI1PK",
+            pk_value=f"STUDENT#{student_id}",
+            sk_name="GSI1SK",
+            sk_begins_with="WAITLIST#",
+        )
+        return [WaitlistDynamoItem.model_validate(i) for i in items]
+
+    def list_all_for_student(
+        self, student_id: str, limit: int = 50
+    ) -> list[ReservationDynamoItem | WaitlistDynamoItem]:
+        """Reservations + waitlist entries for a student, newest class first."""
+        reservations, _ = self.list_for_student(student_id, limit=limit)
+        waitlist = self.list_waitlist_for_student(student_id)
+        combined: list[ReservationDynamoItem | WaitlistDynamoItem] = [*reservations, *waitlist]
+        combined.sort(key=lambda r: r.class_date, reverse=True)
+        return combined
 
     def cancel_reservation(self, class_id: str, student_id: str) -> ReservationDynamoItem:
         """Cancel a confirmed reservation.
@@ -210,6 +296,19 @@ class ReservationRepository(DynamoRepository):
             f"WAITLIST#{position:05d}#{student_id}",
         )
 
+    def remove_from_waitlist_by_student(
+        self, class_id: str, student_id: str
+    ) -> WaitlistDynamoItem | None:
+        """Remove a student's waitlist entry without knowing its position.
+
+        Returns the removed entry, or None if the student was not waitlisted.
+        """
+        entry = self.get_waitlist_entry(class_id, student_id)
+        if entry is None:
+            return None
+        self.remove_from_waitlist(class_id, student_id, entry.position)
+        return entry
+
     def promote_from_waitlist(
         self,
         class_id: str,
@@ -225,6 +324,10 @@ class ReservationRepository(DynamoRepository):
             return None
 
         first_on_waitlist = items[0]
+
+        # A stale cancelled/attended/no_show RESERVATION# record would make the
+        # conditional put fail — clear it before promoting.
+        self.delete_stale_reservation(class_id, first_on_waitlist.student_id)
 
         self.create_reservation(
             ReservationCreate(

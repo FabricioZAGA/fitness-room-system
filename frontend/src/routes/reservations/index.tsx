@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { CalendarCheck, Plus, UserPlus, Users, XCircle, CheckCircle2, Clock, ShieldAlert } from "lucide-react";
 import { useClasses } from "@/hooks/useClasses";
 import { useStudents } from "@/hooks/useStudents";
-import { useReservationsForClass, useCancelReservation, useMarkAttendance, useAdminUpdateReservationStatus } from "@/hooks/useReservations";
+import { useReservationsForClass, useWaitlistForClass, useCancelReservation, useMarkAttendance, useAdminUpdateReservationStatus } from "@/hooks/useReservations";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { ReservationStatusBadge } from "@/components/shared/StatusBadge";
@@ -42,7 +42,11 @@ function ReservationsPage(): React.JSX.Element {
   const { data: classesData, isLoading: classesLoading } = useClasses(classParams);
   const { data: reservationsData, isLoading: resLoading } =
     useReservationsForClass(selectedClassId);
-  const reservations = reservationsData?.items ?? [];
+  const { data: waitlistData } = useWaitlistForClass(selectedClassId);
+  const reservations = useMemo(
+    () => [...(reservationsData?.items ?? []), ...(waitlistData ?? [])],
+    [reservationsData, waitlistData],
+  );
 
   const { data: studentsData } = useStudents({ limit: 200 });
   const studentMap = useMemo(() => {
@@ -73,7 +77,6 @@ function ReservationsPage(): React.JSX.Element {
     { value: "cancelled", label: "Cancelada" },
     { value: "attended", label: "Asistio" },
     { value: "no_show", label: "No-Show" },
-    { value: "waitlisted", label: "Lista de espera" },
   ];
 
   const terminalStatuses = new Set(["attended", "no_show"]);
@@ -302,8 +305,8 @@ function ReservationsPage(): React.JSX.Element {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2">
-                      {/* Admin status override */}
-                      {isAdmin && (
+                      {/* Admin status override (not for waitlist entries) */}
+                      {isAdmin && res.status !== "waitlisted" && (
                         <div className="flex items-center gap-1.5">
                           <ShieldAlert className="h-3.5 w-3.5 text-[--gold]" />
                           <select
@@ -356,18 +359,20 @@ function ReservationsPage(): React.JSX.Element {
                           </button>
                         </>
                       )}
-                      <button
-                        onClick={() =>
-                          cancelReservation({
-                            classId: selectedClassId,
-                            studentId: res.student_id,
-                          })
-                        }
-                        className="rounded-lg bg-[--color-danger-bg] p-2 text-[--color-danger] transition-colors hover:bg-[--color-danger-bg]"
-                        title="Cancelar reservación"
-                      >
-                        <XCircle className="h-5 w-5" />
-                      </button>
+                      {(res.status === "confirmed" || res.status === "waitlisted") && (
+                        <button
+                          onClick={() =>
+                            cancelReservation({
+                              classId: selectedClassId,
+                              studentId: res.student_id,
+                            })
+                          }
+                          className="rounded-lg bg-[--color-danger-bg] p-2 text-[--color-danger] transition-colors hover:bg-[--color-danger-bg]"
+                          title={res.status === "waitlisted" ? "Quitar de lista de espera" : "Cancelar reservación"}
+                        >
+                          <XCircle className="h-5 w-5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

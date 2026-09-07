@@ -10,7 +10,7 @@ import boto3
 import qrcode
 import qrcode.image.svg
 from aws_lambda_powertools import Logger
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field
 
