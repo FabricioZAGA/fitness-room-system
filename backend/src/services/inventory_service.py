@@ -11,7 +11,13 @@ from src.models.inventory import (
     ProductSaleResponse,
     ProductUpdate,
 )
-from src.models.transaction import PaymentMethod, TransactionCreate, TransactionType
+from src.models.transaction import (
+    PaymentMethod,
+    PaymentSplit,
+    TransactionCreate,
+    TransactionType,
+    validate_payment_splits,
+)
 from src.repositories.debt_repository import DebtRepository
 from src.repositories.inventory_repository import InventoryRepository
 from src.repositories.transaction_repository import TransactionRepository
@@ -190,6 +196,17 @@ class InventoryService:
                 f"Insufficient stock: requested {data.quantity}, available {product.stock}"
             )
 
+        # Validate mixed-payment breakdown against the server-side total
+        # before touching stock, so an invalid split never leaves side effects.
+        payment_splits: list[PaymentSplit] | None = None
+        if getattr(data, "payment_status", "paid") != "pending":
+            try:
+                payment_splits = validate_payment_splits(
+                    data.payment_method, product.price * data.quantity, data.payment_splits
+                )
+            except ValueError as exc:
+                raise InvalidOperationException(str(exc)) from exc
+
         # Decrement stock atomically
         self._inventory.decrement_stock(data.product_id, data.quantity)
 
@@ -255,6 +272,7 @@ class InventoryService:
                     transaction_type=TransactionType.PRODUCT,
                     amount=sale_item.total_amount,
                     payment_method=payment_method,
+                    payment_splits=payment_splits,
                     reference_id=sale_item.sale_id,
                     notes=f"Venta: {product.name} x{data.quantity}",
                 )

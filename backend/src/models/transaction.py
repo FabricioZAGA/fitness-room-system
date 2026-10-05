@@ -23,7 +23,7 @@ CashCut:
 from datetime import date, datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from src.models.common import TimestampedModel, mexico_today, new_id, utc_now
 
@@ -34,6 +34,82 @@ class PaymentMethod(StrEnum):
     CASH = "cash"                   # Efectivo
     CARD = "card"                   # Tarjeta
     TRANSFER = "transfer"           # Transferencia bancaria / OXXO Pay
+    MIXED = "mixed"                 # Pago mixto — desglose en payment_splits
+
+
+BASIC_PAYMENT_METHODS: tuple[str, ...] = (
+    PaymentMethod.CASH.value,
+    PaymentMethod.CARD.value,
+    PaymentMethod.TRANSFER.value,
+)
+
+SPLIT_TOLERANCE = 0.01
+
+
+class PaymentSplit(BaseModel):
+    """One portion of a mixed payment (e.g. $300 cash + $500 card)."""
+
+    method: PaymentMethod = Field(..., description="cash | card | transfer")
+    amount: float = Field(..., gt=0, description="Portion paid with this method (MXN)")
+
+    @model_validator(mode="after")
+    def _no_nested_mixed(self) -> "PaymentSplit":
+        """A split cannot itself be 'mixed'."""
+        if self.method == PaymentMethod.MIXED:
+            raise ValueError("Una parte de un pago mixto no puede ser 'mixed'")
+        return self
+
+
+def validate_payment_splits(
+    payment_method: str, amount: float, splits: list[PaymentSplit] | None
+) -> list[PaymentSplit] | None:
+    """Validate the splits for a payment and return the normalized list.
+
+    - ``mixed`` requires ≥ 2 splits with distinct methods summing to ``amount``.
+    - Any other method must not carry splits (they are dropped).
+
+    Raises:
+        ValueError: If the breakdown is inconsistent.
+    """
+    if payment_method != PaymentMethod.MIXED:
+        return None
+    if not splits or len(splits) < 2:
+        raise ValueError("Un pago mixto requiere al menos dos métodos de pago")
+    methods = [s.method for s in splits]
+    if len(set(methods)) != len(methods):
+        raise ValueError("Cada método de pago solo puede aparecer una vez en un pago mixto")
+    total = round(sum(s.amount for s in splits), 2)
+    if abs(total - round(amount, 2)) > SPLIT_TOLERANCE:
+        raise ValueError(
+            f"El desglose del pago mixto (${total:,.2f}) no coincide con el total (${amount:,.2f})"
+        )
+    return splits
+
+
+def amount_by_method(
+    payment_method: str, amount: float, splits: list[dict[str, float | str]] | None
+) -> dict[str, float]:
+    """Return how much of a payment went to each basic method (cash/card/transfer)."""
+    result = dict.fromkeys(BASIC_PAYMENT_METHODS, 0.0)
+    if payment_method == PaymentMethod.MIXED and splits:
+        for s in splits:
+            method = str(s["method"])
+            if method in result:
+                result[method] += float(s["amount"])
+    elif payment_method in result:
+        result[payment_method] += amount
+    return result
+
+
+def sum_by_method(
+    items: "list[TransactionDynamoItem]",
+) -> dict[str, float]:
+    """Aggregate cash/card/transfer totals across transactions (mixed-aware)."""
+    totals = dict.fromkeys(BASIC_PAYMENT_METHODS, 0.0)
+    for t in items:
+        for method, value in t.amount_by_method().items():
+            totals[method] += value
+    return totals
 
 
 class TransactionType(StrEnum):
@@ -59,11 +135,23 @@ class TransactionCreate(BaseModel):
     transaction_type: TransactionType = Field(..., description="Category of payment")
     amount: float = Field(..., gt=0, description="Amount received in MXN")
     payment_method: PaymentMethod = Field(..., description="How the student paid")
+    payment_splits: list[PaymentSplit] | None = Field(
+        default=None,
+        description="Breakdown per method — required when payment_method is 'mixed'",
+    )
     reference_id: str | None = Field(
         default=None,
         description="membership_id, inventory_sale_id, etc.",
     )
     notes: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def _validate_splits(self) -> "TransactionCreate":
+        """Ensure mixed payments carry a consistent breakdown."""
+        self.payment_splits = validate_payment_splits(
+            self.payment_method, self.amount, self.payment_splits
+        )
+        return self
 
 
 class TransactionUpdate(BaseModel):
@@ -72,6 +160,9 @@ class TransactionUpdate(BaseModel):
     amount: float | None = Field(default=None, gt=0, description="Updated amount in MXN")
     payment_method: PaymentMethod | None = Field(
         default=None, description="Updated payment method"
+    )
+    payment_splits: list[PaymentSplit] | None = Field(
+        default=None, description="Updated breakdown (only for mixed payments)"
     )
     transaction_type: TransactionType | None = Field(
         default=None, description="Updated transaction type"
@@ -87,6 +178,7 @@ class TransactionResponse(TimestampedModel):
     transaction_type: TransactionType
     amount: float
     payment_method: PaymentMethod
+    payment_splits: list[PaymentSplit] | None = None
     reference_id: str | None
     notes: str | None
     transaction_date: str  # ISO date string YYYY-MM-DD
@@ -107,11 +199,16 @@ class TransactionDynamoItem(BaseModel):
     transaction_type: str
     amount: float
     payment_method: str
+    payment_splits: list[dict[str, float | str]] | None = None
     reference_id: str | None
     notes: str | None
     transaction_date: str
     created_at: datetime
     updated_at: datetime
+
+    def amount_by_method(self) -> dict[str, float]:
+        """Portion of this transaction paid with each basic method."""
+        return amount_by_method(self.payment_method, self.amount, self.payment_splits)
 
     @classmethod
     def from_create(cls, data: TransactionCreate) -> "TransactionDynamoItem":
@@ -133,6 +230,11 @@ class TransactionDynamoItem(BaseModel):
             transaction_type=data.transaction_type.value,
             amount=data.amount,
             payment_method=data.payment_method.value,
+            payment_splits=(
+                [s.model_dump(mode="json") for s in data.payment_splits]
+                if data.payment_splits
+                else None
+            ),
             reference_id=data.reference_id,
             notes=data.notes,
             transaction_date=today,
@@ -147,6 +249,11 @@ class TransactionDynamoItem(BaseModel):
             transaction_type=TransactionType(self.transaction_type),
             amount=self.amount,
             payment_method=PaymentMethod(self.payment_method),
+            payment_splits=(
+                [PaymentSplit.model_validate(s) for s in self.payment_splits]
+                if self.payment_splits
+                else None
+            ),
             reference_id=self.reference_id,
             notes=self.notes,
             transaction_date=self.transaction_date,
@@ -177,11 +284,21 @@ class CashCutResponse(TimestampedModel):
     grand_total: float
     transaction_count: int
     notes: str | None
+    period_start: datetime | None = Field(
+        default=None,
+        description="Exclusive lower bound: previous cut of the same day (None = start of day)",
+    )
     transactions: list[TransactionResponse] = Field(default_factory=list)
 
 
 class CashCutDynamoItem(BaseModel):
-    """DynamoDB item for a cash cut record."""
+    """DynamoDB item for a cash cut record.
+
+    A cut covers transactions with ``period_start < created_at <= created_at(cut)``
+    for ``cut_date``. Multiple cuts per day are allowed; each one starts where the
+    previous one ended so the register "resets to zero" right after a cut.
+    Legacy cuts (no ``period_start``) cover the whole day.
+    """
 
     PK: str
     SK: str
@@ -196,28 +313,35 @@ class CashCutDynamoItem(BaseModel):
     grand_total: float
     transaction_count: int
     notes: str | None
+    period_start: datetime | None = None
+    is_period_cut: bool = False
     created_at: datetime
     updated_at: datetime
+
+    def covers(self, tx: TransactionDynamoItem) -> bool:
+        """Whether a transaction of ``cut_date`` belongs to this cut."""
+        if not self.is_period_cut:
+            return True
+        if self.period_start is not None and tx.created_at <= self.period_start:
+            return False
+        return tx.created_at <= self.created_at
 
     @classmethod
     def from_data(
         cls,
         data: CashCutCreate,
         transactions: list[TransactionDynamoItem],
+        period_start: datetime | None = None,
+        now: datetime | None = None,
     ) -> "CashCutDynamoItem":
         cut_id = new_id()
-        now = utc_now()
+        now = now or utc_now()
         cut_date_str = data.cut_date.isoformat()
 
-        total_cash = sum(
-            t.amount for t in transactions if t.payment_method == PaymentMethod.CASH
-        )
-        total_card = sum(
-            t.amount for t in transactions if t.payment_method == PaymentMethod.CARD
-        )
-        total_transfer = sum(
-            t.amount for t in transactions if t.payment_method == PaymentMethod.TRANSFER
-        )
+        totals = sum_by_method(transactions)
+        total_cash = totals[PaymentMethod.CASH.value]
+        total_card = totals[PaymentMethod.CARD.value]
+        total_transfer = totals[PaymentMethod.TRANSFER.value]
 
         return cls(
             PK=f"CASHCUT#{cut_id}",
@@ -232,6 +356,8 @@ class CashCutDynamoItem(BaseModel):
             grand_total=total_cash + total_card + total_transfer,
             transaction_count=len(transactions),
             notes=data.notes,
+            period_start=period_start,
+            is_period_cut=True,
             created_at=now,
             updated_at=now,
         )
@@ -248,6 +374,7 @@ class CashCutDynamoItem(BaseModel):
             grand_total=self.grand_total,
             transaction_count=self.transaction_count,
             notes=self.notes,
+            period_start=self.period_start,
             transactions=transactions or [],
             created_at=self.created_at,
             updated_at=self.updated_at,

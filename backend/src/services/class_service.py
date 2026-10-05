@@ -6,6 +6,7 @@ from aws_lambda_powertools import Logger
 
 from src.models.class_model import ClassCreate, ClassResponse, ClassUpdate
 from src.repositories.class_repository import ClassRepository
+from src.repositories.reservation_repository import ReservationRepository
 from src.utils.exceptions import raise_bad_request
 
 logger = Logger()
@@ -14,8 +15,13 @@ logger = Logger()
 class ClassService:
     """Service for class session business logic operations."""
 
-    def __init__(self, repository: ClassRepository | None = None) -> None:
+    def __init__(
+        self,
+        repository: ClassRepository | None = None,
+        reservation_repository: ReservationRepository | None = None,
+    ) -> None:
         self._repo = repository or ClassRepository()
+        self._reservations = reservation_repository or ReservationRepository()
 
     def create_class(self, data: ClassCreate) -> ClassResponse:
         """Create a new class session.
@@ -109,17 +115,37 @@ class ClassService:
         Raises:
             HTTP 404 if class is not found.
         """
-        logger.info("Updating class", extra={"class_id": class_id})
+        logger.info(
+            "Updating class",
+            extra={
+                "class_id": class_id,
+                "fields": list(data.model_dump(exclude_none=True).keys()),
+            },
+        )
 
-        if data.capacity is not None:
-            current = self._repo.get_by_id(class_id)
-            if data.capacity < current.reservations_count:
-                raise_bad_request(
-                    f"No se puede reducir la capacidad a {data.capacity}: "
-                    f"ya hay {current.reservations_count} lugares ocupados."
-                )
+        current = self._repo.get_by_id(class_id)
+        if data.capacity is not None and data.capacity < current.reservations_count:
+            raise_bad_request(
+                f"No se puede reducir la capacidad a {data.capacity}: "
+                f"ya hay {current.reservations_count} lugares ocupados."
+            )
 
         item = self._repo.update(class_id, data)
+
+        # Moving the class to another day: keep every enrolled student's
+        # reservation pointing at the new date (no re-enrollment needed).
+        if data.class_date is not None and data.class_date.isoformat() != current.class_date:
+            synced = self._reservations.sync_class_date(class_id, data.class_date.isoformat())
+            logger.info(
+                "Synced reservation dates after class move",
+                extra={
+                    "class_id": class_id,
+                    "from": current.class_date,
+                    "to": data.class_date.isoformat(),
+                    "reservations": synced,
+                },
+            )
+
         return item.to_response()
 
     def cancel_class(self, class_id: str) -> ClassResponse:
@@ -131,8 +157,7 @@ class ClassService:
         logger.info("Cancelling class", extra={"class_id": class_id})
 
         # Cancel all confirmed reservations
-        from src.repositories.reservation_repository import ReservationRepository
-        res_repo = ReservationRepository()
+        res_repo = self._reservations
         reservations, _ = res_repo.list_for_class(class_id, limit=500)
         for r in reservations:
             if r.status in ("confirmed", "waitlisted"):

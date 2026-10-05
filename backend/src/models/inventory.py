@@ -24,6 +24,7 @@ from enum import StrEnum
 from pydantic import BaseModel, Field
 
 from src.models.common import TimestampedModel, new_id, utc_now
+from src.models.transaction import PaymentSplit
 
 
 class ProductCategory(StrEnum):
@@ -161,7 +162,11 @@ class ProductSaleCreate(BaseModel):
     product_id: str = Field(..., description="Product being sold")
     quantity: int = Field(default=1, ge=1, description="Number of units sold")
     student_id: str | None = Field(default=None, description="Buyer if a gym member")
-    payment_method: str = Field(..., description="cash | card | transfer")
+    payment_method: str = Field(..., description="cash | card | transfer | mixed")
+    payment_splits: list[PaymentSplit] | None = Field(
+        default=None,
+        description="Breakdown per method — required when payment_method is 'mixed'",
+    )
     payment_status: str = Field(
         default="paid",
         description="Payment status: paid | pending (pending = fiado/debt)",

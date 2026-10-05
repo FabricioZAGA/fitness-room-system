@@ -12,7 +12,7 @@ from src.models.transaction import (
     TransactionResponse,
     TransactionUpdate,
 )
-from src.services.transaction_service import TransactionService
+from src.services.transaction_service import SummaryScope, TransactionService
 from src.utils.auth import get_current_user, require_admin_only
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
@@ -124,13 +124,18 @@ def list_student_transactions(
 @router.get(
     "/summary/today",
     summary="Today's Income Summary",
-    description="Quick cash register summary for today's transactions.",
+    description=(
+        "Quick cash register summary for today's transactions. "
+        "scope=day (default) covers the whole day; scope=period only covers "
+        "transactions since the last cash cut."
+    ),
 )
 def today_summary(
+    scope: SummaryScope = Query(default="day", description="day | period"),
     _current_user: dict[str, Any] = Depends(get_current_user),
     service: TransactionService = Depends(get_service),
 ) -> dict[str, Any]:
-    return service.get_today_summary()
+    return service.get_today_summary(scope=scope)
 
 
 @router.get(

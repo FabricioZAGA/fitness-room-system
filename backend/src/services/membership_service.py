@@ -14,9 +14,11 @@ from src.models.membership import (
 )
 from src.models.transaction import (
     PaymentMethod,
+    PaymentSplit,
     TransactionCreate,
     TransactionType,
     TransactionUpdate,
+    validate_payment_splits,
 )
 from src.repositories.membership_plan_repository import MembershipPlanRepository
 from src.repositories.membership_repository import MembershipRepository
@@ -127,6 +129,7 @@ class MembershipService:
         payment_method_str: str,
         membership_type: str,
         notes: str | None = None,
+        payment_splits: list[PaymentSplit] | None = None,
     ) -> None:
         """Create the income transaction for a membership."""
         if amount <= 0:
@@ -146,6 +149,7 @@ class MembershipService:
                     transaction_type=tx_type,
                     amount=amount,
                     payment_method=payment_method,
+                    payment_splits=payment_splits,
                     reference_id=membership_id,
                     notes=notes or f"Membresía: {membership_type}",
                 )
@@ -169,6 +173,7 @@ class MembershipService:
             amount=data.price_paid,
             payment_method_str=data.payment_method,
             membership_type=data.membership_type,
+            payment_splits=data.payment_splits,
         )
 
         return item.to_response()
@@ -245,6 +250,7 @@ class MembershipService:
             payment_method_str=data.payment_method,
             membership_type=data.membership_type,
             notes=f"Membresía DÚO: {student_name} + {partner_name}",
+            payment_splits=data.payment_splits,
         )
 
         return item_a.to_response()
@@ -293,6 +299,27 @@ class MembershipService:
             The updated membership response.
         """
         logger.info("Updating membership", extra={"membership_id": membership_id})
+
+        # Validate the mixed-payment breakdown *before* writing anything so the
+        # membership and its linked transaction never diverge.
+        if data.payment_method is not None or data.payment_splits is not None or (
+            data.price_paid is not None
+        ):
+            current = self._membership_repo.get_by_id(student_id, membership_id)
+            linked = self._transaction_repo.find_by_reference_id(student_id, membership_id)
+            final_method = data.payment_method or (
+                linked.payment_method if linked else PaymentMethod.CASH.value
+            )
+            final_price = data.price_paid if data.price_paid is not None else current.price_paid
+            splits = data.payment_splits
+            if splits is None and linked and linked.payment_splits:
+                splits = [PaymentSplit.model_validate(s) for s in linked.payment_splits]
+            if final_price > 0:
+                try:
+                    validate_payment_splits(final_method, final_price, splits)
+                except ValueError as exc:
+                    raise_bad_request(str(exc))
+
         item = self._membership_repo.update(student_id, membership_id, data)
 
         # Sync linked transaction when financial fields change
@@ -300,6 +327,7 @@ class MembershipService:
             data.price_paid is not None
             or data.membership_type is not None
             or data.payment_method is not None
+            or data.payment_splits is not None
         )
         if needs_tx_sync:
             try:
@@ -320,6 +348,8 @@ class MembershipService:
                         )
                         tx_update_fields["transaction_type"] = tx_type.value
                         tx_update_fields["notes"] = f"Membresía: {data.membership_type}"
+                    if data.payment_splits is not None:
+                        tx_update_fields["payment_splits"] = data.payment_splits
                     if tx_update_fields:
                         pm = (
                             PaymentMethod(tx_update_fields["payment_method"])
@@ -334,6 +364,7 @@ class MembershipService:
                         tx_data = TransactionUpdate(
                             amount=tx_update_fields.get("amount"),
                             payment_method=pm,
+                            payment_splits=data.payment_splits,
                             transaction_type=tt,
                             notes=tx_update_fields.get("notes"),
                         )

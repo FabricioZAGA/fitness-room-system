@@ -98,6 +98,9 @@ class ClassRepository(DynamoRepository):
         """Update a class session's attributes.
 
         Access pattern: UPDATE PK=CLASS#id, SK=PROFILE.
+        When the date or instructor changes, the GSI keys that embed them
+        (GSI1SK, GSI2PK, GSI2SK) are rewritten so the class shows up under
+        its new date / instructor in list queries.
         """
         updates: dict[str, Any] = {"updated_at": utc_now().isoformat()}
 
@@ -108,6 +111,15 @@ class ClassRepository(DynamoRepository):
         if data.class_date is not None:
             date_str = data.class_date.isoformat()
             updates["class_date"] = date_str
+        if data.class_date is not None or data.instructor_name is not None:
+            current = self.get_by_id(class_id)
+            date_str = (
+                data.class_date.isoformat() if data.class_date is not None else current.class_date
+            )
+            instructor = data.instructor_name or current.instructor_name
+            updates["GSI1SK"] = f"DATE#{date_str}#CLASS#{class_id}"
+            updates["GSI2PK"] = f"INSTRUCTOR#{instructor.lower().replace(' ', '_')}"
+            updates["GSI2SK"] = f"DATE#{date_str}#CLASS#{class_id}"
         if data.start_time is not None:
             updates["start_time"] = data.start_time.isoformat()
         if data.duration_minutes is not None:

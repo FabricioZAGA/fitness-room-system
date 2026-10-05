@@ -16,7 +16,7 @@ from typing import Any
 from aws_lambda_powertools import Logger
 
 from src.models.common import mexico_today
-
+from src.models.transaction import sum_by_method
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.reservation_repository import ReservationRepository
 from src.repositories.student_repository import StudentRepository
@@ -78,11 +78,10 @@ class ReportService:
             date_str = current.isoformat()
             transactions, _ = self._tx.list_transactions_by_date(date_str, limit=500)
 
-            day_cash = sum(t.amount for t in transactions if t.payment_method == "cash")
-            day_card = sum(t.amount for t in transactions if t.payment_method == "card")
-            day_transfer = sum(
-                t.amount for t in transactions if t.payment_method == "transfer"
-            )
+            day_totals = sum_by_method(transactions)
+            day_cash = day_totals["cash"]
+            day_card = day_totals["card"]
+            day_transfer = day_totals["transfer"]
             day_total = day_cash + day_card + day_transfer
 
             for t in transactions:
@@ -103,6 +102,7 @@ class ReportService:
                             ),
                             "transaction_type": t.transaction_type,
                             "payment_method": t.payment_method,
+                            "payment_splits": t.payment_splits,
                             "amount": t.amount,
                             "reference_id": t.reference_id,
                             "notes": t.notes,

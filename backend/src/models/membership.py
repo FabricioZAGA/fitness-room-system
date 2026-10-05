@@ -23,6 +23,7 @@ from enum import StrEnum
 from pydantic import BaseModel, Field, model_validator
 
 from src.models.common import TimestampedModel, mexico_today, new_id, utc_now
+from src.models.transaction import PaymentSplit, validate_payment_splits
 
 
 class MembershipType:
@@ -63,7 +64,11 @@ class MembershipCreate(BaseModel):
     price_paid: float = Field(..., ge=0, description="Amount paid in local currency")
     payment_method: str = Field(
         default="cash",
-        description="Payment method used: cash | card | transfer",
+        description="Payment method used: cash | card | transfer | mixed",
+    )
+    payment_splits: list[PaymentSplit] | None = Field(
+        default=None,
+        description="Breakdown per method — required when payment_method is 'mixed'",
     )
     classes_total: int | None = Field(
         default=None,
@@ -88,6 +93,17 @@ class MembershipCreate(BaseModel):
             raise ValueError("end_date must be after start_date")
         return self
 
+    @model_validator(mode="after")
+    def validate_splits(self) -> "MembershipCreate":
+        """Ensure a mixed payment's breakdown adds up to price_paid."""
+        if self.price_paid > 0:
+            self.payment_splits = validate_payment_splits(
+                self.payment_method, self.price_paid, self.payment_splits
+            )
+        else:
+            self.payment_splits = None
+        return self
+
 
 class MembershipUpdate(BaseModel):
     """Schema for updating an existing membership."""
@@ -99,7 +115,11 @@ class MembershipUpdate(BaseModel):
     price_paid: float | None = Field(default=None, ge=0)
     payment_method: str | None = Field(
         default=None,
-        description="Payment method: cash | card | transfer",
+        description="Payment method: cash | card | transfer | mixed",
+    )
+    payment_splits: list[PaymentSplit] | None = Field(
+        default=None,
+        description="Updated breakdown for mixed payments (synced to the transaction)",
     )
     classes_total: int | None = Field(default=None, ge=1)
     classes_remaining: int | None = Field(default=None, ge=0)

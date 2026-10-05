@@ -1,16 +1,20 @@
 """Transaction repository — DynamoDB access patterns for Transactions and CashCuts."""
 
+from datetime import datetime
 from typing import Any
 
 from src.models.transaction import (
     CashCutCreate,
     CashCutDynamoItem,
+    PaymentMethod,
+    PaymentSplit,
     TransactionCreate,
     TransactionDynamoItem,
     TransactionUpdate,
+    validate_payment_splits,
 )
 from src.repositories.dynamo_repository import DynamoRepository
-from src.utils.exceptions import ResourceNotFoundException
+from src.utils.exceptions import InvalidOperationException, ResourceNotFoundException
 
 
 class TransactionRepository(DynamoRepository):
@@ -114,13 +118,28 @@ class TransactionRepository(DynamoRepository):
         """
         existing = self.get_transaction(transaction_id)
         updates: dict[str, Any] = {}
-        for field_name, value in data.model_dump(exclude_none=True).items():
-            if hasattr(value, "value"):
-                updates[field_name] = value.value
-            else:
-                updates[field_name] = value
-        if not updates:
+        for field_name, value in data.model_dump(
+            mode="json", exclude_none=True, exclude={"payment_splits"}
+        ).items():
+            updates[field_name] = value
+        if not updates and data.payment_splits is None:
             return existing
+
+        # Keep the mixed-payment breakdown consistent with amount/method.
+        final_method = updates.get("payment_method", existing.payment_method)
+        final_amount = float(updates.get("amount", existing.amount))
+        if final_method == PaymentMethod.MIXED:
+            splits = data.payment_splits
+            if splits is None and existing.payment_splits:
+                splits = [PaymentSplit.model_validate(s) for s in existing.payment_splits]
+            try:
+                validated = validate_payment_splits(final_method, final_amount, splits) or []
+            except ValueError as exc:
+                raise InvalidOperationException(str(exc)) from exc
+            updates["payment_splits"] = [s.model_dump(mode="json") for s in validated]
+        elif existing.payment_splits or data.payment_splits is not None:
+            updates["payment_splits"] = None
+
         raw = self.update_item(existing.PK, existing.SK, updates)
         return TransactionDynamoItem.model_validate(raw)
 
@@ -140,14 +159,30 @@ class TransactionRepository(DynamoRepository):
         self,
         data: CashCutCreate,
         transactions: list[TransactionDynamoItem],
+        period_start: datetime | None = None,
     ) -> CashCutDynamoItem:
         """Create a cash cut summarizing transactions for a date.
 
         Access pattern: PUT PK=CASHCUT#{id}, SK=METADATA.
         """
-        item = CashCutDynamoItem.from_data(data, transactions)
+        item = CashCutDynamoItem.from_data(data, transactions, period_start=period_start)
         self.put_item(item.model_dump(mode="json"))
         return item
+
+    def list_cash_cuts_for_date(self, date_str: str) -> list[CashCutDynamoItem]:
+        """List every cash cut of a given date, oldest first.
+
+        Access pattern: GSI1 PK=CASHCUTS, SK begins_with DATE#{date}#.
+        """
+        items, _ = self.query_gsi(
+            index_name="GSI1",
+            pk_name="GSI1PK",
+            pk_value="CASHCUTS",
+            sk_name="GSI1SK",
+            sk_begins_with=f"DATE#{date_str}#",
+        )
+        cuts = [CashCutDynamoItem.model_validate(i) for i in items]
+        return sorted(cuts, key=lambda c: c.created_at)
 
     def list_cash_cuts(
         self,

@@ -111,6 +111,34 @@ class ReservationRepository(DynamoRepository):
                 waitlist += 1
         return reservations, waitlist
 
+    def sync_class_date(self, class_id: str, class_date: str) -> int:
+        """Rewrite the denormalized class date on every reservation/waitlist item.
+
+        Used when a class is moved to another day so students' reservation
+        lists (GSI1, sorted by date) and the portal reflect the new date
+        without re-enrolling anyone.
+
+        Returns the number of items updated.
+        """
+        items, _ = self.query_by_pk(pk=f"CLASS#{class_id}")
+        now = utc_now().isoformat()
+        updated = 0
+        for raw in items:
+            sk = str(raw.get("SK", ""))
+            if sk.startswith("RESERVATION#"):
+                values: dict[str, Any] = {
+                    "class_date": class_date,
+                    "GSI1SK": f"CLASS#{class_date}#CLASS#{class_id}",
+                    "updated_at": now,
+                }
+            elif sk.startswith("WAITLIST#"):
+                values = {"class_date": class_date, "updated_at": now}
+            else:
+                continue
+            self.set_attributes(str(raw["PK"]), sk, values)
+            updated += 1
+        return updated
+
     def list_for_class(
         self,
         class_id: str,

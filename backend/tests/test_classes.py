@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from src.models.class_model import ClassResponse, ClassType
+from src.models.class_model import ClassDynamoItem, ClassResponse, ClassType
 
 
 def make_class_response(overrides: dict | None = None) -> ClassResponse:
@@ -162,6 +162,100 @@ class TestUpdateClass:
 
         assert response.status_code == 200
         assert response.json()["capacity"] == 20
+
+
+def make_class_item(**overrides: object) -> ClassDynamoItem:
+    """Build a ClassDynamoItem for service/repository tests."""
+
+    data: dict[str, object] = {
+        "PK": "CLASS#c1",
+        "SK": "PROFILE",
+        "GSI1PK": "CLASSES",
+        "GSI1SK": "DATE#2026-10-05#CLASS#c1",
+        "GSI2PK": "INSTRUCTOR#carlos_lópez",
+        "GSI2SK": "DATE#2026-10-05#CLASS#c1",
+        "class_id": "c1",
+        "class_type": "zumba",
+        "instructor_name": "Carlos López",
+        "class_date": "2026-10-05",
+        "start_time": "07:00:00",
+        "duration_minutes": 60,
+        "capacity": 15,
+        "reservations_count": 4,
+        "location": "Sala A",
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
+    }
+    data.update(overrides)
+    return ClassDynamoItem.model_validate(data)
+
+
+class TestEditClassService:
+    """Editing a class keeps enrolled students and keys consistent."""
+
+    def test_move_date_syncs_reservations(self) -> None:
+        from src.models.class_model import ClassUpdate
+        from src.services.class_service import ClassService
+
+        repo, res_repo = MagicMock(), MagicMock()
+        repo.get_by_id.return_value = make_class_item()
+        repo.update.return_value = make_class_item(class_date="2026-10-07")
+        res_repo.sync_class_date.return_value = 4
+
+        svc = ClassService(repository=repo, reservation_repository=res_repo)
+        result = svc.update_class("c1", ClassUpdate(class_date=date(2026, 10, 7)))
+
+        res_repo.sync_class_date.assert_called_once_with("c1", "2026-10-07")
+        assert str(result.class_date) == "2026-10-07"
+
+    def test_same_date_does_not_touch_reservations(self) -> None:
+        from src.models.class_model import ClassUpdate
+        from src.services.class_service import ClassService
+
+        repo, res_repo = MagicMock(), MagicMock()
+        repo.get_by_id.return_value = make_class_item()
+        repo.update.return_value = make_class_item(instructor_name="Ana Ruiz")
+
+        svc = ClassService(repository=repo, reservation_repository=res_repo)
+        svc.update_class("c1", ClassUpdate(instructor_name="Ana Ruiz", class_type="yoga"))
+
+        res_repo.sync_class_date.assert_not_called()
+
+    def test_capacity_below_reservations_rejected(self) -> None:
+        from fastapi import HTTPException
+
+        from src.models.class_model import ClassUpdate
+        from src.services.class_service import ClassService
+
+        repo = MagicMock()
+        repo.get_by_id.return_value = make_class_item(reservations_count=10)
+        svc = ClassService(repository=repo, reservation_repository=MagicMock())
+        try:
+            svc.update_class("c1", ClassUpdate(capacity=5))
+            raise AssertionError("expected HTTPException")
+        except HTTPException as exc:
+            assert exc.status_code == 400
+        repo.update.assert_not_called()
+
+    def test_repository_rewrites_gsi_keys(self) -> None:
+        from src.models.class_model import ClassUpdate
+        from src.repositories.class_repository import ClassRepository
+
+        repo = ClassRepository.__new__(ClassRepository)
+        current = make_class_item()
+        repo.get_by_id = MagicMock(return_value=current)  # type: ignore[method-assign]
+        repo.update_item = MagicMock(  # type: ignore[method-assign]
+            side_effect=lambda _pk, _sk, updates: {**current.model_dump(), **updates}
+        )
+
+        repo.update(
+            "c1", ClassUpdate(class_date=date(2026, 10, 7), instructor_name="Ana Ruiz")
+        )
+
+        sent = repo.update_item.call_args.args[2]
+        assert sent["GSI1SK"] == "DATE#2026-10-07#CLASS#c1"
+        assert sent["GSI2SK"] == "DATE#2026-10-07#CLASS#c1"
+        assert sent["GSI2PK"] == "INSTRUCTOR#ana_ruiz"
 
 
 class TestCancelClass:
