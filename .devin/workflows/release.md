@@ -66,18 +66,19 @@ AWS_PROFILE=salle-cajas npx aws-cdk deploy FitnessRoomApiStack-prod --require-ap
 ### 6. Deploy frontend admin to S3 + CloudFront
 
 ```bash
-cd frontend && npm run build
-aws s3 sync dist/ s3://fitness-room-frontend-prod-948999370306 --delete --profile salle-cajas
-aws cloudfront create-invalidation --distribution-id E1B51EPZN5PP0I --paths "/*" --profile salle-cajas
+./scripts/deploy-frontend.sh admin
 ```
 
 ### 7. Deploy portal (only if portal code changed)
 
 ```bash
-cd portal && npm run build
-aws s3 sync dist/ s3://fitness-room-portal-prod-948999370306 --delete --profile salle-cajas
-aws cloudfront create-invalidation --distribution-id E1VDFNEUSV0C0D --paths "/*" --profile salle-cajas
+./scripts/deploy-frontend.sh portal
 ```
+
+> **NEVER** use a plain `aws s3 sync dist/ s3://... --delete` for the frontends. It uploads
+> `index.html` without `Cache-Control`; browsers cache it, and after the next deploy the stale
+> `index.html` references a deleted hashed bundle → black screen for users. The script sets
+> `no-cache` on `index.html` and `immutable` on `assets/*` (same as `buildspec-frontend.yml`).
 
 ### 8. Verify deployment
 
@@ -91,7 +92,7 @@ Expected output: `"version": "X.Y.Z"`, `"status": "ok"`, `"environment": "prod"`
 ### Notes
 - AWS Profile is ALWAYS `salle-cajas`
 - Only production environment exists (no dev/staging)
-- CDK deploy updates Lambda code; S3 sync updates frontend static files
-- CloudFront invalidation is REQUIRED after S3 sync (cached globally)
+- CDK deploy updates Lambda code; `scripts/deploy-frontend.sh` updates frontend static files
+- CloudFront invalidation is REQUIRED after S3 upload (the script does it)
 - Never deploy without compiling first
 - Never push git without user approval

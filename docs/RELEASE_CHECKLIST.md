@@ -41,17 +41,17 @@ AWS_PROFILE=salle-cajas npx aws-cdk deploy FitnessRoomApiStack-prod --require-ap
 
 ### 2. Frontend Admin (S3 + CloudFront)
 ```bash
-cd frontend && npm run build
-aws s3 sync dist/ s3://fitness-room-frontend-prod-948999370306 --delete --profile salle-cajas
-aws cloudfront create-invalidation --distribution-id E1B51EPZN5PP0I --paths "/*" --profile salle-cajas
+./scripts/deploy-frontend.sh admin
 ```
 
 ### 3. Portal (S3 + CloudFront)
 ```bash
-cd portal && npm run build
-aws s3 sync dist/ s3://fitness-room-portal-prod-948999370306 --delete --profile salle-cajas
-aws cloudfront create-invalidation --distribution-id E1VDFNEUSV0C0D --paths "/*" --profile salle-cajas
+./scripts/deploy-frontend.sh portal
 ```
+
+> The script uploads `index.html` with `no-cache` and `assets/*` as `immutable`, then
+> invalidates CloudFront. Do **not** replace it with a raw `aws s3 sync --delete` — that
+> leaves `index.html` without `Cache-Control` and causes black screens after the next deploy.
 
 ### 4. Verify Deployment
 ```bash
@@ -106,9 +106,7 @@ AWS_PROFILE=salle-cajas npx aws-cdk deploy FitnessRoomApiStack-prod
 ```bash
 # Restore from S3 versioning or redeploy from previous commit
 git checkout HEAD~1 -- frontend
-cd frontend && npm run build
-aws s3 sync dist/ s3://fitness-room-frontend-prod-948999370306 --delete --profile salle-cajas
-aws cloudfront create-invalidation --distribution-id E1B51EPZN5PP0I --paths "/*" --profile salle-cajas
+./scripts/deploy-frontend.sh admin
 ```
 
 ---

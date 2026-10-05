@@ -163,7 +163,11 @@ deploy-frontend:
 		--profile $(AWS_PROFILE) \
 		--query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" \
 		--output text); \
-	aws s3 sync dist/ s3://$$BUCKET/ --delete --profile $(AWS_PROFILE)
+	cd $(FRONTEND_DIR) && \
+	aws s3 sync dist/ s3://$$BUCKET/ --delete --profile $(AWS_PROFILE) \
+		--cache-control "public, max-age=31536000, immutable" --exclude "index.html" --exclude "*.json" && \
+	aws s3 cp dist/index.html s3://$$BUCKET/index.html --profile $(AWS_PROFILE) \
+		--content-type "text/html" --cache-control "no-cache, no-store, must-revalidate"
 	@DIST_ID=$$(aws cloudformation describe-stacks \
 		--stack-name FitnessRoomHostingStack-$(ENV) \
 		--profile $(AWS_PROFILE) \
@@ -180,7 +184,11 @@ deploy-portal:
 		--profile $(AWS_PROFILE) \
 		--query "Stacks[0].Outputs[?OutputKey=='PortalBucketName'].OutputValue" \
 		--output text); \
-	aws s3 sync dist/ s3://$$BUCKET/ --delete --profile $(AWS_PROFILE)
+	cd $(PORTAL_DIR) && \
+	aws s3 sync dist/ s3://$$BUCKET/ --delete --profile $(AWS_PROFILE) \
+		--cache-control "public, max-age=31536000, immutable" --exclude "index.html" --exclude "*.json" && \
+	aws s3 cp dist/index.html s3://$$BUCKET/index.html --profile $(AWS_PROFILE) \
+		--content-type "text/html" --cache-control "no-cache, no-store, must-revalidate"
 	@DIST_ID=$$(aws cloudformation describe-stacks \
 		--stack-name FitnessRoomPortalHostingStack-$(ENV) \
 		--profile $(AWS_PROFILE) \

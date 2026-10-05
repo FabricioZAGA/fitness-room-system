@@ -9,6 +9,44 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Stale-bundle recovery. If a cached index.html points at a hashed bundle that
+      // no longer exists in S3 (post-deploy), the module <script> fails to load and
+      // React never mounts. Reload once (index.html is served no-cache, so the reload
+      // fetches the current one). If it still fails, show a message instead of a black screen.
+      (function () {
+        var KEY = 'fr-bundle-reload';
+        function fallback() {
+          var root = document.getElementById('root');
+          if (!root || root.childElementCount > 0) return;
+          root.innerHTML =
+            '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;' +
+            'padding:24px;font-family:system-ui,sans-serif;color:#fff;text-align:center">' +
+            '<div><p style="font-size:16px;margin:0 0 16px">No se pudo cargar la aplicación.</p>' +
+            '<button onclick="sessionStorage.removeItem(\'' + KEY + '\');location.reload()" ' +
+            'style="padding:12px 24px;border:0;border-radius:12px;font-weight:600;cursor:pointer;' +
+            'background:linear-gradient(135deg,#d4af37,#f59e0b);color:#000">Reintentar</button></div></div>';
+        }
+        window.addEventListener(
+          'error',
+          function (e) {
+            var t = e && e.target;
+            if (!t || t.tagName !== 'SCRIPT' || !t.src || t.src.indexOf('/assets/') === -1) return;
+            if (sessionStorage.getItem(KEY) === '1') { fallback(); return; }
+            sessionStorage.setItem(KEY, '1');
+            location.reload();
+          },
+          true
+        );
+        window.addEventListener('load', function () {
+          setTimeout(function () {
+            var root = document.getElementById('root');
+            if (root && root.childElementCount === 0) fallback();
+            else sessionStorage.removeItem(KEY);
+          }, 8000);
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

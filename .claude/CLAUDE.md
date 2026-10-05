@@ -91,22 +91,19 @@ AWS_PROFILE=salle-cajas npx aws-cdk deploy FitnessRoomApiStack-prod --require-ap
 
 ### 3b. Frontend Admin (S3 + CloudFront)
 ```bash
-# Build
-cd frontend && npm run build
-
-# Upload to S3
-aws s3 sync dist/ s3://fitness-room-frontend-prod-948999370306 --delete --profile salle-cajas
-
-# Invalidate CloudFront cache
-aws cloudfront create-invalidation --distribution-id E1B51EPZN5PP0I --paths "/*" --profile salle-cajas
+# Build + upload with correct cache headers + CloudFront invalidation
+./scripts/deploy-frontend.sh admin
 ```
 
 ### 3c. Student Portal (S3 + CloudFront)
 ```bash
-cd portal && npm run build
-aws s3 sync dist/ s3://fitness-room-portal-prod-948999370306 --delete --profile salle-cajas
-aws cloudfront create-invalidation --distribution-id E1VDFNEUSV0C0D --paths "/*" --profile salle-cajas
+./scripts/deploy-frontend.sh portal
 ```
+
+> **NEVER** run a plain `aws s3 sync dist/ s3://... --delete` for the frontends. `index.html`
+> must be uploaded with `Cache-Control: no-cache, no-store, must-revalidate` and `assets/*`
+> with `public, max-age=31536000, immutable`; otherwise browsers keep a stale `index.html`
+> pointing at a deleted bundle and users see a black screen after the next deploy.
 
 ### 3d. Verify deployment
 ```bash
@@ -116,8 +113,8 @@ curl -s https://api.fitnessroom.mx/health | python3 -m json.tool
 
 ### Deploy order
 1. CDK backend first (Lambda code update)
-2. Frontend build + S3 sync + CloudFront invalidation
-3. Portal build + S3 sync + CloudFront invalidation (only if portal changed)
+2. `./scripts/deploy-frontend.sh admin`
+3. `./scripts/deploy-frontend.sh portal` (only if portal changed)
 4. Verify API health
 
 ---

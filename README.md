@@ -149,15 +149,13 @@ Producción única (sin staging — costo justificado en [`docs/operacion/COST_A
 cd infrastructure/cdk
 AWS_PROFILE=salle-cajas npx aws-cdk deploy FitnessRoomApiStack-prod --require-approval never
 
-# 2. Admin
-cd frontend && pnpm build
-aws s3 sync dist/ s3://fitness-room-frontend-prod-948999370306 --delete --profile salle-cajas
-aws cloudfront create-invalidation --distribution-id E1B51EPZN5PP0I --paths "/*" --profile salle-cajas
+# 2. Admin (build + S3 con cache headers correctos + invalidación CloudFront)
+./scripts/deploy-frontend.sh admin
 
 # 3. Portal
-cd portal && npm run build
-aws s3 sync dist/ s3://fitness-room-portal-prod-948999370306 --delete --profile salle-cajas
-aws cloudfront create-invalidation --distribution-id E1VDFNEUSV0C0D --paths "/*" --profile salle-cajas
+./scripts/deploy-frontend.sh portal
+# Nunca usar `aws s3 sync --delete` directo: index.html quedaría cacheado en el navegador
+# apuntando a un bundle borrado → pantalla negra tras el siguiente deploy.
 
 # 4. Verificar
 curl -s https://api.fitnessroom.mx/health

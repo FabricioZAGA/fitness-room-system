@@ -32,21 +32,17 @@ fi
 deploy_maintenance() {
   local bucket="$1" cf="$2" name="$3"
   echo "🔧 [$name] Uploading maintenance page..."
-  aws s3 sync "$MAINTENANCE_DIR/" "s3://$bucket" --delete --profile "$PROFILE" --quiet
+  aws s3 sync "$MAINTENANCE_DIR/" "s3://$bucket" --delete --cache-control "no-cache, no-store, must-revalidate" --profile "$PROFILE" --quiet
   echo "🔄 [$name] Invalidating CloudFront cache..."
   aws cloudfront create-invalidation --distribution-id "$cf" --paths "/*" --profile "$PROFILE" --output text --query 'Invalidation.Id' | xargs -I{} echo "   Invalidation: {}"
   echo "✅ [$name] Maintenance mode ON"
 }
 
 restore_site() {
-  local src="$1" bucket="$2" cf="$3" name="$4"
-  echo "🏗️  [$name] Building..."
-  (cd "$src" && npm run build --silent)
-  echo "📤 [$name] Uploading build..."
-  aws s3 sync "$src/dist/" "s3://$bucket" --delete --profile "$PROFILE" --quiet
-  echo "🔄 [$name] Invalidating CloudFront cache..."
-  aws cloudfront create-invalidation --distribution-id "$cf" --paths "/*" --profile "$PROFILE" --output text --query 'Invalidation.Id' | xargs -I{} echo "   Invalidation: {}"
-  echo "✅ [$name] Live site restored"
+  local target="$1"
+  # Delegates to deploy-frontend.sh so cache headers are always correct
+  # (index.html no-cache, hashed assets immutable).
+  "$ROOT_DIR/scripts/deploy-frontend.sh" "$target"
 }
 
 echo ""
@@ -56,8 +52,7 @@ if [[ "$ACTION" == "on" ]]; then
   [[ "$TARGET" == "both" || "$TARGET" == "portal" ]] && deploy_maintenance "$PORTAL_BUCKET" "$PORTAL_CF" "Portal"
 else
   echo "=== RESTORING LIVE SITES ==="
-  [[ "$TARGET" == "both" || "$TARGET" == "admin" ]] && restore_site "$ROOT_DIR/frontend" "$ADMIN_BUCKET" "$ADMIN_CF" "Admin"
-  [[ "$TARGET" == "both" || "$TARGET" == "portal" ]] && restore_site "$ROOT_DIR/portal" "$PORTAL_BUCKET" "$PORTAL_CF" "Portal"
+  restore_site "$TARGET"
 fi
 
 echo ""
