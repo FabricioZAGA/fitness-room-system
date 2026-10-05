@@ -12,9 +12,23 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "2.3.0";
+export const APP_VERSION = "2.4.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "2.4.0",
+    date: "2026-10-05",
+    title: "Pagos mixtos, corte de caja que reinicia en ceros y edición de clases",
+    items: [
+      { icon: "💳", text: "Nuevo: pagos mixtos — al cobrar una membresía, un producto u otro cargo elige 'Mixto' e indica cuánto fue en efectivo, tarjeta y/o transferencia. Los totales de caja, cortes y reportes separan cada parte correctamente" },
+      { icon: "🧾", text: "Corte de caja: en cuanto se genera el corte, la caja vuelve a ceros. Ya no hay que esperar a la medianoche y se pueden hacer varios cortes en el día (por turno)" },
+      { icon: "✏️", text: "Nuevo: editar clase — corrige nombre, instructor, día u hora sin borrarla. Los alumnos inscritos y la lista de espera conservan su lugar" },
+      { icon: "👀", text: "Caja: los nombres de productos y socios en las listas desplegables ya se leen correctamente en modo oscuro" },
+      { icon: "🛠️", text: "Corregido: editar una membresía como admin ya no cambia el método de pago a 'Efectivo' por error" },
+      { icon: "📅", text: "Corregido: reservaciones — contadores de lugares exactos, re-inscripción después de cancelar, lista de espera visible y reservaciones pasadas expiradas automáticamente" },
+      { icon: "📱", text: "Corregido: el portal ya no se queda en pantalla negra después de una actualización" },
+    ],
+  },
   {
     version: "2.3.0",
     date: "2026-08-19",

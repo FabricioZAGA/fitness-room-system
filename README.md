@@ -2,7 +2,7 @@
 
 Sistema integral de gestión para **Fitness Room**, un estudio de fitness en León, México. Serverless, AWS-native, multi-app.
 
-[![Version](https://img.shields.io/badge/version-1.8.5-d4af37)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.4.0-d4af37)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Private-lightgrey)]()
 [![Node](https://img.shields.io/badge/node-22+-339933)](.nvmrc)
 [![Python](https://img.shields.io/badge/python-3.12-3776ab)](.python-version)
@@ -171,9 +171,9 @@ Checklist pre-release: [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
 ```
 fitness-room-system/
 ├── README.md                  # este archivo
-├── CHANGELOG.md               # Keep-a-Changelog, v1.8.5 al tope
+├── CHANGELOG.md               # Keep-a-Changelog, v2.4.0 al tope
 ├── CLAUDE.md                  # guía técnica para IAs/devs (leer primero)
-├── VERSION                    # source of truth (1.8.5)
+├── VERSION                    # source of truth (2.4.0)
 ├── Makefile                   # atajos: make dev / make deploy / make tag
 ├── setup.sh                   # bootstrap inicial
 │
@@ -194,7 +194,7 @@ fitness-room-system/
 │       ├── components/        #   layout/, shared/
 │       ├── hooks/             #   TanStack Query hooks
 │       ├── services/          #   Axios API services
-│       ├── i18n/locales/      #   es.json + en.json (paridad 452 keys)
+│       ├── i18n/locales/      #   es.json + en.json (paridad 548 keys)
 │       └── lib/               #   utils, exportReports, dateRangePresets
 │
 ├── portal/                    # Portal del Socio (portal.fitnessroom.mx)
@@ -270,7 +270,7 @@ fitness-room-system/
 
 ## Versionado
 
-Versión actual: **1.8.5** ([CHANGELOG.md](CHANGELOG.md)).
+Versión actual: **2.4.0** ([CHANGELOG.md](CHANGELOG.md)).
 
 Cinco lugares deben mantenerse en sync (validado por `make check-version`):
 
@@ -294,7 +294,7 @@ make tag                          # crea tag v1.9.0
 
 - **Marca:** negro y dorado (`--gold: #d4af37`).
 - **Modos:** oscuro (default) y claro, toggle en Configuración.
-- **Idiomas:** español (default) e inglés — 452 keys con paridad total.
+- **Idiomas:** español (default) e inglés — 548 keys con paridad total.
 - **Tema:** CSS variables sobre Tailwind 4. Nada hardcodeado en JSX.
 
 ---

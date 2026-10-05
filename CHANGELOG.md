@@ -5,6 +5,35 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [2.4.0] — 2026-10-05
+
+### Added
+
+- **Pagos mixtos**: nuevo método `mixed` con desglose `payment_splits` (`[{method, amount}]`) en transacciones, membresías (`MembershipCreate`/`MembershipUpdate`) y ventas de producto (`ProductSaleCreate`). Validación: ≥ 2 métodos distintos y la suma debe coincidir con el total (tolerancia $0.01).
+- **Agregación mixed-aware**: helper `sum_by_method()` usado por el resumen de caja, el corte de caja y el reporte de ingresos; cada parte suma a su método (efectivo/tarjeta/transferencia). El detalle de transacciones del reporte incluye `payment_splits`.
+- **Componente `PaymentMethodField`** (admin): selector con opción "Mixto" y captura del monto por método, indicador de restante/excedente y botón para asignar el restante. Usado en Caja (producto y "otro"), Nueva membresía, Editar membresía y Editar transacción.
+- **Editar clase**: `CreateClassModal` ahora soporta modo edición (botón "Editar clase" en el panel de detalle y en la vista lista). Solo envía los campos modificados.
+- **Tests**: `backend/tests/test_transactions.py` (pagos mixtos + cortes por periodo), pruebas de edición de clase en `test_classes.py`, y `frontend/src/test/lib/payments.test.ts`.
+
+### Changed
+
+- **Corte de caja por periodo**: un corte solo incluye los movimientos registrados desde el corte anterior del mismo día (`period_start`). Se permiten varios cortes al día. `GET /cashcut/{id}` devuelve solo las transacciones que cubre ese corte (cortes anteriores sin periodo siguen cubriendo el día completo).
+- **`GET /transactions/summary/today?scope=day|period`**: `period` (usado por Caja) reinicia en ceros después de cada corte; `day` (default, Dashboard) mantiene el total del día. La respuesta incluye `last_cut_at`.
+- **Caja**: los totales y la lista de movimientos muestran solo lo posterior al último corte, con un aviso de la hora del corte.
+- **`ClassRepository.update`**: al cambiar fecha o instructor reescribe `GSI1SK`, `GSI2PK` y `GSI2SK`; antes la clase movida de día no aparecía en la fecha nueva.
+- **`ClassService.update_class`**: al mover la clase de día sincroniza `class_date`/`GSI1SK` de todas las reservaciones y la lista de espera (`ReservationRepository.sync_class_date`), sin re-inscribir a nadie.
+- `ClassUpdate.class_type` acepta hasta 100 caracteres (igual que `ClassCreate`).
+
+### Fixed
+
+- **Opciones ilegibles en listas desplegables** (productos/socios en Caja): `color-scheme` por tema y estilos para `select option` en `index.css`.
+- **Editar membresía (admin)** enviaba siempre `payment_method: "cash"` y sobrescribía el método de la transacción ligada. Ahora el método solo se cambia si se marca "Cambiar método de pago".
+- **Deploy de frontends**: `scripts/deploy-frontend.sh` con `Cache-Control` correcto (`index.html` no-cache, `assets/*` immutable) + script de recuperación en `portal/index.html` — evita la pantalla negra por `index.html` cacheado.
+- **Reservaciones**: sin desfase de contadores, re-inscripción después de cancelar, lista de espera visible, expiración automática de reservaciones pasadas y portal separado en próximas/historial.
+- **Reset de contraseña (admin)**: crea el usuario de Cognito si no existe.
+
+---
+
 ## [2.3.0] — 2026-08-19
 
 ### Added

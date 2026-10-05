@@ -3,7 +3,7 @@
 Guía para IAs y desarrolladores que trabajen en este proyecto.
 **Lee esto antes de modificar cualquier cosa.** Para detalle de operaciones (deploy, versionado, infra) ver [`.claude/CLAUDE.md`](.claude/CLAUDE.md).
 
-> **Versión actual:** 1.8.5 — Operación en producción desde 2026-05-01.
+> **Versión actual:** 2.4.0 — Operación en producción desde 2026-05-01.
 
 ---
 
@@ -82,7 +82,7 @@ frontend/src/
   hooks/                   # TanStack Query hooks (useStudents, useClasses, useReports, ...)
   services/                # Axios API calls
   types/                   # TypeScript interfaces
-  i18n/locales/            # es.json + en.json (paridad 452 keys)
+  i18n/locales/            # es.json + en.json (paridad 548 keys)
   store/                   # Zustand (useThemeStore, useGymStore)
   config/                  # theme.ts (applyTheme)
   lib/                     # utils, exportReports, dateRangePresets, changelog
@@ -247,7 +247,7 @@ const inputCls = "w-full rounded-xl border border-[--bd-default] bg-[--bg-muted]
 
 - Idiomas: **español (default)** e **inglés**
 - Archivos: `frontend/src/i18n/locales/es.json` y `en.json`
-- **Paridad obligatoria**: 452 keys actualmente. Si agregas una clave en un archivo, agrégala en el otro.
+- **Paridad obligatoria**: 548 keys actualmente. Si agregas una clave en un archivo, agrégala en el otro.
 - Uso: `const { t } = useTranslation()` → `t("settings.title")`
 - Detección: localStorage → navigator, fallback a `"es"`
 - Verificación rápida:

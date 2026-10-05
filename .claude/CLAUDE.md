@@ -3,7 +3,7 @@
 > **This file is the single source of truth for ANY AI assistant (Claude Code, Windsurf, Cursor, Copilot, etc.) working on this repo.**
 > Read it completely before making any changes. It overrides any conflicting assumptions.
 >
-> **Current version:** 1.8.5 — Production live since 2026-05-01.
+> **Current version:** 2.4.0 — Production live since 2026-05-01.
 
 ---
 
@@ -245,7 +245,7 @@ className="bg-[--bg-surface] text-[--tx-primary] border-[--bd-default]"
 
 - **Languages**: Spanish (default) + English
 - **Files**: `frontend/src/i18n/locales/es.json` and `en.json`
-- **Current count**: 452 keys, 100% paridad (auditado en v1.8.5)
+- **Current count**: 548 keys, 100% paridad (auditado en v2.4.0)
 - **Usage**: `const { t } = useTranslation()` → `t("settings.title")`
 - **RULE**: Every user-visible string MUST have a key in BOTH locale files
 - **RULE**: When adding a key to one file, ALWAYS add it to the other
