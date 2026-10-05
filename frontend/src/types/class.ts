@@ -44,6 +44,7 @@ export interface CreateClassRequest {
 }
 
 export interface UpdateClassRequest {
+  class_type?: string;
   instructor_name?: string;
   class_date?: string;
   start_time?: string;

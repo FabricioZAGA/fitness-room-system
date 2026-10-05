@@ -1,16 +1,21 @@
-/** Modal form for creating a new fitness class. */
+/** Modal form for creating a new fitness class — or editing one when `editClass` is given. */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog } from "./Dialog";
-import { useCreateClass } from "@/hooks/useClasses";
+import { useCreateClass, useUpdateClass } from "@/hooks/useClasses";
 import { useInstructors } from "@/hooks/useInstructors";
 import { useClassTypes } from "@/hooks/useCatalogs";
-import type { ClassMode, CreateClassRequest } from "@/types/class";
+import type { ClassMode, CreateClassRequest, FitnessClass, UpdateClassRequest } from "@/types/class";
 import { CLASS_MODE_LABELS } from "@/types/class";
 
 interface CreateClassModalProps {
   open: boolean;
   onClose: () => void;
+  /** When provided, the modal edits this class instead of creating a new one. */
+  editClass?: FitnessClass | null;
+  /** Called with the updated class after a successful edit. */
+  onUpdated?: (updated: FitnessClass) => void;
 }
 
 const CLASS_MODES = Object.entries(CLASS_MODE_LABELS) as [ClassMode, string][];
@@ -31,15 +36,64 @@ const INITIAL: CreateClassRequest = {
   class_mode: "presencial",
 };
 
+function formFromClass(cls: FitnessClass): CreateClassRequest {
+  return {
+    class_type: cls.class_type,
+    instructor_name: cls.instructor_name,
+    class_date: cls.class_date,
+    start_time: cls.start_time.slice(0, 5),
+    duration_minutes: cls.duration_minutes,
+    capacity: cls.capacity,
+    location: cls.location ?? "",
+    description: cls.description ?? "",
+    class_mode: cls.class_mode,
+    class_link: cls.class_link ?? "",
+  };
+}
+
+/** Only the fields that actually changed, so PATCH stays minimal. */
+function diffForUpdate(cls: FitnessClass, form: CreateClassRequest): UpdateClassRequest {
+  const original = formFromClass(cls);
+  const changes: UpdateClassRequest = {};
+  (Object.keys(form) as (keyof CreateClassRequest)[]).forEach((key) => {
+    if (form[key] !== original[key]) {
+      (changes as Record<string, unknown>)[key] = form[key];
+    }
+  });
+  return changes;
+}
+
 export function CreateClassModal({
   open,
   onClose,
+  editClass = null,
+  onUpdated,
 }: CreateClassModalProps): React.JSX.Element {
+  const { t } = useTranslation();
+  const isEdit = editClass !== null;
   const [form, setForm] = useState<CreateClassRequest>(INITIAL);
-  const { mutate, isPending } = useCreateClass();
+  const { mutate, isPending: creating } = useCreateClass();
+  const { mutate: update, isPending: updating } = useUpdateClass(editClass?.class_id ?? "");
+  const isPending = creating || updating;
   const { data: instructorsData } = useInstructors({ status: "active" });
   const instructors = instructorsData?.items ?? [];
   const { data: classTypes = [] } = useClassTypes();
+
+  useEffect(() => {
+    if (open) setForm(editClass ? formFromClass(editClass) : INITIAL);
+  }, [open, editClass]);
+
+  // Keep the current values selectable even if the instructor was deactivated
+  // or the class type was removed from the catalog.
+  const instructorNames = instructors.map((i) => `${i.first_name} ${i.last_name}`);
+  const missingInstructor =
+    form.instructor_name && !instructorNames.includes(form.instructor_name)
+      ? form.instructor_name
+      : null;
+  const missingClassType =
+    form.class_type && !classTypes.some((ct) => ct.slug === form.class_type)
+      ? form.class_type
+      : null;
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -53,6 +107,20 @@ export function CreateClassModal({
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
+    if (editClass) {
+      const changes = diffForUpdate(editClass, form);
+      if (Object.keys(changes).length === 0) {
+        onClose();
+        return;
+      }
+      update(changes, {
+        onSuccess: (updated) => {
+          onUpdated?.(updated);
+          onClose();
+        },
+      });
+      return;
+    }
     mutate(
       {
         ...form,
@@ -72,11 +140,18 @@ export function CreateClassModal({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Nueva Clase"
-      description="Agrega una clase al calendario"
+      title={isEdit ? t("classes.editClass") : "Nueva Clase"}
+      description={isEdit ? t("classes.editClassDesc") : "Agrega una clase al calendario"}
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {isEdit && editClass.reservations_count + editClass.waitlist_count > 0 && (
+          <div className="rounded-xl border border-[--gold-bd] bg-[--gold-bg] px-4 py-3 text-sm text-[--tx-muted]">
+            {t("classes.editKeepsEnrolled", {
+              count: editClass.reservations_count + editClass.waitlist_count,
+            })}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Tipo de clase *">
             <select
@@ -87,6 +162,7 @@ export function CreateClassModal({
               className={inputCls}
             >
               <option value="">— Selecciona tipo —</option>
+              {missingClassType && <option value={missingClassType}>{missingClassType}</option>}
               {classTypes.map((ct) => (
                 <option key={ct.slug} value={ct.slug}>
                   {ct.label}
@@ -103,6 +179,7 @@ export function CreateClassModal({
               className={inputCls}
             >
               <option value="">— Selecciona instructor —</option>
+              {missingInstructor && <option value={missingInstructor}>{missingInstructor}</option>}
               {instructors.map((inst) => (
                 <option key={inst.instructor_id} value={`${inst.first_name} ${inst.last_name}`}>
                   {inst.first_name} {inst.last_name}
@@ -228,7 +305,7 @@ export function CreateClassModal({
             onMouseEnter={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold-hover) 0%, var(--gold) 100%)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)"; }}
           >
-            {isPending ? "Guardando..." : "Crear Clase"}
+            {isPending ? "Guardando..." : isEdit ? t("classes.saveChanges") : "Crear Clase"}
           </button>
         </div>
       </form>

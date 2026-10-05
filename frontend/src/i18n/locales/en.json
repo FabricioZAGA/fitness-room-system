@@ -205,7 +205,12 @@
     "noMembershipsRegistered": "No memberships registered",
     "noReservationsRegistered": "No reservations registered",
     "profilePhoto": "Profile photo",
-    "currentPhoto": "Current photo"
+    "currentPhoto": "Current photo",
+    "editClass": "Edit class",
+    "editClassDesc": "Fix the name, instructor, date or time without losing enrolled members",
+    "editKeepsEnrolled_one": "{{count}} enrolled member will keep their spot when saving.",
+    "editKeepsEnrolled_other": "{{count}} enrolled members will keep their spot when saving.",
+    "saveChanges": "Save changes"
   },
   "reservations": {
     "title": "Reservations",
@@ -418,7 +423,7 @@
     "paymentMethod": "Payment method",
     "notesOptional": "Notes (optional)",
     "paymentNotesPlaceholder": "Payment description...",
-    "cutDesc": "A summary of all today's movements will be generated ({{date}}). Accumulated total:",
+    "cutDesc": "The cut will include the movements registered since the last cut ({{date}}). After the cut the register starts at zero. Accumulated total:",
     "cutNotes": "Cut notes (optional)",
     "cutNotesPlaceholder": "Closing observations...",
     "generating": "Generating...",
@@ -442,7 +447,11 @@
     "pendingYes": "Paid",
     "pendingNo": "Pending (on credit)",
     "requiresStudent": "Pending sales require selecting a student",
-    "studentOptional": "Student (optional)"
+    "studentOptional": "Student (optional)",
+    "sinceLastCut": "Last cut at {{time}} — totals only show what was registered afterwards.",
+    "totalSinceCut": "Total since cut",
+    "movementsSinceCut": "Movements since last cut ({{count}})",
+    "noPaymentsSinceCut": "No movements since the last cut"
   },
   "reportes": {
     "title": "Reports",
@@ -566,5 +575,14 @@
     "pending": "Pending",
     "quantity": "x{{count}}",
     "selectPaymentMethod": "Payment method"
+  },
+  "payment": {
+    "mixedOption": "Mixed (several methods)",
+    "mixedHint": "Enter how much was paid with each method. It must add up to {{total}}.",
+    "assignRemaining": "Assign the remaining amount to this method",
+    "remaining": "{{amount}} left to assign",
+    "exceeds": "Exceeds the total by {{amount}}",
+    "balanced": "The breakdown matches the total",
+    "needsTwo": "A mixed payment needs at least two methods"
   }
 }

@@ -10,8 +10,10 @@ import { useStudentBalance, useApplyBalance } from "@/hooks/useBalance";
 import { useMembershipPlans } from "@/hooks/useMembershipPlans";
 import type { CreateMembershipRequest, MembershipType } from "@/types/membership";
 import { MEMBERSHIP_TYPE_LABELS, MEMBERSHIP_DEFAULT_PRICE } from "@/types/membership";
-import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
+import type { PaymentMethod, PaymentSplit } from "@/types/transaction";
 import { formatCurrency } from "@/lib/utils";
+import { isPaymentComplete, splitsForPayload } from "@/lib/payments";
+import { PaymentMethodField } from "./PaymentMethodField";
 
 interface CreateMembershipModalProps {
   open: boolean;
@@ -43,7 +45,8 @@ const INITIAL_FORM = {
   start_date: todayStr(),
   end_date: addDays(todayStr(), 30),
   price_paid: MEMBERSHIP_DEFAULT_PRICE[DEFAULT_TYPE as keyof typeof MEMBERSHIP_DEFAULT_PRICE],
-  payment_method: "cash",
+  payment_method: "cash" as PaymentMethod,
+  payment_splits: [] as PaymentSplit[],
   classes_total: undefined as number | undefined,
   notes: "",
   duo_partner_id: "",
@@ -102,6 +105,8 @@ export function CreateMembershipModal({
   const pricePaid = Number(form.price_paid) || 0;
   const balanceToApply = applyBalance ? Math.min(currentBalance, pricePaid) : 0;
   const remainingToPay = pricePaid - balanceToApply;
+  const paymentReady =
+    pricePaid <= 0 || isPaymentComplete(pricePaid, form.payment_method, form.payment_splits);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -136,6 +141,7 @@ export function CreateMembershipModal({
       end_date: form.end_date,
       price_paid: Number(form.price_paid),
       payment_method: form.payment_method,
+      payment_splits: splitsForPayload(form.payment_method, form.payment_splits),
       classes_total: form.classes_total,
       notes: form.notes || undefined,
       duo_partner_id: isDuo ? form.duo_partner_id || undefined : undefined,
@@ -230,34 +236,29 @@ export function CreateMembershipModal({
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Precio pagado (MXN) *">
-            <input
-              name="price_paid"
-              type="number"
-              min={0}
-              step={0.01}
-              value={form.price_paid}
-              onChange={handleChange}
-              required
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Método de pago *">
-            <select
-              name="payment_method"
-              value={form.payment_method}
-              onChange={handleChange}
-              className={inputCls}
-            >
-              {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
-                <option key={val} value={val}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
+        <Field label="Precio pagado (MXN) *">
+          <input
+            name="price_paid"
+            type="number"
+            min={0}
+            step={0.01}
+            value={form.price_paid}
+            onChange={handleChange}
+            required
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Método de pago *">
+          <PaymentMethodField
+            total={pricePaid}
+            method={form.payment_method}
+            splits={form.payment_splits}
+            inputClassName={inputCls}
+            onChange={(payment_method, payment_splits) =>
+              setForm((prev) => ({ ...prev, payment_method, payment_splits }))
+            }
+          />
+        </Field>
 
         {isDuo && (
           <Field label="Pareja Dúo *">
@@ -352,7 +353,7 @@ export function CreateMembershipModal({
           </button>
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || !paymentReady}
             className="rounded-xl px-5 py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
             style={{
               background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",

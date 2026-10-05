@@ -33,8 +33,16 @@ import { useProducts, useSellProduct } from "@/hooks/useInventory";
 import { useDeposit } from "@/hooks/useBalance";
 import { useStudents } from "@/hooks/useStudents";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import type { CreateTransactionRequest, PaymentMethod, Transaction, TransactionType } from "@/types/transaction";
-import { PAYMENT_METHOD_LABELS, TRANSACTION_TYPE_LABELS } from "@/types/transaction";
+import { isPaymentComplete, splitsForPayload } from "@/lib/payments";
+import { PaymentMethodField } from "@/components/shared/PaymentMethodField";
+import type {
+  CreateTransactionRequest,
+  PaymentMethod,
+  PaymentSplit,
+  Transaction,
+  TransactionType,
+} from "@/types/transaction";
+import { PAYMENT_METHOD_LABELS, TRANSACTION_TYPE_LABELS, describePayment } from "@/types/transaction";
 import type { Product } from "@/types/inventory";
 import type { Student } from "@/types/student";
 import { transactionService } from "@/services/transactionService";
@@ -59,9 +67,27 @@ interface ProductSaleForm {
   product_id: string;
   quantity: number;
   payment_method: PaymentMethod;
+  payment_splits: PaymentSplit[];
   student_id: string;
   payment_status: "paid" | "pending";
 }
+
+const EMPTY_PRODUCT_FORM: ProductSaleForm = {
+  product_id: "",
+  quantity: 1,
+  payment_method: "cash",
+  payment_splits: [],
+  student_id: "",
+  payment_status: "paid",
+};
+
+type OtherPaymentForm = Partial<CreateTransactionRequest> & { payment_splits: PaymentSplit[] };
+
+const EMPTY_OTHER_FORM: OtherPaymentForm = {
+  payment_method: "cash",
+  transaction_type: "other",
+  payment_splits: [],
+};
 
 interface DepositForm {
   student_id: string;
@@ -84,18 +110,9 @@ function CajaPage(): React.JSX.Element {
   // so Caja only exposes product sales and miscellaneous "other" payments.
   const [registerType, setRegisterType] = useState<"product" | "other" | "deposit">("product");
   // Standard transaction form
-  const [form, setForm] = useState<Partial<CreateTransactionRequest>>({
-    payment_method: "cash",
-    transaction_type: "other",
-  });
+  const [form, setForm] = useState<OtherPaymentForm>(EMPTY_OTHER_FORM);
   // Product sale form
-  const [productForm, setProductForm] = useState<ProductSaleForm>({
-    product_id: "",
-    quantity: 1,
-    payment_method: "cash",
-    student_id: "",
-    payment_status: "paid",
-  });
+  const [productForm, setProductForm] = useState<ProductSaleForm>(EMPTY_PRODUCT_FORM);
   // Deposit form
   const [depositForm, setDepositForm] = useState<DepositForm>({
     student_id: "",
@@ -111,8 +128,20 @@ function CajaPage(): React.JSX.Element {
   const [editTx, setEditTx] = useState<Transaction | null>(null);
   const [deleteTx, setDeleteTx] = useState<Transaction | null>(null);
   const deleteMutation = useDeleteTransaction();
-  const { data: summary } = useTodaySummary();
-  const { data: todayTransactions = [] } = useTransactionsByDate(today);
+  // "period" = since the last cash cut → the register shows zero right after a cut
+  const { data: summary } = useTodaySummary("period");
+  const { data: dayTransactions = [] } = useTransactionsByDate(today);
+  const lastCutAt = summary?.last_cut_at ? new Date(summary.last_cut_at) : null;
+  const todayTransactions = lastCutAt
+    ? dayTransactions.filter((tx) => new Date(tx.created_at) > lastCutAt)
+    : dayTransactions;
+  const lastCutTime = lastCutAt
+    ? lastCutAt.toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "America/Mexico_City",
+      })
+    : null;
   const { data: cashCuts = [] } = useCashCuts();
   const recordMutation = useRecordTransaction();
   const cutMutation = useCreateCashCut();
@@ -136,31 +165,43 @@ function CajaPage(): React.JSX.Element {
     setProductForm((f) => ({ ...f, quantity: 1 }));
   }, [productForm.product_id]);
 
+  const otherPaymentReady =
+    !!form.amount &&
+    isPaymentComplete(Number(form.amount), form.payment_method ?? "cash", form.payment_splits);
+  const productPaymentReady =
+    productForm.payment_status === "pending" ||
+    isPaymentComplete(productTotal, productForm.payment_method, productForm.payment_splits);
+
   const handleRegister = async () => {
-    if (!form.amount || !form.transaction_type || !form.payment_method) return;
+    if (!form.amount || !form.transaction_type || !form.payment_method || !otherPaymentReady) return;
     await recordMutation.mutateAsync({
       transaction_type: form.transaction_type as TransactionType,
       amount: Number(form.amount),
-      payment_method: form.payment_method as PaymentMethod,
+      payment_method: form.payment_method,
+      payment_splits: splitsForPayload(form.payment_method, form.payment_splits),
       student_id: form.student_id,
       notes: form.notes,
     });
-    setForm({ payment_method: "cash", transaction_type: "other" });
+    setForm(EMPTY_OTHER_FORM);
     setRegisterType("product");
     setShowRegister(false);
   };
 
   const handleSellProduct = async () => {
-    if (!productForm.product_id) return;
+    if (!productForm.product_id || !productPaymentReady) return;
     if (productForm.payment_status === "pending" && !productForm.student_id) return;
     await sellMutation.mutateAsync({
       product_id: productForm.product_id,
       quantity: productForm.quantity,
       payment_method: productForm.payment_method,
+      payment_splits:
+        productForm.payment_status === "paid"
+          ? splitsForPayload(productForm.payment_method, productForm.payment_splits)
+          : undefined,
       student_id: productForm.student_id || undefined,
       payment_status: productForm.payment_status,
     });
-    setProductForm({ product_id: "", quantity: 1, payment_method: "cash", student_id: "", payment_status: "paid" });
+    setProductForm(EMPTY_PRODUCT_FORM);
     setRegisterType("product");
     setShowRegister(false);
   };
@@ -216,9 +257,21 @@ function CajaPage(): React.JSX.Element {
         </div>
       </div>
 
+      {lastCutTime && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-[--gold-bd] bg-[--gold-bg] px-4 py-2.5 text-sm text-[--tx-muted]">
+          <Receipt className="h-4 w-4 text-[--gold]" />
+          {t("caja.sinceLastCut", { time: lastCutTime })}
+        </div>
+      )}
+
       {/* Today's summary cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard icon={DollarSign} label={t("caja.totalDay")} value={formatCurrency(summary?.grand_total ?? 0)} accent />
+        <SummaryCard
+          icon={DollarSign}
+          label={lastCutTime ? t("caja.totalSinceCut") : t("caja.totalDay")}
+          value={formatCurrency(summary?.grand_total ?? 0)}
+          accent
+        />
         <SummaryCard icon={Banknote} label={t("dashboard.cash")} value={formatCurrency(summary?.total_cash ?? 0)} />
         <SummaryCard icon={CreditCard} label={t("dashboard.card")} value={formatCurrency(summary?.total_card ?? 0)} />
         <SummaryCard icon={ArrowRightLeft} label={t("caja.transfer")} value={formatCurrency(summary?.total_transfer ?? 0)} />
@@ -247,11 +300,15 @@ function CajaPage(): React.JSX.Element {
       <div className="mb-8 rounded-2xl border border-[--bd-default] bg-[--bg-surface]">
         <div className="flex items-center justify-between border-b border-[--bd-default] px-6 py-4">
           <h2 className="text-lg font-semibold text-[--tx-primary]">
-            {t("caja.todayMovements", { count: todayTransactions.length })}
+            {lastCutTime
+              ? t("caja.movementsSinceCut", { count: todayTransactions.length })
+              : t("caja.todayMovements", { count: todayTransactions.length })}
           </h2>
         </div>
         {todayTransactions.length === 0 ? (
-          <p className="px-6 py-10 text-center text-[--tx-muted]">{t("caja.noPayments")}</p>
+          <p className="px-6 py-10 text-center text-[--tx-muted]">
+            {lastCutTime ? t("caja.noPaymentsSinceCut") : t("caja.noPayments")}
+          </p>
         ) : (
           <div className="divide-y divide-[--bd-default]">
             {todayTransactions.map((tx) => (
@@ -264,7 +321,7 @@ function CajaPage(): React.JSX.Element {
                     {TRANSACTION_TYPE_LABELS[tx.transaction_type]}
                   </p>
                   <p className="text-xs text-[--tx-muted]">
-                    {PAYMENT_METHOD_LABELS[tx.payment_method]}
+                    {describePayment(tx, formatCurrency)}
                     {tx.notes ? ` · ${tx.notes}` : ""}
                   </p>
                 </div>
@@ -401,15 +458,15 @@ function CajaPage(): React.JSX.Element {
                   <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
                     {t("caja.paymentMethod")} *
                   </label>
-                  <select
-                    className={selectCls}
-                    value={form.payment_method}
-                    onChange={(e) => setForm((f) => ({ ...f, payment_method: e.target.value as PaymentMethod }))}
-                  >
-                    {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
-                  </select>
+                  <PaymentMethodField
+                    total={Number(form.amount) || 0}
+                    method={form.payment_method ?? "cash"}
+                    splits={form.payment_splits}
+                    inputClassName={selectCls}
+                    onChange={(payment_method, payment_splits) =>
+                      setForm((f) => ({ ...f, payment_method, payment_splits }))
+                    }
+                  />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
@@ -430,8 +487,8 @@ function CajaPage(): React.JSX.Element {
                 onClick={() => {
                   setShowRegister(false);
                   setRegisterType("product");
-                  setForm({ payment_method: "cash", transaction_type: "other" });
-                  setProductForm({ product_id: "", quantity: 1, payment_method: "cash", student_id: "", payment_status: "paid" });
+                  setForm(EMPTY_OTHER_FORM);
+                  setProductForm(EMPTY_PRODUCT_FORM);
                   setDepositForm({ student_id: "", amount: 0, payment_method: "cash", notes: "" });
                 }}
                 className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] transition-all hover:bg-[--bg-muted]"
@@ -453,12 +510,13 @@ function CajaPage(): React.JSX.Element {
                     ? !productForm.product_id ||
                       productForm.quantity < 1 ||
                       (productForm.payment_status === "pending" && !productForm.student_id) ||
+                      !productPaymentReady ||
                       sellMutation.isPending
                     : registerType === "deposit"
                       ? !depositForm.student_id ||
                         depositForm.amount <= 0 ||
                         depositMutation.isPending
-                      : !form.amount || recordMutation.isPending
+                      : !otherPaymentReady || recordMutation.isPending
                 }
                 className="flex-1 rounded-xl py-3 text-sm font-semibold transition-all disabled:opacity-50"
                 style={{
@@ -706,15 +764,13 @@ function ProductSaleFields({
           <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
             {t("caja.paymentMethod")} *
           </label>
-          <select
-            className={selectCls}
-            value={form.payment_method}
-            onChange={(e) => onChange({ payment_method: e.target.value as PaymentMethod })}
-          >
-            {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
-              <option key={val} value={val}>{label}</option>
-            ))}
-          </select>
+          <PaymentMethodField
+            total={total}
+            method={form.payment_method}
+            splits={form.payment_splits}
+            inputClassName={selectCls}
+            onChange={(payment_method, payment_splits) => onChange({ payment_method, payment_splits })}
+          />
         </div>
       )}
     </div>

@@ -1,5 +1,7 @@
 /** TypeScript types for the Membership entity — mirrors backend Pydantic models. */
 
+import type { PaymentSplit } from "./transaction";
+
 /** Well-known membership plan slugs (seeded from backend). */
 export type KnownMembershipType =
   | "founder"
@@ -53,6 +55,8 @@ export interface CreateMembershipRequest {
   end_date: string;
   price_paid: number;
   payment_method?: string;
+  /** Required when payment_method is "mixed". */
+  payment_splits?: PaymentSplit[];
   classes_total?: number;
   notes?: string;
   duo_partner_id?: string;
@@ -65,6 +69,7 @@ export interface UpdateMembershipRequest {
   status?: MembershipStatus;
   price_paid?: number;
   payment_method?: string;
+  payment_splits?: PaymentSplit[];
   classes_total?: number;
   classes_remaining?: number;
   notes?: string;

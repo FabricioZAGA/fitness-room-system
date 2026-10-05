@@ -4,6 +4,7 @@ import type {
   CashCut,
   CreateCashCutRequest,
   CreateTransactionRequest,
+  SummaryScope,
   TodaySummary,
   Transaction,
   UpdateTransactionRequest,
@@ -54,8 +55,10 @@ export const transactionService = {
     return res.data;
   },
 
-  async todaySummary(): Promise<TodaySummary> {
-    const res = await apiClient.get<TodaySummary>("/transactions/summary/today");
+  async todaySummary(scope: SummaryScope = "day"): Promise<TodaySummary> {
+    const res = await apiClient.get<TodaySummary>("/transactions/summary/today", {
+      params: { scope },
+    });
     return res.data;
   },
 

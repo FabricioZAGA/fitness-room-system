@@ -1,5 +1,7 @@
 /** TypeScript types for Inventory (Products and Sales). */
 
+import type { PaymentSplit } from "./transaction";
+
 export type ProductCategory =
   | "supplement"
   | "beverage"
@@ -74,6 +76,8 @@ export interface CreateSaleRequest {
   quantity?: number;
   student_id?: string;
   payment_method: string;
+  /** Required when payment_method is "mixed". */
+  payment_splits?: PaymentSplit[];
   payment_status?: "paid" | "pending";
   notes?: string;
 }

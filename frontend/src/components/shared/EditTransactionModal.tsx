@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import { Dialog } from "./Dialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useUpdateTransaction } from "@/hooks/useTransactions";
+import { PaymentMethodField } from "./PaymentMethodField";
 import type {
   Transaction,
   PaymentMethod,
+  PaymentSplit,
   TransactionType,
   UpdateTransactionRequest,
 } from "@/types/transaction";
-import { PAYMENT_METHOD_LABELS, TRANSACTION_TYPE_LABELS } from "@/types/transaction";
+import { TRANSACTION_TYPE_LABELS } from "@/types/transaction";
 import { formatCurrency } from "@/lib/utils";
+import { isPaymentComplete, splitsForPayload } from "@/lib/payments";
 
 interface EditTransactionModalProps {
   open: boolean;
@@ -27,6 +30,7 @@ export function EditTransactionModal({
   const [form, setForm] = useState({
     amount: 0,
     payment_method: "cash" as PaymentMethod,
+    payment_splits: [] as PaymentSplit[],
     transaction_type: "other" as TransactionType,
     notes: "",
   });
@@ -42,6 +46,7 @@ export function EditTransactionModal({
     setForm({
       amount: transaction.amount,
       payment_method: transaction.payment_method,
+      payment_splits: transaction.payment_splits ?? [],
       transaction_type: transaction.transaction_type,
       notes: transaction.notes ?? "",
     });
@@ -53,6 +58,13 @@ export function EditTransactionModal({
     if (form.amount !== transaction.amount) payload.amount = form.amount;
     if (form.payment_method !== transaction.payment_method)
       payload.payment_method = form.payment_method;
+    if (
+      form.payment_method === "mixed" &&
+      JSON.stringify(form.payment_splits) !== JSON.stringify(transaction.payment_splits ?? [])
+    ) {
+      payload.payment_method = "mixed";
+      payload.payment_splits = splitsForPayload("mixed", form.payment_splits);
+    }
     if (form.transaction_type !== transaction.transaction_type)
       payload.transaction_type = form.transaction_type;
     if ((form.notes || "") !== (transaction.notes || ""))
@@ -100,38 +112,29 @@ export function EditTransactionModal({
         description={`${TRANSACTION_TYPE_LABELS[transaction.transaction_type]} — ${formatCurrency(transaction.amount)}`}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Monto (MXN)">
-              <input
-                type="number"
-                min={0.01}
-                step={0.01}
-                value={form.amount}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, amount: Number(e.target.value) }))
-                }
-                className={inputCls}
-              />
-            </Field>
-            <Field label="Método de pago">
-              <select
-                value={form.payment_method}
-                onChange={(e) =>
-                  setForm((p) => ({
-                    ...p,
-                    payment_method: e.target.value as PaymentMethod,
-                  }))
-                }
-                className={inputCls}
-              >
-                {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
-                  <option key={val} value={val}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
+          <Field label="Monto (MXN)">
+            <input
+              type="number"
+              min={0.01}
+              step={0.01}
+              value={form.amount}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, amount: Number(e.target.value) }))
+              }
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Método de pago">
+            <PaymentMethodField
+              total={form.amount}
+              method={form.payment_method}
+              splits={form.payment_splits}
+              inputClassName={inputCls}
+              onChange={(payment_method, payment_splits) =>
+                setForm((p) => ({ ...p, payment_method, payment_splits }))
+              }
+            />
+          </Field>
 
           <Field label="Tipo de transacción">
             <select
@@ -172,7 +175,10 @@ export function EditTransactionModal({
             </button>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={
+                isPending ||
+                !isPaymentComplete(form.amount, form.payment_method, form.payment_splits)
+              }
               className="rounded-xl px-5 py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
               style={{
                 background:

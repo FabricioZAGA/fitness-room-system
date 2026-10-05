@@ -34,7 +34,21 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   cash: "Efectivo",
   card: "Tarjeta",
   transfer: "Transferencia",
+  mixed: "Mixto",
 };
+
+/** Payment label including the mixed-payment breakdown when present. */
+function methodLabel(t: {
+  payment_method: string;
+  payment_splits?: { method: string; amount: number }[] | null;
+}): string {
+  const label = PAYMENT_METHOD_LABEL[t.payment_method] ?? t.payment_method;
+  if (t.payment_method !== "mixed" || !t.payment_splits?.length) return label;
+  const parts = t.payment_splits.map(
+    (sp) => `${PAYMENT_METHOD_LABEL[sp.method] ?? sp.method} ${formatMXN(sp.amount)}`,
+  );
+  return `${label} (${parts.join(" / ")})`;
+}
 
 const MEMBERSHIP_STATUS_LABEL: Record<string, string> = {
   active: "Activa",
@@ -123,7 +137,7 @@ export function exportIncomeExcel(
           formatTime(t.datetime),
           t.student_name || "—",
           TX_TYPE_LABEL[t.transaction_type] ?? t.transaction_type,
-          PAYMENT_METHOD_LABEL[t.payment_method] ?? t.payment_method,
+          methodLabel(t),
           t.amount,
           t.notes ?? "",
         ]),
@@ -414,7 +428,7 @@ export function exportIncomePDF(
           formatTime(t.datetime),
           t.student_name || "—",
           TX_TYPE_LABEL[t.transaction_type] ?? t.transaction_type,
-          PAYMENT_METHOD_LABEL[t.payment_method] ?? t.payment_method,
+          methodLabel(t),
           formatMXN(t.amount),
           t.notes ?? "",
         ]),
@@ -595,6 +609,7 @@ export interface CashCutPDFData {
     transaction_type: string;
     amount: number;
     payment_method: string;
+    payment_splits?: { method: string; amount: number }[] | null;
     notes: string | null;
     transaction_date: string;
     created_at: string;
@@ -641,7 +656,7 @@ export function exportCashCutPDF(
       body: cut.transactions.map((t) => [
         formatTime(t.created_at),
         TX_TYPE_LABEL[t.transaction_type] ?? t.transaction_type,
-        PAYMENT_METHOD_LABEL[t.payment_method] ?? t.payment_method,
+        methodLabel(t),
         formatMXN(t.amount),
         t.notes ?? "",
       ]),

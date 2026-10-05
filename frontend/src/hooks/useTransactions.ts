@@ -11,6 +11,7 @@ import type {
   CashCut,
   CreateCashCutRequest,
   CreateTransactionRequest,
+  SummaryScope,
   TodaySummary,
   Transaction,
   UpdateTransactionRequest,
@@ -22,10 +23,10 @@ import { transactionService } from "@/services/transactionService";
 export const TX_KEY = "transactions";
 export const CASHCUT_KEY = "cashcuts";
 
-export function useTodaySummary(): UseQueryResult<TodaySummary> {
+export function useTodaySummary(scope: SummaryScope = "day"): UseQueryResult<TodaySummary> {
   return useQuery({
-    queryKey: [TX_KEY, "today"],
-    queryFn: () => transactionService.todaySummary(),
+    queryKey: [TX_KEY, "today", scope],
+    queryFn: () => transactionService.todaySummary(scope),
     refetchInterval: 1000 * 60 * 2, // refresh every 2 min
   });
 }
@@ -62,6 +63,9 @@ export function useRecordTransaction(): UseMutationResult<
     mutationFn: (data) => transactionService.record(data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [TX_KEY] });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Error al registrar el pago"));
     },
   });
 }
@@ -112,6 +116,10 @@ export function useCreateCashCut(): UseMutationResult<
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [CASHCUT_KEY] });
       void qc.invalidateQueries({ queryKey: [TX_KEY] });
+      toast.success("Corte de caja generado — la caja inicia en ceros");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Error al generar el corte de caja"));
     },
   });
 }

@@ -12,7 +12,9 @@ import type {
   UpdateMembershipRequest,
 } from "@/types/membership";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
-import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
+import type { PaymentMethod, PaymentSplit } from "@/types/transaction";
+import { splitsForPayload } from "@/lib/payments";
+import { PaymentMethodField } from "./PaymentMethodField";
 
 interface EditMembershipModalProps {
   open: boolean;
@@ -42,7 +44,9 @@ export function EditMembershipModal({
     end_date: "",
     membership_type: "room_daily" as MembershipType,
     price_paid: 0,
-    payment_method: "cash",
+    change_payment: false,
+    payment_method: "cash" as PaymentMethod,
+    payment_splits: [] as PaymentSplit[],
     classes_total: undefined as number | undefined,
     classes_remaining: undefined as number | undefined,
     status: "active" as MembershipStatus,
@@ -61,7 +65,9 @@ export function EditMembershipModal({
       end_date: membership.end_date,
       membership_type: membership.membership_type,
       price_paid: membership.price_paid,
+      change_payment: false,
       payment_method: "cash",
+      payment_splits: [],
       classes_total: membership.classes_total ?? undefined,
       classes_remaining: membership.classes_remaining ?? undefined,
       status: membership.status,
@@ -86,8 +92,11 @@ export function EditMembershipModal({
     if (Number(form.price_paid) !== membership.price_paid) {
       payload.price_paid = Number(form.price_paid);
     }
-    if (isAdmin && form.payment_method) {
+    // Only touch the payment method when explicitly requested — the membership
+    // doesn't expose its current method, so sending a default would overwrite it.
+    if (isAdmin && form.change_payment) {
       payload.payment_method = form.payment_method;
+      payload.payment_splits = splitsForPayload(form.payment_method, form.payment_splits);
     }
     if (
       isAdmin &&
@@ -166,18 +175,29 @@ export function EditMembershipModal({
                   </select>
                 </Field>
               </div>
+              <div className="space-y-2">
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[--tx-primary]">
+                  <input
+                    type="checkbox"
+                    checked={form.change_payment}
+                    onChange={(e) => setForm((p) => ({ ...p, change_payment: e.target.checked }))}
+                    className="h-4 w-4 rounded accent-[--gold]"
+                  />
+                  Cambiar método de pago
+                </label>
+                {form.change_payment && (
+                  <PaymentMethodField
+                    total={Number(form.price_paid) || 0}
+                    method={form.payment_method}
+                    splits={form.payment_splits}
+                    inputClassName={inputCls}
+                    onChange={(payment_method, payment_splits) =>
+                      setForm((p) => ({ ...p, payment_method, payment_splits }))
+                    }
+                  />
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Metodo de pago">
-                  <select
-                    value={form.payment_method}
-                    onChange={(e) => setForm((p) => ({ ...p, payment_method: e.target.value }))}
-                    className={inputCls}
-                  >
-                    {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
-                  </select>
-                </Field>
                 <Field label="Clases totales">
                   <input
                     type="number"

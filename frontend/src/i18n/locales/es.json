@@ -205,7 +205,12 @@
     "noMembershipsRegistered": "Sin membresías registradas",
     "noReservationsRegistered": "Sin reservaciones registradas",
     "profilePhoto": "Foto de perfil",
-    "currentPhoto": "Foto actual"
+    "currentPhoto": "Foto actual",
+    "editClass": "Editar clase",
+    "editClassDesc": "Corrige nombre, instructor, fecha u hora sin perder a los inscritos",
+    "editKeepsEnrolled_one": "{{count}} alumno inscrito conservará su lugar al guardar los cambios.",
+    "editKeepsEnrolled_other": "{{count}} alumnos inscritos conservarán su lugar al guardar los cambios.",
+    "saveChanges": "Guardar cambios"
   },
   "reservations": {
     "title": "Reservaciones",
@@ -418,7 +423,7 @@
     "paymentMethod": "Método de pago",
     "notesOptional": "Notas (opcional)",
     "paymentNotesPlaceholder": "Descripción del pago...",
-    "cutDesc": "Se generará un resumen de todos los movimientos del día de hoy ({{date}}). Total acumulado:",
+    "cutDesc": "Se generará el corte con los movimientos registrados desde el último corte ({{date}}). Después del corte la caja inicia en ceros. Total acumulado:",
     "cutNotes": "Notas del corte (opcional)",
     "cutNotesPlaceholder": "Observaciones del cierre...",
     "generating": "Generando...",
@@ -442,7 +447,11 @@
     "pendingYes": "Pagado",
     "pendingNo": "Pendiente (fiado)",
     "requiresStudent": "Ventas pendientes requieren seleccionar alumno",
-    "studentOptional": "Alumno (opcional)"
+    "studentOptional": "Alumno (opcional)",
+    "sinceLastCut": "Último corte a las {{time}} — los totales muestran solo lo registrado después.",
+    "totalSinceCut": "Total desde el corte",
+    "movementsSinceCut": "Movimientos desde el último corte ({{count}})",
+    "noPaymentsSinceCut": "Sin movimientos desde el último corte"
   },
   "reportes": {
     "title": "Reportes",
@@ -566,5 +575,14 @@
     "pending": "Pendiente",
     "quantity": "x{{count}}",
     "selectPaymentMethod": "Método de pago"
+  },
+  "payment": {
+    "mixedOption": "Mixto (varios métodos)",
+    "mixedHint": "Indica cuánto se pagó con cada método. Debe sumar {{total}}.",
+    "assignRemaining": "Asignar el restante a este método",
+    "remaining": "Faltan {{amount}} por asignar",
+    "exceeds": "Excede el total por {{amount}}",
+    "balanced": "El desglose cuadra con el total",
+    "needsTwo": "Un pago mixto requiere al menos dos métodos"
   }
 }

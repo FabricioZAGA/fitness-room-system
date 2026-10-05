@@ -17,6 +17,7 @@ export interface IncomeTransactionRow {
   student_name: string;
   transaction_type: string;
   payment_method: string;
+  payment_splits?: { method: string; amount: number }[] | null;
   amount: number;
   reference_id: string | null;
   notes: string | null;

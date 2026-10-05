@@ -10,6 +10,7 @@ import {
   Users,
   Clock,
   Link as LinkIcon,
+  Pencil,
   XCircle,
 } from "lucide-react";
 import { useClasses, useCancelClass, useClassAttendees } from "@/hooks/useClasses";
@@ -35,6 +36,7 @@ function ClassesPage(): React.JSX.Element {
   const [selectedClass, setSelectedClass] = useState<FitnessClass | null>(null);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState<FitnessClass | null>(null);
 
   const { data: classTypes = [] } = useClassTypes();
 
@@ -179,6 +181,7 @@ function ClassesPage(): React.JSX.Element {
               cls={selectedClass}
               classTypes={classTypes}
               onAddMember={() => handleAddMember(selectedClass)}
+              onEdit={() => setEditingClass(selectedClass)}
               onCancel={() => setCancelConfirmOpen(true)}
               onClose={() => setSelectedClass(null)}
             />
@@ -233,13 +236,22 @@ function ClassesPage(): React.JSX.Element {
                   <p className="text-xs text-[--tx-disabled]">reservaciones</p>
                 </div>
                 {!cls.is_cancelled && (
-                  <button
-                    onClick={() => handleAddMember(cls)}
-                    className="rounded-xl bg-[--color-success-bg] p-3 text-[--color-success] hover:bg-[--color-success-bg] transition-colors"
-                    title="Añadir miembro"
-                  >
-                    <UserPlus className="h-5 w-5" />
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setEditingClass(cls)}
+                      className="rounded-xl border border-[--bd-default] p-3 text-[--tx-muted] transition-colors hover:border-[--gold-bd] hover:text-[--gold]"
+                      title={t("classes.editClass")}
+                    >
+                      <Pencil className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleAddMember(cls)}
+                      className="rounded-xl bg-[--color-success-bg] p-3 text-[--color-success] hover:bg-[--color-success-bg] transition-colors"
+                      title="Añadir miembro"
+                    >
+                      <UserPlus className="h-5 w-5" />
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -265,6 +277,14 @@ function ClassesPage(): React.JSX.Element {
       )}
 
       <CreateClassModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateClassModal
+        open={editingClass !== null}
+        editClass={editingClass}
+        onClose={() => setEditingClass(null)}
+        onUpdated={(updated) => {
+          if (selectedClass?.class_id === updated.class_id) setSelectedClass(updated);
+        }}
+      />
       <AddToClassModal
         open={addMemberOpen}
         onClose={() => setAddMemberOpen(false)}
@@ -278,12 +298,14 @@ function ClassDetailPanel({
   cls,
   classTypes,
   onAddMember,
+  onEdit,
   onCancel,
   onClose,
 }: {
   cls: FitnessClass;
   classTypes: { slug: string; label: string; color: string }[];
   onAddMember: () => void;
+  onEdit: () => void;
   onCancel: () => void;
   onClose: () => void;
 }): React.JSX.Element {
@@ -434,6 +456,13 @@ function ClassDetailPanel({
             >
               <UserPlus className="h-5 w-5" />
               {t("classes.addMember")}
+            </button>
+            <button
+              onClick={onEdit}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[--bd-default] py-3 text-sm font-medium text-[--tx-primary] transition-colors hover:border-[--gold-bd] hover:text-[--gold]"
+            >
+              <Pencil className="h-4 w-4" />
+              {t("classes.editClass")}
             </button>
             <button
               onClick={onCancel}

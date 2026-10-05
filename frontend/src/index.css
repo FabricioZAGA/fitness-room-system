@@ -162,6 +162,24 @@
   html {
     font-family: var(--font-family);
     scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  html[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  /* Native <select> dropdowns are rendered by the OS: without an explicit
+     background the option list is white while the inherited text color is
+     light in dark mode, making product / member names unreadable. */
+  select option,
+  select optgroup {
+    background-color: var(--bg-elevated);
+    color: var(--tx-primary);
+  }
+
+  select option:disabled {
+    color: var(--tx-disabled);
   }
 
   body {

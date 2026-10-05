@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { ClassAttendees, CreateClassRequest, FitnessClass, UpdateClassRequest } from "@/types/class";
 import { classService } from "@/services/classService";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 export const CLASSES_KEY = "classes";
 
@@ -51,8 +52,8 @@ export function useUpdateClass(classId: string) {
       qc.setQueryData([CLASSES_KEY, classId], updatedClass);
       toast.success("Clase actualizada.");
     },
-    onError: () => {
-      toast.error("Error al actualizar la clase.");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Error al actualizar la clase."));
     },
   });
 }
