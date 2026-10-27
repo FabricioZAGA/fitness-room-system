@@ -3,7 +3,7 @@
 Guía para IAs y desarrolladores que trabajen en este proyecto.
 **Lee esto antes de modificar cualquier cosa.** Para detalle de operaciones (deploy, versionado, infra) ver [`.claude/CLAUDE.md`](.claude/CLAUDE.md).
 
-> **Versión actual:** 3.0.0 — Operación en producción desde 2026-05-01.
+> **Versión actual:** 3.1.0 — Operación en producción desde 2026-05-01.
 
 ---
 
@@ -82,7 +82,7 @@ frontend/src/
   hooks/                   # TanStack Query hooks (useStudents, useClasses, useReports, ...)
   services/                # Axios API calls
   types/                   # TypeScript interfaces
-  i18n/locales/            # es.json + en.json (paridad 587 keys)
+  i18n/locales/            # es.json + en.json (paridad 603 keys)
   store/                   # Zustand (useThemeStore, useGymStore)
   config/                  # theme.ts (applyTheme)
   lib/                     # utils, exportReports, dateRangePresets, changelog
@@ -247,7 +247,7 @@ const inputCls = "w-full rounded-xl border border-[--bd-default] bg-[--bg-muted]
 
 - Idiomas: **español (default)** e **inglés**
 - Archivos: `frontend/src/i18n/locales/es.json` y `en.json`
-- **Paridad obligatoria**: 587 keys actualmente. Si agregas una clave en un archivo, agrégala en el otro.
+- **Paridad obligatoria**: 603 keys actualmente. Si agregas una clave en un archivo, agrégala en el otro.
 - Uso: `const { t } = useTranslation()` → `t("settings.title")`
 - Detección: localStorage → navigator, fallback a `"es"`
 - Verificación rápida:
@@ -311,6 +311,7 @@ GET  /api/v1/stats                        dashboard
 GET/POST/PATCH/DELETE /api/v1/students[/{id}]
 POST /api/v1/students/{id}/activate|deactivate|suspend|unsuspend|checkin
 GET  /api/v1/students/{id}/qr             QR base64 PNG
+GET  /api/v1/students/{id}/account        estado de cuenta: compras, pagos, adeudos y abonos
 
 # Membresías
 GET/POST/PATCH /api/v1/memberships[/{id}]
@@ -356,6 +357,7 @@ GET  /api/v1/reports/inactive             (incluye last_checkin)
 # Portal
 GET    /api/v1/portal/profile
 GET    /api/v1/portal/membership
+GET    /api/v1/portal/account            estado de cuenta del socio
 GET    /api/v1/portal/qr
 GET    /api/v1/portal/classes
 GET    /api/v1/portal/classes/{id}/attendees

@@ -5,6 +5,27 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [3.1.0] — 2026-10-27
+
+### Added
+
+- **Estado de cuenta por alumno** (`GET /api/v1/students/{id}/account`, `GET /api/v1/portal/account`): vista derivada que unifica transacciones, movimientos de saldo y adeudos pendientes en renglones por cargo (`AccountEntry`: concepto, total, pagado ahora, pagado con saldo, pendiente, método, fecha de pago). `AccountService` + `models/account.py`.
+- **Admin**: componente `AccountStatement` (ficha del alumno → "Compras y pagos") con cobro de pendientes (método + usar saldo); Caja lista los adeudos pendientes de todos los socios; Inventario → Vender usa `ChargePaymentSection` (socio / Público general, fiado, saldo).
+- **Portal**: Mi Perfil → "Mis compras y pagos" (saldo, por pagar, historial).
+- **Tests de flujo por API** (`backend/tests/test_v3_flows_api.py`): venta fiada → abono → cobro con saldo + tarjeta; venta pagada 100 % con saldo; membresía con saldo y fiada; Público general; cobro mixto tras saldo; estado de cuenta en el portal.
+
+### Changed
+
+- `PaymentSettlementService` asigna un `reference_id` común a todos los registros de un cobro (deuda, movimiento de saldo, transacción); `ChargeResponse.reference_id`. Los movimientos de saldo guardan `concept_type`.
+- Se elimina el endpoint legacy `POST /balance/{id}/apply` (saltaba la liquidación); hooks/servicios del admin actualizados. Los hooks de deudas y abonos muestran toasts de éxito/error e invalidan saldo, adeudos y estado de cuenta.
+
+### Fixed
+
+- Un "otro cobro" pagado parte con saldo y parte en efectivo se mostraba como dos movimientos sin relación.
+- La descripción del cobro de un adeudo de producto repetía la cantidad ("x2 x2").
+
+---
+
 ## [3.0.0] — 2026-10-27
 
 > **Major**: cambia el ciclo de vida de membresías (desaparece `cancelled`) y el

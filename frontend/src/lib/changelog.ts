@@ -12,9 +12,21 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "3.0.0";
+export const APP_VERSION = "3.1.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "3.1.0",
+    date: "2026-10-27",
+    title: "Estado de cuenta por socio y ventas siempre ligadas a un socio",
+    items: [
+      { icon: "🧾", text: "Nuevo en la ficha del socio: 'Compras y pagos' — todo lo que ha comprado (productos, membresías, otros), si ya lo pagó, cómo (efectivo, tarjeta, saldo) o si sigue pendiente; desde ahí mismo se cobra lo que debe" },
+      { icon: "📱", text: "El socio ve lo mismo en el portal (Mi Perfil → Mis compras y pagos): saldo a favor, cargos pendientes e historial" },
+      { icon: "📦", text: "Vender desde Inventario ahora también pide elegir socio o 'Público general' y permite fiado o pagar con saldo, igual que en Caja" },
+      { icon: "💸", text: "Caja muestra la lista de adeudos pendientes de todos los socios con acceso directo para cobrarlos" },
+      { icon: "🛠️", text: "Corregido: un cobro pagado parte con saldo y parte en efectivo aparecía como dos movimientos; y la descripción de un adeudo de producto repetía la cantidad" },
+    ],
+  },
   {
     version: "3.0.0",
     date: "2026-10-27",
