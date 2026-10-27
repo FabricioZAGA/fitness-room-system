@@ -23,6 +23,7 @@ from ..repositories.membership_repository import MembershipRepository
 from ..repositories.reservation_repository import ReservationRepository
 from ..repositories.student_repository import StudentRepository
 from ..services.event_notifier import EventNotifier
+from ..services.membership_service import MembershipService
 from ..services.reservation_service import ReservationService
 from ..utils.auth import require_student_or_staff_group
 from ..utils.exceptions import ResourceNotFoundException
@@ -200,10 +201,26 @@ def get_membership(
         return JSONResponse(content={"role": "student", "membership": None})
 
     try:
+        MembershipService(
+            membership_repo=membership_repo, student_repo=student_repo
+        ).roll_student(student_id)
         membership = membership_repo.get_active_for_student(student_id)
+        pending = membership_repo.list_pending_for_student(student_id)
+        upcoming = (
+            {
+                "membership_id": pending[0].membership_id,
+                "membership_type": pending[0].membership_type,
+                "start_date": pending[0].start_date,
+                "end_date": pending[0].end_date,
+            }
+            if pending
+            else None
+        )
 
         if not membership:
-            return JSONResponse(content={"role": "student", "membership": None})
+            return JSONResponse(
+                content={"role": "student", "membership": None, "upcoming_membership": upcoming}
+            )
 
         days_until_expiry = None
         if membership.end_date:
@@ -211,6 +228,7 @@ def get_membership(
 
         return JSONResponse(content={
             "role": "student",
+            "upcoming_membership": upcoming,
             "membership": {
                 "membership_id": membership.membership_id,
                 "student_id": membership.student_id,
@@ -703,6 +721,9 @@ def create_reservation(
     # Portal-only rule: student must hold an active, non-expired membership.
     # (Front desk can enrol without one — e.g. day pass sold on the spot.)
     membership_repo = MembershipRepository()
+    MembershipService(
+        membership_repo=membership_repo, student_repo=student_repo
+    ).roll_student(student_id)
     active_mem = membership_repo.get_active_for_student(student_id)
     if not active_mem:
         raise HTTPException(

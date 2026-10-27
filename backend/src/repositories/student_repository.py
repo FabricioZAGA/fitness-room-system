@@ -67,6 +67,16 @@ class StudentRepository(DynamoRepository):
         )
         return [StudentDynamoItem.model_validate(i) for i in items], next_key
 
+    def list_all_items(self) -> list[StudentDynamoItem]:
+        """List every student (follows pagination). Access pattern: GSI1 PK=STUDENTS."""
+        result: list[StudentDynamoItem] = []
+        last_key: dict[str, Any] | None = None
+        while True:
+            items, last_key = self.list_all(limit=500, last_evaluated_key=last_key)
+            result.extend(items)
+            if not last_key:
+                return result
+
     def list_by_status(
         self,
         status: StudentStatus,

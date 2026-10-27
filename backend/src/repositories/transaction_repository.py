@@ -61,6 +61,31 @@ class TransactionRepository(DynamoRepository):
         )
         return [TransactionDynamoItem.model_validate(i) for i in items], next_key
 
+    def list_transactions_between(
+        self, start_date: str | None, end_date: str
+    ) -> list[TransactionDynamoItem]:
+        """List every transaction from ``start_date`` to ``end_date`` inclusive.
+
+        Follows pagination. ``start_date=None`` means "from the first record".
+        Access pattern: GSI1 PK=TRANSACTIONS, SK between DATE#{start} and DATE#{end}#~.
+        """
+        low = f"DATE#{start_date}" if start_date else "DATE#"
+        high = f"DATE#{end_date}#~"
+        result: list[TransactionDynamoItem] = []
+        last_key: dict[str, Any] | None = None
+        while True:
+            items, last_key = self.query_gsi(
+                index_name="GSI1",
+                pk_name="GSI1PK",
+                pk_value="TRANSACTIONS",
+                sk_name="GSI1SK",
+                sk_between=(low, high),
+                last_evaluated_key=last_key,
+            )
+            result.extend(TransactionDynamoItem.model_validate(i) for i in items)
+            if not last_key:
+                return result
+
     def list_transactions_for_student(
         self,
         student_id: str,
@@ -160,14 +185,33 @@ class TransactionRepository(DynamoRepository):
         data: CashCutCreate,
         transactions: list[TransactionDynamoItem],
         period_start: datetime | None = None,
+        period_start_date: str | None = None,
     ) -> CashCutDynamoItem:
-        """Create a cash cut summarizing transactions for a date.
+        """Create a cash cut summarizing the transactions of its period.
 
         Access pattern: PUT PK=CASHCUT#{id}, SK=METADATA.
         """
-        item = CashCutDynamoItem.from_data(data, transactions, period_start=period_start)
+        item = CashCutDynamoItem.from_data(
+            data,
+            transactions,
+            period_start=period_start,
+            period_start_date=period_start_date,
+        )
         self.put_item(item.model_dump(mode="json"))
         return item
+
+    def get_latest_cash_cut(self) -> CashCutDynamoItem | None:
+        """Most recent cash cut of any day (None if no cut was ever made).
+
+        Access pattern: GSI1 PK=CASHCUTS, SK begins_with DATE#, descending.
+        Several cuts can share the latest date and their SK order is random
+        (cut_id), so the newest is picked by ``created_at``.
+        """
+        items, _ = self.list_cash_cuts(limit=10)
+        if not items:
+            return None
+        latest_date = items[0].cut_date
+        return max((c for c in items if c.cut_date == latest_date), key=lambda c: c.created_at)
 
     def list_cash_cuts_for_date(self, date_str: str) -> list[CashCutDynamoItem]:
         """List every cash cut of a given date, oldest first.

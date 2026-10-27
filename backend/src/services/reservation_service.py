@@ -18,6 +18,7 @@ from src.repositories.membership_plan_repository import MembershipPlanRepository
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.reservation_repository import ReservationRepository
 from src.repositories.student_repository import StudentRepository
+from src.services.membership_service import MembershipService
 from src.utils.exceptions import (
     raise_bad_request,
     raise_conflict,
@@ -45,6 +46,14 @@ class ReservationService:
         self._student_repo = student_repo or StudentRepository()
         self._membership_repo = membership_repo or MembershipRepository()
         self._plan_repo = plan_repo or MembershipPlanRepository()
+
+    def _membership_service(self) -> MembershipService:
+        """Membership service sharing this service's repositories."""
+        return MembershipService(
+            membership_repo=self._membership_repo,
+            student_repo=self._student_repo,
+            plan_repo=self._plan_repo,
+        )
 
     def create_reservation(
         self, data: ReservationCreate, *, staff_override: bool = False,
@@ -83,6 +92,9 @@ class ReservationService:
         # Only validate student existence for member reservations.
         if not is_visitor:
             self._student_repo.get_by_id(data.student_id)
+            # Promote a queued renewal / expire a finished membership before the
+            # plan rules below read the active membership.
+            self._membership_service().roll_student(data.student_id)
 
         class_item = self._class_repo.get_by_id(data.class_id)
 

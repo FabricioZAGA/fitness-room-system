@@ -22,6 +22,7 @@ CashCut:
 
 from datetime import date, datetime
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -152,6 +153,40 @@ class TransactionCreate(BaseModel):
             self.payment_method, self.amount, self.payment_splits
         )
         return self
+
+
+class ChargeCreate(BaseModel):
+    """Payload to register a Caja charge ("Otro cobro") with settlement options.
+
+    Unlike ``TransactionCreate`` (raw income record), a charge can be paid now,
+    covered with the student's balance and/or left as a debt (fiado).
+    ``student_id=None`` means "Público general" and only allows paying now.
+    """
+
+    student_id: str | None = Field(default=None, description="Student; null = Público general")
+    transaction_type: TransactionType = Field(..., description="Category of the charge")
+    amount: float = Field(..., gt=0, description="Total amount in MXN")
+    payment_status: Literal["paid", "pending"] = Field(
+        default="paid", description="'pending' = leave as debt (fiado)"
+    )
+    balance_amount: float = Field(default=0, ge=0, description="Portion paid with balance")
+    payment_method: PaymentMethod = Field(
+        default=PaymentMethod.CASH, description="Method for the portion paid now"
+    )
+    payment_splits: list[PaymentSplit] | None = Field(
+        default=None,
+        description="Breakdown per method — required when payment_method is 'mixed'",
+    )
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class ChargeResponse(BaseModel):
+    """Outcome of registering a charge."""
+
+    transaction_id: str | None = None
+    debt_id: str | None = None
+    balance_applied: float = 0
+    amount_paid_now: float = 0
 
 
 class TransactionUpdate(BaseModel):
@@ -286,18 +321,38 @@ class CashCutResponse(TimestampedModel):
     notes: str | None
     period_start: datetime | None = Field(
         default=None,
-        description="Exclusive lower bound: previous cut of the same day (None = start of day)",
+        description="Exclusive lower bound: previous cash cut (None = no previous cut)",
+    )
+    period_start_date: str | None = Field(
+        default=None,
+        description="First transaction date (CDMX) covered by the cut",
     )
     transactions: list[TransactionResponse] = Field(default_factory=list)
+
+
+class OpenPeriodResponse(BaseModel):
+    """The open cash-register period: everything registered since the last cut."""
+
+    last_cut_at: datetime | None
+    period_start_date: str
+    includes_previous_days: bool
+    transaction_count: int
+    total_cash: float
+    total_card: float
+    total_transfer: float
+    grand_total: float
+    by_type: dict[str, float]
+    transactions: list[TransactionResponse]
 
 
 class CashCutDynamoItem(BaseModel):
     """DynamoDB item for a cash cut record.
 
     A cut covers transactions with ``period_start < created_at <= created_at(cut)``
-    for ``cut_date``. Multiple cuts per day are allowed; each one starts where the
-    previous one ended so the register "resets to zero" right after a cut.
-    Legacy cuts (no ``period_start``) cover the whole day.
+    from ``period_start_date`` to ``cut_date`` (v3.0.0: the period spans days —
+    the register accumulates until a cut is made, it no longer resets at midnight).
+    Each cut starts where the previous one ended so the register "resets to zero"
+    right after a cut. Legacy cuts (no ``period_start``) cover the whole day.
     """
 
     PK: str
@@ -314,14 +369,20 @@ class CashCutDynamoItem(BaseModel):
     transaction_count: int
     notes: str | None
     period_start: datetime | None = None
+    period_start_date: str | None = None
     is_period_cut: bool = False
     created_at: datetime
     updated_at: datetime
 
+    @property
+    def first_covered_date(self) -> str:
+        """First transaction date (YYYY-MM-DD) that can belong to this cut."""
+        return self.period_start_date or self.cut_date
+
     def covers(self, tx: TransactionDynamoItem) -> bool:
-        """Whether a transaction of ``cut_date`` belongs to this cut."""
+        """Whether a transaction (within the cut's date range) belongs to this cut."""
         if not self.is_period_cut:
-            return True
+            return tx.transaction_date == self.cut_date
         if self.period_start is not None and tx.created_at <= self.period_start:
             return False
         return tx.created_at <= self.created_at
@@ -333,6 +394,7 @@ class CashCutDynamoItem(BaseModel):
         transactions: list[TransactionDynamoItem],
         period_start: datetime | None = None,
         now: datetime | None = None,
+        period_start_date: str | None = None,
     ) -> "CashCutDynamoItem":
         cut_id = new_id()
         now = now or utc_now()
@@ -357,6 +419,7 @@ class CashCutDynamoItem(BaseModel):
             transaction_count=len(transactions),
             notes=data.notes,
             period_start=period_start,
+            period_start_date=period_start_date or cut_date_str,
             is_period_cut=True,
             created_at=now,
             updated_at=now,
@@ -375,6 +438,7 @@ class CashCutDynamoItem(BaseModel):
             transaction_count=self.transaction_count,
             notes=self.notes,
             period_start=self.period_start,
+            period_start_date=self.first_covered_date,
             transactions=transactions or [],
             created_at=self.created_at,
             updated_at=self.updated_at,

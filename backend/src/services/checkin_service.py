@@ -7,6 +7,7 @@ from src.models.common import mexico_now, mexico_today
 from src.models.student import StudentStatus
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.student_repository import StudentRepository
+from src.services.membership_service import MembershipService
 
 logger = Logger()
 
@@ -65,7 +66,11 @@ class CheckinService:
                 reason=reason,
             )
 
-        # Step 3: Check active membership
+        # Step 3: Check active membership (after promoting a queued renewal /
+        # expiring a finished one, so the first day of a renewal grants access)
+        MembershipService(
+            membership_repo=self._membership_repo, student_repo=self._student_repo
+        ).roll_student(student_id)
         active_membership = self._membership_repo.get_active_for_student(student_id)
         if not active_membership:
             item = CheckinDynamoItem.create(student_id, False, CheckinReason.NO_MEMBERSHIP)

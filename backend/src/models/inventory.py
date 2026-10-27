@@ -20,6 +20,7 @@ ProductSale:
 
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -161,15 +162,22 @@ class ProductSaleCreate(BaseModel):
 
     product_id: str = Field(..., description="Product being sold")
     quantity: int = Field(default=1, ge=1, description="Number of units sold")
-    student_id: str | None = Field(default=None, description="Buyer if a gym member")
+    student_id: str | None = Field(
+        default=None, description="Buyer; null = 'Público general' (pay-now only)"
+    )
     payment_method: str = Field(..., description="cash | card | transfer | mixed")
     payment_splits: list[PaymentSplit] | None = Field(
         default=None,
         description="Breakdown per method — required when payment_method is 'mixed'",
     )
-    payment_status: str = Field(
+    payment_status: Literal["paid", "pending"] = Field(
         default="paid",
         description="Payment status: paid | pending (pending = fiado/debt)",
+    )
+    balance_amount: float = Field(
+        default=0,
+        ge=0,
+        description="Portion of the total covered with the buyer's balance (saldo a favor)",
     )
     notes: str | None = Field(default=None, max_length=500)
 

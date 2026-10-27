@@ -1,20 +1,22 @@
 """Student service — business logic for student management.
 
-Business rules for status transitions:
-- deactivate: student → inactive, active membership → cancelled
-- suspend:    student → suspended, active membership → frozen
-- unsuspend:  student → active, frozen membership → unfrozen
-- activate:   student → active (from inactive), no membership cascade
+Business rules for status transitions (v3.0.0 — memberships are never cancelled):
+- deactivate: student → inactive,  active membership → frozen (indefinitely)
+- suspend:    student → suspended, active membership → frozen (indefinitely)
+- unsuspend:  student → active,    frozen membership → unfrozen
+- activate:   student → active,    frozen membership → unfrozen
+Unfreezing credits exactly the days the membership was frozen.
 """
 
 from typing import Any
 
 from aws_lambda_powertools import Logger
 
-from src.models.membership import MembershipStatus, MembershipUpdate
+from src.models.membership import MembershipDynamoItem
 from src.models.student import StudentCreate, StudentResponse, StudentStatus, StudentUpdate
 from src.repositories.membership_repository import MembershipRepository
 from src.repositories.student_repository import StudentRepository
+from src.services.membership_service import MembershipService
 from src.services.uniqueness_service import UniquenessService
 from src.utils.exceptions import ResourceAlreadyExistsException, raise_bad_request, raise_conflict
 
@@ -28,9 +30,13 @@ class StudentService:
         self,
         repository: StudentRepository | None = None,
         membership_repo: MembershipRepository | None = None,
+        membership_service: MembershipService | None = None,
     ) -> None:
         self._repo = repository or StudentRepository()
         self._membership_repo = membership_repo or MembershipRepository()
+        self._memberships = membership_service or MembershipService(
+            membership_repo=self._membership_repo, student_repo=self._repo
+        )
         self._uniqueness = UniquenessService(
             student_repo=self._repo,
         )
@@ -136,15 +142,15 @@ class StudentService:
         self._repo.delete(student_id)
 
     def activate_student(self, student_id: str) -> StudentResponse:
-        """Set a student's status to active (from inactive).
+        """Set a student's status to active (from inactive or suspended).
 
-        Does NOT unfreeze memberships — inactive students had their
-        membership cancelled, so a new one must be assigned.
+        Cascade: frozen membership → unfrozen (crediting the days frozen).
         """
         student = self._repo.get_by_id(student_id)
         if student.status == StudentStatus.ACTIVE.value:
             raise_bad_request("El miembro ya está activo.")
         logger.info("Activating student", extra={"student_id": student_id})
+        self._unfreeze_current(student_id, reason="activate")
         return self.update_student(
             student_id, StudentUpdate(status=StudentStatus.ACTIVE)
         )
@@ -152,38 +158,15 @@ class StudentService:
     def deactivate_student(self, student_id: str) -> StudentResponse:
         """Set a student's status to inactive.
 
-        Cascade: active membership → cancelled automatically.
+        Cascade: active membership → frozen indefinitely (memberships are not
+        refunded, so they are never cancelled). Queued renewals stay queued.
         """
         student = self._repo.get_by_id(student_id)
         if student.status == StudentStatus.INACTIVE.value:
             raise_bad_request("El miembro ya está inactivo.")
 
         logger.info("Deactivating student", extra={"student_id": student_id})
-
-        active_m = self._membership_repo.get_active_for_student(student_id)
-        if active_m:
-            logger.info(
-                "Cancelling active membership on deactivate",
-                extra={"membership_id": active_m.membership_id},
-            )
-            self._membership_repo.update(
-                student_id,
-                active_m.membership_id,
-                MembershipUpdate(status=MembershipStatus.CANCELLED),
-            )
-
-        frozen_m = self._get_frozen_membership(student_id)
-        if frozen_m:
-            logger.info(
-                "Cancelling frozen membership on deactivate",
-                extra={"membership_id": frozen_m.membership_id},
-            )
-            self._membership_repo.update(
-                student_id,
-                frozen_m.membership_id,
-                MembershipUpdate(status=MembershipStatus.CANCELLED),
-            )
-
+        self._freeze_current(student_id, reason="deactivate")
         return self.update_student(
             student_id, StudentUpdate(status=StudentStatus.INACTIVE)
         )
@@ -191,7 +174,7 @@ class StudentService:
     def suspend_student(self, student_id: str) -> StudentResponse:
         """Temporarily suspend a student.
 
-        Cascade: active membership → frozen automatically.
+        Cascade: active membership → frozen indefinitely.
         """
         student = self._repo.get_by_id(student_id)
         if student.status == StudentStatus.SUSPENDED.value:
@@ -202,17 +185,7 @@ class StudentService:
             )
 
         logger.info("Suspending student", extra={"student_id": student_id})
-
-        active_m = self._membership_repo.get_active_for_student(student_id)
-        if active_m:
-            logger.info(
-                "Freezing active membership on suspend",
-                extra={"membership_id": active_m.membership_id},
-            )
-            self._membership_repo.freeze(
-                student_id, active_m.membership_id, days=365
-            )
-
+        self._freeze_current(student_id, reason="suspend")
         return self.update_student(
             student_id, StudentUpdate(status=StudentStatus.SUSPENDED)
         )
@@ -229,25 +202,30 @@ class StudentService:
             )
 
         logger.info("Unsuspending student", extra={"student_id": student_id})
-
-        frozen_m = self._get_frozen_membership(student_id)
-        if frozen_m:
-            logger.info(
-                "Unfreezing membership on unsuspend",
-                extra={"membership_id": frozen_m.membership_id},
-            )
-            self._membership_repo.unfreeze(student_id, frozen_m.membership_id)
-
+        self._unfreeze_current(student_id, reason="unsuspend")
         return self.update_student(
             student_id, StudentUpdate(status=StudentStatus.ACTIVE)
         )
 
-    def _get_frozen_membership(self, student_id: str) -> Any:
-        """Find the first frozen membership for a student, or None."""
-        items, _ = self._membership_repo.list_for_student(
-            student_id, limit=50
+    def _freeze_current(self, student_id: str, reason: str) -> MembershipDynamoItem | None:
+        """Freeze the student's active membership indefinitely, if any."""
+        self._memberships.roll_student(student_id)
+        active_m = self._membership_repo.get_active_for_student(student_id)
+        if not active_m:
+            return None
+        logger.info(
+            "Freezing active membership",
+            extra={"membership_id": active_m.membership_id, "reason": reason},
         )
-        for m in items:
-            if m.status == MembershipStatus.FROZEN.value:
-                return m
-        return None
+        return self._memberships.freeze_item(student_id, active_m.membership_id, days=None)
+
+    def _unfreeze_current(self, student_id: str, reason: str) -> MembershipDynamoItem | None:
+        """Unfreeze the student's frozen membership, if any."""
+        frozen_m = self._memberships.get_frozen_membership(student_id)
+        if not frozen_m:
+            return None
+        logger.info(
+            "Unfreezing membership",
+            extra={"membership_id": frozen_m.membership_id, "reason": reason},
+        )
+        return self._memberships.unfreeze_item(student_id, frozen_m.membership_id)

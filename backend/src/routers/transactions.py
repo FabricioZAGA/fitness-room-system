@@ -8,6 +8,9 @@ from src.models.common import MessageResponse
 from src.models.transaction import (
     CashCutCreate,
     CashCutResponse,
+    ChargeCreate,
+    ChargeResponse,
+    OpenPeriodResponse,
     TransactionCreate,
     TransactionResponse,
     TransactionUpdate,
@@ -125,9 +128,9 @@ def list_student_transactions(
     "/summary/today",
     summary="Today's Income Summary",
     description=(
-        "Quick cash register summary for today's transactions. "
-        "scope=day (default) covers the whole day; scope=period only covers "
-        "transactions since the last cash cut."
+        "Quick cash register summary. scope=day (default) covers today's "
+        "transactions; scope=period covers every transaction since the last "
+        "cash cut, across days."
     ),
 )
 def today_summary(
@@ -138,17 +141,39 @@ def today_summary(
     return service.get_today_summary(scope=scope)
 
 
-@router.get(
-    "/{transaction_id}",
-    response_model=TransactionResponse,
-    summary="Get Transaction",
+@router.post(
+    "/charge",
+    response_model=ChargeResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register Charge",
+    description=(
+        "Register a Caja charge that can be paid now (cash/card/transfer/mixed), "
+        "covered with the student's balance and/or left as a debt (fiado). "
+        "student_id=null ('Público general') only allows paying now."
+    ),
 )
-def get_transaction(
-    transaction_id: str,
+def register_charge(
+    data: ChargeCreate,
     _current_user: dict[str, Any] = Depends(get_current_user),
     service: TransactionService = Depends(get_service),
-) -> TransactionResponse:
-    return service.get_transaction(transaction_id)
+) -> ChargeResponse:
+    return service.register_charge(data)
+
+
+@router.get(
+    "/open-period",
+    response_model=OpenPeriodResponse,
+    summary="Open Cash Register Period",
+    description=(
+        "Every transaction registered since the last cash cut (of any day). "
+        "The register accumulates until a cut is made."
+    ),
+)
+def open_period(
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: TransactionService = Depends(get_service),
+) -> OpenPeriodResponse:
+    return service.get_open_period()
 
 
 # ---------------------------------------------------------------------------
@@ -161,8 +186,8 @@ def get_transaction(
     status_code=status.HTTP_201_CREATED,
     summary="Create Cash Cut",
     description=(
-        "Perform an end-of-day cash cut (corte de caja). "
-        "Aggregates all transactions for the given date and stores a summary."
+        "Perform a cash cut (corte de caja). Aggregates every transaction registered "
+        "since the previous cut (of any day) and resets the register to zero."
     ),
 )
 def create_cash_cut(
@@ -200,3 +225,16 @@ def get_cash_cut(
     service: TransactionService = Depends(get_service),
 ) -> CashCutResponse:
     return service.get_cash_cut(cut_id)
+
+
+@router.get(
+    "/{transaction_id}",
+    response_model=TransactionResponse,
+    summary="Get Transaction",
+)
+def get_transaction(
+    transaction_id: str,
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: TransactionService = Depends(get_service),
+) -> TransactionResponse:
+    return service.get_transaction(transaction_id)

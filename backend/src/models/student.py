@@ -26,7 +26,7 @@ class StudentStatus(StrEnum):
     """Student lifecycle status.
 
     - active: can check-in and use the gym
-    - inactive: deactivated (voluntary or involuntary), membership cancelled
+    - inactive: deactivated (voluntary or involuntary), membership frozen
     - suspended: temporarily blocked (conduct, debt), membership frozen
     """
 
@@ -117,9 +117,10 @@ class StudentResponse(TimestampedModel):
     status: StudentStatus
     notes: str | None = None
     full_name: str = Field(default="", description="Computed full name")
+    is_birthday_today: bool = Field(default=False, description="Birthday today (CDMX)")
 
     def model_post_init(self, __context: object) -> None:
-        """Compute full_name and age after initialization."""
+        """Compute full_name, age and birthday flag after initialization."""
         if not self.full_name:
             self.full_name = f"{self.first_name} {self.last_name}"
         if self.birth_date:
@@ -128,6 +129,22 @@ class StudentResponse(TimestampedModel):
                 today.year - self.birth_date.year
                 - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
             )
+            self.is_birthday_today = is_birthday(self.birth_date, today)
+
+
+def is_birthday(birth_date: date, today: date) -> bool:
+    """Whether ``today`` is the birthday for ``birth_date``.
+
+    People born on Feb 29 celebrate on Feb 28 in non-leap years.
+    """
+    if (birth_date.month, birth_date.day) == (today.month, today.day):
+        return True
+    is_leap = today.year % 4 == 0 and (today.year % 100 != 0 or today.year % 400 == 0)
+    return (
+        (birth_date.month, birth_date.day) == (2, 29)
+        and not is_leap
+        and (today.month, today.day) == (2, 28)
+    )
 
 
 class StudentDynamoItem(BaseModel):

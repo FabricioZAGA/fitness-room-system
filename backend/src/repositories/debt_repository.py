@@ -3,6 +3,7 @@
 from typing import Any
 
 from src.models.debt import StudentDebtDynamoItem
+from src.models.transaction import TransactionType
 from src.repositories.dynamo_repository import DynamoRepository
 from src.utils.exceptions import ResourceNotFoundException
 
@@ -14,22 +15,26 @@ class DebtRepository(DynamoRepository):
         self,
         student_id: str,
         sale_id: str,
-        product_id: str,
-        product_name: str,
         amount: float,
+        description: str,
+        concept_type: TransactionType = TransactionType.PRODUCT,
+        product_id: str = "",
         quantity: int = 1,
+        reference_id: str | None = None,
     ) -> StudentDebtDynamoItem:
-        """Create a new debt record for an unpaid product sale.
+        """Create a new debt record for an unpaid charge.
 
         Access pattern: PUT PK=STUDENT#{id}, SK=DEBT#{sale_id}.
         """
         item = StudentDebtDynamoItem.create(
             student_id=student_id,
             sale_id=sale_id,
-            product_id=product_id,
-            product_name=product_name,
             amount=amount,
+            description=description,
+            concept_type=concept_type,
+            product_id=product_id,
             quantity=quantity,
+            reference_id=reference_id,
         )
         self.put_item(item.model_dump(mode="json"))
         return item

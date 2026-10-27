@@ -28,7 +28,8 @@ class BalanceMovementType(StrEnum):
     """Types of balance movements."""
 
     DEPOSIT = "deposit"                  # Money added by the student
-    MEMBERSHIP_APPLY = "membership_apply"  # Balance applied to a membership renewal
+    MEMBERSHIP_APPLY = "membership_apply"  # LEGACY: balance applied to a membership (≤ v2.x)
+    CHARGE_APPLY = "charge_apply"        # Balance used to pay any Caja charge (v3.0.0+)
     WITHDRAWAL = "withdrawal"            # Manual adjustment / refund
 
 

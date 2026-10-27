@@ -419,6 +419,35 @@ class ApiStack(cdk.Stack):
             )
         )
 
+        # ── EventBridge nightly membership roll ────────────────────────────────
+        # Fires every day at 00:05 CDMX (06:05 UTC, UTC-6): expires finished
+        # memberships, activates queued renewals and ends fixed-length freezes.
+        roll_rule = events.Rule(
+            self,
+            "DailyMembershipRollRule",
+            rule_name=f"fitness-room-daily-membership-roll-{env_name}",
+            description="Expire finished memberships and activate queued renewals",
+            schedule=events.Schedule.cron(
+                hour="6",
+                minute="5",
+                week_day="*",
+                month="*",
+                year="*",
+            ),
+        )
+        roll_rule.add_target(
+            targets.LambdaFunction(
+                self.api_function,
+                event=events.RuleTargetInput.from_object(
+                    {
+                        "source": "aws.events",
+                        "detail-type": "Scheduled Event",
+                        "detail": {"action": "roll_memberships"},
+                    }
+                ),
+            )
+        )
+
         cdk.CfnOutput(
             self,
             "ApiUrl",

@@ -211,13 +211,21 @@ def handler(event: dict[str, Any], context: LambdaContext) -> dict[str, Any]:
 
 
 def _handle_scheduled_event(event: dict[str, Any]) -> dict[str, Any]:
-    """Handle EventBridge scheduled notification triggers."""
+    """Handle EventBridge scheduled triggers (notifications and membership roll)."""
+    action = event.get("detail", {}).get("action", "send_all")
+    results: dict[str, Any] = {}
+
+    if action == "roll_memberships":
+        from src.services.membership_service import MembershipService
+
+        results["roll"] = MembershipService().roll_all()
+        logger.info("Scheduled membership roll done", **results["roll"])
+        return {"statusCode": 200, "body": results}
+
     from src.services.notification_service import NotificationService
 
     cfg = get_settings()
     svc = NotificationService()
-    action = event.get("detail", {}).get("action", "send_all")
-    results: dict[str, Any] = {}
 
     if action in ("send_all", "send_expiry"):
         result = svc.send_expiry_reminders(

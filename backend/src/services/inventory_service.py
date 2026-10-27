@@ -11,17 +11,12 @@ from src.models.inventory import (
     ProductSaleResponse,
     ProductUpdate,
 )
-from src.models.transaction import (
-    PaymentMethod,
-    PaymentSplit,
-    TransactionCreate,
-    TransactionType,
-    validate_payment_splits,
-)
+from src.models.transaction import TransactionType
 from src.repositories.debt_repository import DebtRepository
 from src.repositories.inventory_repository import InventoryRepository
 from src.repositories.transaction_repository import TransactionRepository
 from src.services.notification_service import NotificationService
+from src.services.settlement_service import ChargeRequest, PaymentSettlementService
 from src.utils.exceptions import InvalidOperationException
 
 logger = Logger()
@@ -39,6 +34,9 @@ class InventoryService:
         self._inventory = inventory_repo or InventoryRepository()
         self._transactions = transaction_repo or TransactionRepository()
         self._debts = debt_repo or DebtRepository()
+        self._settlement = PaymentSettlementService(
+            transaction_repo=self._transactions, debt_repo=self._debts
+        )
 
     # ------------------------------------------------------------------
     # Products
@@ -196,16 +194,10 @@ class InventoryService:
                 f"Insufficient stock: requested {data.quantity}, available {product.stock}"
             )
 
-        # Validate mixed-payment breakdown against the server-side total
-        # before touching stock, so an invalid split never leaves side effects.
-        payment_splits: list[PaymentSplit] | None = None
-        if getattr(data, "payment_status", "paid") != "pending":
-            try:
-                payment_splits = validate_payment_splits(
-                    data.payment_method, product.price * data.quantity, data.payment_splits
-                )
-            except ValueError as exc:
-                raise InvalidOperationException(str(exc)) from exc
+        # Validate the payment (balance, fiado, mixed breakdown) against the
+        # server-side total before touching stock, so an invalid charge never
+        # leaves side effects.
+        self._settlement.validate(self._charge_for(data, product.name, product.price, None))
 
         # Decrement stock atomically
         self._inventory.decrement_stock(data.product_id, data.quantity)
@@ -235,50 +227,30 @@ class InventoryService:
         # Record the sale
         sale_item = self._inventory.create_sale(data, unit_price=product.price)
 
-        is_pending = getattr(data, "payment_status", "paid") == "pending"
-
-        if is_pending:
-            # Fiado: create debt record instead of transaction
-            if not data.student_id:
-                raise InvalidOperationException(
-                    "Ventas pendientes de pago requieren un alumno asignado"
-                )
-            self._debts.create_debt(
-                student_id=data.student_id,
-                sale_id=sale_item.sale_id,
-                product_id=data.product_id,
-                product_name=product.name,
-                amount=sale_item.total_amount,
-                quantity=data.quantity,
-            )
-            logger.info(
-                "Pending sale recorded as debt",
-                extra={
-                    "student_id": data.student_id,
-                    "sale_id": sale_item.sale_id,
-                    "amount": sale_item.total_amount,
-                },
-            )
-        else:
-            # Paid: create matching transaction
-            try:
-                payment_method = PaymentMethod(data.payment_method)
-            except ValueError:
-                payment_method = PaymentMethod.CASH
-
-            self._transactions.create_transaction(
-                TransactionCreate(
-                    student_id=data.student_id,
-                    transaction_type=TransactionType.PRODUCT,
-                    amount=sale_item.total_amount,
-                    payment_method=payment_method,
-                    payment_splits=payment_splits,
-                    reference_id=sale_item.sale_id,
-                    notes=f"Venta: {product.name} x{data.quantity}",
-                )
-            )
+        self._settlement.settle(
+            self._charge_for(data, product.name, product.price, sale_item.sale_id)
+        )
 
         return sale_item.to_response(product_name=product.name)
+
+    @staticmethod
+    def _charge_for(
+        data: ProductSaleCreate, product_name: str, unit_price: float, sale_id: str | None
+    ) -> ChargeRequest:
+        """Build the Caja charge for a product sale."""
+        return ChargeRequest(
+            student_id=data.student_id,
+            amount=round(unit_price * data.quantity, 2),
+            concept_type=TransactionType.PRODUCT,
+            description=f"Venta: {product_name} x{data.quantity}",
+            reference_id=sale_id,
+            payment_status=data.payment_status,
+            balance_amount=data.balance_amount,
+            payment_method=data.payment_method,
+            payment_splits=data.payment_splits,
+            quantity=data.quantity,
+            product_id=data.product_id,
+        )
 
     def list_sales_by_date(
         self,

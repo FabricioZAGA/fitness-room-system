@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 from src.models.common import PaginatedResponse
 from src.models.membership import (
     FreezeMembershipRequest,
+    LapsedStudentResponse,
     MembershipCreate,
     MembershipResponse,
     MembershipUpdate,
@@ -29,7 +30,10 @@ def get_service() -> MembershipService:
     response_model=MembershipResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Assign Membership",
-    description="Assign a new membership plan to a student. Student must not have an active membership.",  # noqa: E501
+    description=(
+        "Assign a new membership plan to a student. If the student still has a running "
+        "membership the new one is queued as 'pending' and starts when the current one ends."
+    ),
 )
 def assign_membership(
     data: MembershipCreate,
@@ -62,14 +66,14 @@ def assign_membership(
     summary="List All Memberships",
     description=(
         "List all memberships across all students. "
-        "Optionally filter by status (active, frozen, expired, cancelled). "
+        "Optionally filter by status (active, pending, frozen, expired). "
         "Items with end_date < today are auto-classified as 'expired'."
     ),
 )
 def list_all_memberships(
     status_filter: str | None = Query(
         default=None,
-        description="Optional status filter: active | frozen | expired | cancelled",
+        description="Optional status filter: active | pending | frozen | expired",
     ),
     limit: int = Query(default=200, ge=1, le=500),
     last_key: str | None = Query(default=None, description="Pagination token"),
@@ -107,6 +111,23 @@ def list_expiring_soon(
     """List memberships expiring soon."""
     items, _ = service.list_expiring_soon(days=days)
     return items
+
+
+@router.get(
+    "/lapsed",
+    response_model=list[LapsedStudentResponse],
+    summary="List Lapsed Students",
+    description=(
+        "Students that are not inactive and have no active, frozen or queued membership "
+        "(the 'Vencidas' list — people who should renew)."
+    ),
+)
+def list_lapsed_students(
+    _current_user: dict[str, Any] = Depends(get_current_user),
+    service: MembershipService = Depends(get_service),
+) -> list[LapsedStudentResponse]:
+    """List students who need to renew."""
+    return service.list_lapsed_students()
 
 
 @router.get(
@@ -183,22 +204,6 @@ def update_membership(
 ) -> MembershipResponse:
     """Update a membership."""
     return service.update_membership(student_id, membership_id, data)
-
-
-@router.post(
-    "/student/{student_id}/{membership_id}/cancel",
-    response_model=MembershipResponse,
-    summary="Cancel Membership",
-    description="Cancel an active membership. The student will no longer have access.",
-)
-def cancel_membership(
-    student_id: str,
-    membership_id: str,
-    _current_user: dict[str, Any] = Depends(get_current_user),
-    service: MembershipService = Depends(get_service),
-) -> MembershipResponse:
-    """Cancel a membership."""
-    return service.cancel_membership(student_id, membership_id)
 
 
 @router.post(

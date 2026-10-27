@@ -4,7 +4,7 @@ from typing import Any
 
 from aws_lambda_powertools import Logger
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.models.class_model import ClassResponse
 from src.models.instructor import InstructorStatus
@@ -27,6 +27,15 @@ class MembershipWithStudent(MembershipResponse):
     student_name: str = ""
 
 
+class BirthdayStudent(BaseModel):
+    """A student whose birthday is today."""
+
+    student_id: str
+    full_name: str
+    photo_url: str | None = None
+    age: int | None = None
+
+
 class DashboardStats(BaseModel):
     """Dashboard statistics response — all data in one call."""
 
@@ -36,6 +45,7 @@ class DashboardStats(BaseModel):
     expiring_memberships_7d: int
     upcoming_classes: list[ClassResponse]
     expiring_memberships: list[MembershipWithStudent]
+    birthdays_today: list[BirthdayStudent] = Field(default_factory=list)
 
 
 @router.get(
@@ -138,6 +148,26 @@ def get_dashboard_stats(
                 getattr(m, "membership_id", "?"),
             )
 
+    # Birthdays today (non-inactive students only)
+    birthdays_today: list[BirthdayStudent] = []
+    try:
+        for student in student_repo.list_all_items():
+            if student.status == StudentStatus.INACTIVE.value or not student.birth_date:
+                continue
+            r = student.to_response()
+            if r.is_birthday_today:
+                birthdays_today.append(
+                    BirthdayStudent(
+                        student_id=r.student_id,
+                        full_name=r.full_name,
+                        photo_url=r.photo_url,
+                        age=r.age,
+                    )
+                )
+        birthdays_today.sort(key=lambda b: b.full_name)
+    except Exception:  # noqa: BLE001
+        logger.exception("stats: birthdays_today failed")
+
     return DashboardStats(
         active_students=active_students,
         today_classes=today_classes,
@@ -145,4 +175,5 @@ def get_dashboard_stats(
         expiring_memberships_7d=expiring_memberships_7d,
         upcoming_classes=upcoming_classes,
         expiring_memberships=expiring_memberships,
+        birthdays_today=birthdays_today,
     )

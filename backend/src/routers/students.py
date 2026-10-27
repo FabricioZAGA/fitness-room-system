@@ -185,7 +185,10 @@ def update_student(
     "/{student_id}/activate",
     response_model=StudentResponse,
     summary="Activate Student",
-    description="Set the student's status to 'active'.",
+    description=(
+        "Set the student's status to 'active'. "
+        "Cascade: a frozen membership is unfrozen, crediting the days it was frozen."
+    ),
 )
 def activate_student(
     student_id: str,
@@ -202,7 +205,8 @@ def activate_student(
     summary="Deactivate Student",
     description=(
         "Set the student's status to 'inactive'. "
-        "Cascade: any active/frozen membership is automatically cancelled."
+        "Cascade: the active membership is frozen (no refunds — never cancelled) "
+        "and unfrozen with its remaining days when the student is reactivated."
     ),
 )
 def deactivate_student(
@@ -210,7 +214,7 @@ def deactivate_student(
     _current_user: dict[str, Any] = Depends(get_current_user),
     service: StudentService = Depends(get_service),
 ) -> StudentResponse:
-    """Deactivate a student (cancels active membership)."""
+    """Deactivate a student (freezes active membership)."""
     return service.deactivate_student(student_id)
 
 
