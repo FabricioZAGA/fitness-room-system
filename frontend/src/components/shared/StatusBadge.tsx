@@ -27,8 +27,8 @@ const MEMBERSHIP_STATUS_LABELS: Record<MembershipStatus, string> = {
   active: "Activa",
   frozen: "Congelada",
   expired: "Vencida",
-  cancelled: "Cancelada",
-  pending: "Pendiente",
+  cancelled: "Vencida", // legacy — memberships are no longer cancelled
+  pending: "Programada",
 };
 
 const RESERVATION_STATUS_STYLES: Record<ReservationStatus, string> = {

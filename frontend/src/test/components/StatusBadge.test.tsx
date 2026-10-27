@@ -34,14 +34,14 @@ describe("MembershipStatusBadge", () => {
     expect(screen.getByText("Vencida")).toBeInTheDocument();
   });
 
-  it("renders 'Cancelada' for cancelled status", () => {
+  it("renders legacy cancelled memberships as 'Vencida' (no refunds since v3.0.0)", () => {
     render(<MembershipStatusBadge status="cancelled" />);
-    expect(screen.getByText("Cancelada")).toBeInTheDocument();
+    expect(screen.getByText("Vencida")).toBeInTheDocument();
   });
 
-  it("renders 'Pendiente' for pending status", () => {
+  it("renders 'Programada' for pending (queued renewal) status", () => {
     render(<MembershipStatusBadge status="pending" />);
-    expect(screen.getByText("Pendiente")).toBeInTheDocument();
+    expect(screen.getByText("Programada")).toBeInTheDocument();
   });
 });
 

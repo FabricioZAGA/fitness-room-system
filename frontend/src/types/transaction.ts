@@ -55,6 +55,26 @@ export interface CreateTransactionRequest {
   notes?: string;
 }
 
+/** Caja charge with settlement options (POST /transactions/charge). */
+export interface CreateChargeRequest {
+  /** Omit for "Público general" (pay-now only). */
+  student_id?: string;
+  transaction_type: TransactionType;
+  amount: number;
+  payment_status?: "paid" | "pending";
+  balance_amount?: number;
+  payment_method?: PaymentMethod;
+  payment_splits?: PaymentSplit[];
+  notes?: string;
+}
+
+export interface ChargeResult {
+  transaction_id: string | null;
+  debt_id: string | null;
+  balance_applied: number;
+  amount_paid_now: number;
+}
+
 export interface UpdateTransactionRequest {
   amount?: number;
   payment_method?: PaymentMethod;
@@ -73,6 +93,8 @@ export interface CashCut {
   transaction_count: number;
   notes: string | null;
   period_start?: string | null;
+  /** First transaction date covered (cuts can span several days since v3.0.0). */
+  period_start_date?: string | null;
   transactions: Transaction[];
   created_at: string;
   updated_at: string;
@@ -83,13 +105,31 @@ export interface CreateCashCutRequest {
   notes?: string;
 }
 
-/** "day" = whole day (dashboard) · "period" = since the last cash cut (Caja). */
+/** "day" = whole day (dashboard) · "period" = since the last cash cut, across days (Caja). */
 export type SummaryScope = "day" | "period";
+
+/** Everything registered since the last cash cut (GET /transactions/open-period). */
+export interface OpenPeriod {
+  last_cut_at: string | null;
+  /** Oldest open transaction date (today when empty). */
+  period_start_date: string;
+  /** True when the open period still holds movements from previous days. */
+  includes_previous_days: boolean;
+  transaction_count: number;
+  total_cash: number;
+  total_card: number;
+  total_transfer: number;
+  grand_total: number;
+  by_type: Record<string, number>;
+  /** Newest first. */
+  transactions: Transaction[];
+}
 
 export interface TodaySummary {
   date: string;
   scope?: SummaryScope;
   last_cut_at?: string | null;
+  period_start_date?: string;
   transaction_count: number;
   total_cash: number;
   total_card: number;

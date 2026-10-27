@@ -7,6 +7,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useCallback } from "react";
 import jsQR from "jsqr";
+import { useTranslation } from "react-i18next";
 import { useCheckinWithAttendance, useStudent } from "@/hooks/useStudents";
 import { useActiveMembership } from "@/hooks/useMemberships";
 import { useReservationsForStudent } from "@/hooks/useReservations";
@@ -18,17 +19,39 @@ import {
   Camera,
   ArrowLeft,
   CalendarCheck,
+  Cake,
 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 import logoFr from "@/assets/logo-fr.png";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
 import { CLASS_TYPE_LABELS } from "@/types/class";
+import type { Student } from "@/types/student";
 
 export const Route = createFileRoute("/checkin-kiosk")({
   component: KioskPage,
 });
 
 type ScanState = "scanning" | "found";
+
+/** Big, celebratory birthday greeting for the entrance screen. */
+function KioskBirthday({ student }: { student: Student }): React.JSX.Element | null {
+  const { t } = useTranslation();
+  if (!student.is_birthday_today) return null;
+  return (
+    <div
+      className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-[--gold] px-5 py-4"
+      style={{ background: "linear-gradient(135deg, var(--gold-bg) 0%, var(--bg-elevated) 100%)" }}
+    >
+      <Cake className="h-9 w-9 shrink-0 text-[--gold]" />
+      <div className="text-left">
+        <p className="text-2xl font-bold text-[--gold]">
+          {t("birthday.kioskTitle", { name: student.first_name })}
+        </p>
+        <p className="text-sm text-[--tx-muted]">{t("birthday.kioskSubtitle")}</p>
+      </div>
+    </div>
+  );
+}
 
 // ─── Student panel with class selector ────────────────────────────────────────
 
@@ -143,6 +166,7 @@ function StudentPanel({
           </div>
         )}
         <p className="text-2xl font-bold text-[--tx-primary]">{student.full_name}</p>
+        <KioskBirthday student={student} />
 
         {isSuccess && canEnter ? (
           <>
@@ -220,6 +244,7 @@ function StudentPanel({
           </p>
         )}
       </div>
+      <KioskBirthday student={student} />
 
       {/* Access denied early exit */}
       {!canEnter && (

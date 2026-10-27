@@ -118,7 +118,8 @@
     "viewProfile": "Ver Perfil Completo",
     "historyCount": "Historial de membresías ({{count}})",
     "balanceBadge": "Saldo: {{amount}}",
-    "debtBanner": "⚠️ Debe {{amount}}"
+    "debtBanner": "⚠️ Debe {{amount}}",
+    "queuedRenewal": "Renovación programada: inicia el {{date}}."
   },
   "students": {
     "title": "Miembros",
@@ -269,14 +270,21 @@
     "tabExpiringSoon": "Por vencer",
     "tabExpired": "Vencidas",
     "tabFrozen": "Congeladas",
-    "tabCancelled": "Canceladas",
     "tabAll": "Todas",
     "totalActive": "Activas",
     "expiredCount": "Vencidas",
     "frozenCount": "Congeladas",
     "searchPlaceholder": "Buscar alumno por nombre...",
     "sessionsRemaining_one": "{{count}} sesión restante",
-    "sessionsRemaining_other": "{{count}} sesiones restantes"
+    "sessionsRemaining_other": "{{count}} sesiones restantes",
+    "queuedNotice": "El alumno aún tiene una membresía vigente: esta quedará programada e iniciará el {{date}}, sin perder días.",
+    "tabScheduled": "Programadas",
+    "lapsedDesc": "Alumnos que no están inactivos y no tienen membresía activa, congelada ni programada.",
+    "daysToStart": "para iniciar",
+    "scheduled": "Programada",
+    "daysExpired": "días venc.",
+    "expiredOn": "Venció",
+    "neverHadMembership": "Nunca ha tenido membresía"
   },
   "instructors": {
     "title": "Instructores",
@@ -448,10 +456,15 @@
     "pendingNo": "Pendiente (fiado)",
     "requiresStudent": "Ventas pendientes requieren seleccionar alumno",
     "studentOptional": "Alumno (opcional)",
-    "sinceLastCut": "Último corte a las {{time}} — los totales muestran solo lo registrado después.",
+    "sinceLastCut": "Último corte: {{time}} — los totales acumulan todo lo registrado después (aunque sea de días anteriores) hasta el siguiente corte.",
     "totalSinceCut": "Total desde el corte",
     "movementsSinceCut": "Movimientos desde el último corte ({{count}})",
-    "noPaymentsSinceCut": "Sin movimientos desde el último corte"
+    "noPaymentsSinceCut": "Sin movimientos desde el último corte",
+    "openPeriodPreviousDays": "La caja aún tiene movimientos desde el {{date}}: se acumulan hasta que hagas el corte.",
+    "cutDescRange": "Se generará el corte con todo lo acumulado desde el último corte ({{from}} – {{to}}). Después del corte la caja inicia en ceros. Total acumulado:",
+    "totalOpen": "Total en caja",
+    "openMovements": "Movimientos en caja ({{count}})",
+    "noPaymentsOpen": "No hay movimientos en caja"
   },
   "reportes": {
     "title": "Reportes",
@@ -574,7 +587,8 @@
     "payAllConfirm": "¿Cobrar todas las deudas ({{amount}})?",
     "pending": "Pendiente",
     "quantity": "x{{count}}",
-    "selectPaymentMethod": "Método de pago"
+    "selectPaymentMethod": "Método de pago",
+    "useBalance": "Usar saldo"
   },
   "payment": {
     "mixedOption": "Mixto (varios métodos)",
@@ -584,5 +598,36 @@
     "exceeds": "Excede el total por {{amount}}",
     "balanced": "El desglose cuadra con el total",
     "needsTwo": "Un pago mixto requiere al menos dos métodos"
+  },
+  "charge": {
+    "buyer": "Alumno",
+    "selectBuyer": "— Selecciona alumno o Público general —",
+    "publicBuyer": "Público general (no socio)",
+    "publicHint": "Público general solo puede pagar en el momento (sin fiado ni saldo).",
+    "status": "¿Cómo se paga?",
+    "paidNow": "Pagado ahora",
+    "leavePending": "Dejar a deber (fiado)",
+    "pendingHint": "Se registrará un adeudo de {{amount}} al alumno; entra a caja cuando lo pague.",
+    "balanceToUse": "Saldo a usar",
+    "methodForRemaining": "Método de pago para el restante ({{amount}})",
+    "registerDebt": "Registrar adeudo",
+    "errors": {
+      "selectBuyer": "Selecciona un alumno o Público general.",
+      "pendingNeedsStudent": "Para dejar a deber hay que seleccionar un alumno.",
+      "balanceNeedsStudent": "Para pagar con saldo hay que seleccionar un alumno.",
+      "balanceExceedsTotal": "El saldo aplicado no puede exceder el total.",
+      "incompleteSplit": "El desglose del pago mixto no cuadra con el monto."
+    }
+  },
+  "birthday": {
+    "title": "¡Hoy es su cumpleaños!",
+    "turnsAge": "{{name}} cumple {{age}} años hoy. ¡Felicítalo!",
+    "wish": "¡Felicita a {{name}} por su cumpleaños!",
+    "kioskTitle": "¡Feliz cumpleaños, {{name}}!",
+    "kioskSubtitle": "Todo el equipo de Fitness Room te desea un gran día.",
+    "dashboardTitle_one": "Hoy cumple años {{count}} socio",
+    "dashboardTitle_other": "Hoy cumplen años {{count}} socios",
+    "years_one": "{{count}} año",
+    "years_other": "{{count}} años"
   }
 }

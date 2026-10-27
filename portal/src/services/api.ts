@@ -105,9 +105,18 @@ export interface Membership {
   classes_remaining?: number | null
 }
 
+/** Renewal paid in advance — starts when the current membership ends. */
+export interface UpcomingMembership {
+  membership_id: string
+  membership_type: string
+  start_date: string
+  end_date: string
+}
+
 export interface MembershipResponse {
   role: 'student' | 'staff'
   membership: Membership | null
+  upcoming_membership?: UpcomingMembership | null
 }
 
 export interface Reservation {

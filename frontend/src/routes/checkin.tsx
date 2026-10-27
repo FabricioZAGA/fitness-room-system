@@ -21,6 +21,8 @@ import {
   Clock,
   ScanLine,
   CalendarCheck,
+  CalendarClock,
+  Cake,
   Wallet,
 } from "lucide-react";
 import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
@@ -136,8 +138,14 @@ function CheckinPage(): React.JSX.Element {
                         {getInitials(student.full_name)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-[--tx-primary]">
+                        <p className="flex items-center gap-1.5 truncate font-semibold text-[--tx-primary]">
                           {student.full_name}
+                          {student.is_birthday_today && (
+                            <Cake
+                              className="h-4 w-4 shrink-0 text-[--gold]"
+                              aria-label={t("birthday.title")}
+                            />
+                          )}
                         </p>
                         <p className="truncate text-xs text-[--tx-muted]">
                           {student.email}
@@ -192,6 +200,7 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
   const [payMethod, setPayMethod] = useState<PaymentMethod>("cash");
+  const [payWithBalance, setPayWithBalance] = useState(false);
 
   const { mutate: doCheckin, isPending, isSuccess } = useCheckinWithAttendance();
   const { data: membership } = useActiveMembership(student.student_id);
@@ -209,6 +218,9 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
   const { data: classesData } = useClasses({ limit: 200 });
 
   const allMemberships = membershipsData?.items ?? [];
+  const queuedRenewal = allMemberships
+    .filter((m) => m.status === "pending")
+    .sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 
   const todayReservations = (reservationsData?.items ?? []).filter(
@@ -243,6 +255,9 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
 
   return (
     <div className="space-y-5">
+      {/* ── Birthday banner ── */}
+      {student.is_birthday_today && <BirthdayBanner student={student} />}
+
       {/* ── Access status banner ── */}
       <div
         className={`rounded-xl border-2 p-5 ${
@@ -305,11 +320,28 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
                   {t("checkin.debtBanner", { amount: formatCurrency(totalDebt) })}
                 </p>
                 <p className="text-xs text-[--tx-muted]">
-                  {debts.map((d) => `${d.product_name} ${t("debt.quantity", { count: d.quantity })}`).join(", ")}
+                  {debts
+                    .map((d) =>
+                      d.concept_type === "product"
+                        ? `${d.description} ${t("debt.quantity", { count: d.quantity })}`
+                        : `${d.description} (${formatCurrency(d.amount)})`,
+                    )
+                    .join(", ")}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {hasBalance && (
+                <label className="flex items-center gap-1.5 text-xs text-[--tx-primary]">
+                  <input
+                    type="checkbox"
+                    checked={payWithBalance}
+                    onChange={(e) => setPayWithBalance(e.target.checked)}
+                    className="h-3.5 w-3.5 accent-[--gold]"
+                  />
+                  {t("debt.useBalance")}
+                </label>
+              )}
               <select
                 className="rounded-lg border border-[--bd-default] bg-[--bg-muted] px-2 py-1.5 text-xs text-[--tx-primary]"
                 value={payMethod}
@@ -324,7 +356,7 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
                   onClick={() => payDebtMutation.mutate({
                     studentId: student.student_id,
                     saleId: debts[0].sale_id,
-                    data: { payment_method: payMethod },
+                    data: { payment_method: payMethod, use_balance: payWithBalance && hasBalance },
                   })}
                   disabled={payDebtMutation.isPending}
                   className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50"
@@ -336,7 +368,7 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
                 <button
                   onClick={() => payAllDebtsMutation.mutate({
                     studentId: student.student_id,
-                    data: { payment_method: payMethod },
+                    data: { payment_method: payMethod, use_balance: payWithBalance && hasBalance },
                   })}
                   disabled={payAllDebtsMutation.isPending}
                   className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50"
@@ -407,6 +439,13 @@ function MemberStatusCard({ student }: { student: Student }): React.JSX.Element 
               color={classesRemaining <= 2 ? "amber" : "emerald"}
             />
           )}
+        </div>
+      )}
+
+      {queuedRenewal && (
+        <div className="flex items-center gap-2 rounded-xl border border-[--gold-bd] bg-[--gold-bg] px-4 py-3 text-sm text-[--tx-primary]">
+          <CalendarClock className="h-4 w-4 text-[--gold]" />
+          {t("checkin.queuedRenewal", { date: formatDate(queuedRenewal.start_date) })}
         </div>
       )}
 
@@ -570,6 +609,28 @@ function InfoCard({
       <Icon className="mb-2 h-5 w-5" />
       <p className="text-xs text-[--tx-disabled]">{label}</p>
       <p className="text-base font-bold">{value}</p>
+    </div>
+  );
+}
+
+function BirthdayBanner({ student }: { student: Student }): React.JSX.Element {
+  const { t } = useTranslation();
+  return (
+    <div
+      className="flex items-center gap-4 rounded-xl border-2 border-[--gold] p-4"
+      style={{ background: "linear-gradient(135deg, var(--gold-bg) 0%, var(--bg-elevated) 100%)" }}
+    >
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[--gold-bg]">
+        <Cake className="h-7 w-7 text-[--gold]" />
+      </div>
+      <div>
+        <p className="text-lg font-bold text-[--gold]">{t("birthday.title")}</p>
+        <p className="text-sm text-[--tx-muted]">
+          {student.age
+            ? t("birthday.turnsAge", { name: student.first_name, age: student.age })
+            : t("birthday.wish", { name: student.first_name })}
+        </p>
+      </div>
     </div>
   );
 }

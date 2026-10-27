@@ -1,10 +1,12 @@
 /** TypeScript types for Student Balance (monedero interno / saldo a favor). */
 
-export type BalanceMovementType = "deposit" | "membership_apply" | "withdrawal";
+/** "membership_apply" is legacy (≤ v2.x); v3.0.0+ records every use as "charge_apply". */
+export type BalanceMovementType = "deposit" | "membership_apply" | "charge_apply" | "withdrawal";
 
 export const BALANCE_MOVEMENT_TYPE_LABELS: Record<BalanceMovementType, string> = {
   deposit: "Depósito",
   membership_apply: "Aplicado a membresía",
+  charge_apply: "Pago con saldo",
   withdrawal: "Retiro",
 };
 

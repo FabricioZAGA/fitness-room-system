@@ -2,8 +2,11 @@
 
 import type {
   CashCut,
+  ChargeResult,
   CreateCashCutRequest,
+  CreateChargeRequest,
   CreateTransactionRequest,
+  OpenPeriod,
   SummaryScope,
   TodaySummary,
   Transaction,
@@ -14,6 +17,18 @@ import { apiClient } from "./apiClient";
 export const transactionService = {
   async record(data: CreateTransactionRequest): Promise<Transaction> {
     const res = await apiClient.post<Transaction>("/transactions", data);
+    return res.data;
+  },
+
+  /** Register a charge that can be paid now, with balance, or left as debt. */
+  async registerCharge(data: CreateChargeRequest): Promise<ChargeResult> {
+    const res = await apiClient.post<ChargeResult>("/transactions/charge", data);
+    return res.data;
+  },
+
+  /** Everything registered since the last cash cut (any day). */
+  async openPeriod(): Promise<OpenPeriod> {
+    const res = await apiClient.get<OpenPeriod>("/transactions/open-period");
     return res.data;
   },
 

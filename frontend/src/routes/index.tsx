@@ -15,6 +15,7 @@ import {
   CreditCard as CardIcon,
   ArrowLeftRight,
   Flame,
+  Cake,
 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useStats";
 import { useRankings } from "@/hooks/useReports";
@@ -104,6 +105,7 @@ function DashboardPage(): React.JSX.Element {
   const activeInstructors = stats?.active_instructors ?? 0;
   const upcomingClasses = stats?.upcoming_classes ?? [];
   const expiringMemberships = stats?.expiring_memberships ?? [];
+  const birthdays = stats?.birthdays_today ?? [];
 
   return (
     <div className="min-h-screen bg-[--bg-base] p-6 lg:p-8">
@@ -150,6 +152,36 @@ function DashboardPage(): React.JSX.Element {
           </div>
           <ArrowRight className="h-5 w-5 text-[--color-warning] transition-transform group-hover:translate-x-1" />
         </Link>
+      )}
+
+      {/* ──── Birthdays today ──── */}
+      {birthdays.length > 0 && (
+        <div
+          className="mb-8 rounded-2xl border border-[--gold-bd] p-5"
+          style={{ background: "linear-gradient(135deg, var(--gold-bg) 0%, var(--bg-surface) 100%)" }}
+        >
+          <div className="mb-3 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[--gold-bg] ring-1 ring-[--gold-bd]">
+              <Cake className="h-5 w-5 text-[--gold]" />
+            </div>
+            <p className="font-semibold text-[--gold]">
+              {t("birthday.dashboardTitle", { count: birthdays.length })}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {birthdays.map((b) => (
+              <Link
+                key={b.student_id}
+                to="/students/$studentId"
+                params={{ studentId: b.student_id }}
+                className="rounded-full border border-[--gold-bd] bg-[--bg-surface] px-3 py-1.5 text-sm font-medium text-[--tx-primary] transition-colors hover:border-[--gold] hover:text-[--gold]"
+              >
+                {b.full_name}
+                {b.age ? ` · ${t("birthday.years", { count: b.age })}` : ""}
+              </Link>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* ──── Bento Grid ──── */}

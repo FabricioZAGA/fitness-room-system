@@ -4,7 +4,9 @@ import type { PaginatedResponse } from "@/types/common";
 import type {
   CreateMembershipRequest,
   FreezeMembershipRequest,
+  LapsedStudent,
   Membership,
+  MembershipStatusFilter,
   UpdateMembershipRequest,
 } from "@/types/membership";
 import { apiClient } from "./apiClient";
@@ -48,7 +50,7 @@ export const membershipService = {
   },
 
   async listAll(params?: {
-    status_filter?: "active" | "frozen" | "expired" | "cancelled";
+    status_filter?: MembershipStatusFilter;
     limit?: number;
   }): Promise<PaginatedResponse<Membership>> {
     const response = await apiClient.get<PaginatedResponse<Membership>>("/memberships", {
@@ -69,10 +71,8 @@ export const membershipService = {
     return response.data;
   },
 
-  async cancel(studentId: string, membershipId: string): Promise<Membership> {
-    const response = await apiClient.post<Membership>(
-      `/memberships/student/${studentId}/${membershipId}/cancel`
-    );
+  async listLapsed(): Promise<LapsedStudent[]> {
+    const response = await apiClient.get<LapsedStudent[]>("/memberships/lapsed");
     return response.data;
   },
 

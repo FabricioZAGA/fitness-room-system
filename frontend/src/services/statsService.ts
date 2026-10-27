@@ -11,6 +11,15 @@ export interface DashboardStats {
   expiring_memberships_7d: number;
   upcoming_classes: FitnessClass[];
   expiring_memberships: MembershipWithStudent[];
+  /** Non-inactive students whose birthday is today (CDMX). */
+  birthdays_today?: BirthdayStudent[];
+}
+
+export interface BirthdayStudent {
+  student_id: string;
+  full_name: string;
+  photo_url: string | null;
+  age: number | null;
 }
 
 export interface MembershipWithStudent extends Membership {

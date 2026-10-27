@@ -23,6 +23,8 @@ export interface Student {
   photo_url: string | null;
   status: StudentStatus;
   notes: string | null;
+  /** Birthday today (computed by the backend in CDMX time). */
+  is_birthday_today?: boolean;
   created_at: string;
   updated_at: string;
 }

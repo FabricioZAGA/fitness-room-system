@@ -22,12 +22,14 @@ interface EditMembershipModalProps {
   membership: Membership | null;
 }
 
-const STATUS_OPTIONS: { value: MembershipStatus; label: string }[] = [
+/** "cancelled" no longer exists (no refunds) — memberships are frozen or left to expire. */
+type EditableStatus = Exclude<MembershipStatus, "cancelled">;
+
+const STATUS_OPTIONS: { value: EditableStatus; label: string }[] = [
   { value: "active", label: "Activa" },
+  { value: "pending", label: "Programada" },
   { value: "frozen", label: "Congelada" },
   { value: "expired", label: "Vencida" },
-  { value: "cancelled", label: "Cancelada" },
-  { value: "pending", label: "Pendiente" },
 ];
 
 export function EditMembershipModal({
@@ -49,7 +51,7 @@ export function EditMembershipModal({
     payment_splits: [] as PaymentSplit[],
     classes_total: undefined as number | undefined,
     classes_remaining: undefined as number | undefined,
-    status: "active" as MembershipStatus,
+    status: "active" as EditableStatus,
     notes: "",
   });
 
@@ -70,7 +72,7 @@ export function EditMembershipModal({
       payment_splits: [],
       classes_total: membership.classes_total ?? undefined,
       classes_remaining: membership.classes_remaining ?? undefined,
-      status: membership.status,
+      status: membership.status === "cancelled" ? "expired" : membership.status,
       notes: membership.notes ?? "",
     });
   }, [membership]);
@@ -243,7 +245,7 @@ export function EditMembershipModal({
               <select
                 value={form.status}
                 onChange={(e) =>
-                  setForm((p) => ({ ...p, status: e.target.value as MembershipStatus }))
+                  setForm((p) => ({ ...p, status: e.target.value as EditableStatus }))
                 }
                 className={inputCls}
               >

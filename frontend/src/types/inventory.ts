@@ -79,5 +79,7 @@ export interface CreateSaleRequest {
   /** Required when payment_method is "mixed". */
   payment_splits?: PaymentSplit[];
   payment_status?: "paid" | "pending";
+  /** Portion of the total covered with the buyer's balance (requires student_id). */
+  balance_amount?: number;
   notes?: string;
 }

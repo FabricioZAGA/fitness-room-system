@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type {
   CreateMembershipRequest,
   FreezeMembershipRequest,
+  MembershipStatusFilter,
   UpdateMembershipRequest,
 } from "@/types/membership";
 import { membershipService } from "@/services/membershipService";
@@ -12,10 +13,10 @@ import { getApiErrorMessage } from "@/lib/apiError";
 
 export const MEMBERSHIPS_KEY = "memberships";
 
-export function useMembershipsForStudent(studentId: string) {
+export function useMembershipsForStudent(studentId: string, limit?: number) {
   return useQuery({
-    queryKey: [MEMBERSHIPS_KEY, "student", studentId],
-    queryFn: () => membershipService.listForStudent(studentId),
+    queryKey: [MEMBERSHIPS_KEY, "student", studentId, limit],
+    queryFn: () => membershipService.listForStudent(studentId, limit ? { limit } : undefined),
     enabled: Boolean(studentId),
   });
 }
@@ -36,7 +37,7 @@ export function useExpiringSoon(days: number = 7) {
 }
 
 export function useAllMemberships(params?: {
-  status_filter?: "active" | "frozen" | "expired" | "cancelled";
+  status_filter?: MembershipStatusFilter;
   limit?: number;
 }) {
   return useQuery({
@@ -49,11 +50,17 @@ export function useAssignMembership() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateMembershipRequest) => membershipService.assign(data),
-    onSuccess: () => {
+    onSuccess: (membership) => {
       qc.invalidateQueries({ queryKey: [MEMBERSHIPS_KEY] });
-      // Backend auto-creates a transaction — sync Caja view
+      // Backend settles the payment (transaction / balance / debt) — sync Caja view
       qc.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("Membresía asignada exitosamente.");
+      qc.invalidateQueries({ queryKey: ["balance"] });
+      qc.invalidateQueries({ queryKey: ["debts"] });
+      toast.success(
+        membership.status === "pending"
+          ? `Renovación programada: inicia el ${membership.start_date}.`
+          : "Membresía asignada exitosamente."
+      );
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, "Error al asignar la membresía."));
@@ -76,18 +83,10 @@ export function useUpdateMembership(studentId: string, membershipId: string) {
   });
 }
 
-export function useCancelMembership() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ studentId, membershipId }: { studentId: string; membershipId: string }) =>
-      membershipService.cancel(studentId, membershipId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [MEMBERSHIPS_KEY] });
-      toast.success("Membresía cancelada.");
-    },
-    onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Error al cancelar la membresía."));
-    },
+export function useLapsedStudents() {
+  return useQuery({
+    queryKey: [MEMBERSHIPS_KEY, "lapsed"],
+    queryFn: () => membershipService.listLapsed(),
   });
 }
 

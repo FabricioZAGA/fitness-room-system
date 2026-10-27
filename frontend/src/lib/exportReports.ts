@@ -53,8 +53,9 @@ function methodLabel(t: {
 const MEMBERSHIP_STATUS_LABEL: Record<string, string> = {
   active: "Activa",
   expired: "Vencida",
-  cancelled: "Cancelada",
+  cancelled: "Vencida", // legacy — memberships are no longer cancelled
   frozen: "Congelada",
+  pending: "Programada",
 };
 
 function formatDateTime(iso: string): string {

@@ -20,7 +20,17 @@ export type KnownMembershipType =
  */
 export type MembershipType = KnownMembershipType | (string & {});
 
+/**
+ * "pending" = queued renewal (starts when the current membership ends).
+ * "cancelled" is legacy, read-only — memberships are never cancelled since v3.0.0.
+ */
 export type MembershipStatus = "active" | "frozen" | "expired" | "cancelled" | "pending";
+
+/** Statuses an admin can filter by (no "cancelled"). */
+export type MembershipStatusFilter = "active" | "pending" | "frozen" | "expired";
+
+/** How a charge is settled in Caja. */
+export type ChargePaymentStatus = "paid" | "pending";
 
 export interface Membership {
   membership_id: string;
@@ -33,6 +43,8 @@ export interface Membership {
   classes_total: number | null;
   classes_remaining: number | null;
   days_until_expiry: number | null;
+  /** Only for pending (queued) memberships. */
+  days_until_start?: number | null;
   notes: string | null;
   duo_partner_id: string | null;
   duo_partner_name: string | null;
@@ -60,13 +72,31 @@ export interface CreateMembershipRequest {
   classes_total?: number;
   notes?: string;
   duo_partner_id?: string;
+  /** "pending" = leave the full price as a student debt (fiado). */
+  payment_status?: ChargePaymentStatus;
+  /** Portion of price_paid covered with the student's balance. */
+  balance_amount?: number;
+}
+
+/** A non-inactive student without an active, frozen or queued membership. */
+export interface LapsedStudent {
+  student_id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  photo_url: string | null;
+  student_status: string;
+  last_membership_id: string | null;
+  last_membership_type: string | null;
+  last_end_date: string | null;
+  days_since_expiry: number | null;
 }
 
 export interface UpdateMembershipRequest {
   start_date?: string;
   end_date?: string;
   membership_type?: string;
-  status?: MembershipStatus;
+  status?: Exclude<MembershipStatus, "cancelled">;
   price_paid?: number;
   payment_method?: string;
   payment_splits?: PaymentSplit[];

@@ -11,17 +11,18 @@ import {
   Mail,
   CheckCircle2,
   Snowflake,
-  XCircle,
+  CalendarClock,
   Search,
   TrendingUp,
+  UserX,
 } from "lucide-react";
-import { useAllMemberships } from "@/hooks/useMemberships";
+import { useAllMemberships, useLapsedStudents } from "@/hooks/useMemberships";
 import { useStudents } from "@/hooks/useStudents";
 import { CreateMembershipModal } from "@/components/shared/CreateMembershipModal";
 import { EditMembershipModal } from "@/components/shared/EditMembershipModal";
 import { useSendCustomNotification } from "@/hooks/useNotifications";
 import { MEMBERSHIP_TYPE_LABELS } from "@/types/membership";
-import type { Membership, MembershipStatus } from "@/types/membership";
+import type { LapsedStudent, Membership, MembershipStatus } from "@/types/membership";
 import { useMembershipPlans } from "@/hooks/useMembershipPlans";
 import { formatDate, formatCurrency, getInitials, todayMX } from "@/lib/utils";
 
@@ -29,7 +30,12 @@ export const Route = createFileRoute("/memberships/")({
   component: MembershipsPage,
 });
 
-type Tab = "active" | "expiring" | "expired" | "frozen" | "cancelled" | "all";
+/**
+ * "lapsed" (Vencidas) lists *students* — not inactive, without an active, frozen or
+ * queued membership — instead of old membership records, so people who already
+ * renewed never show up there.
+ */
+type Tab = "active" | "expiring" | "scheduled" | "lapsed" | "frozen" | "all";
 
 function MembershipsPage(): React.JSX.Element {
   const { t } = useTranslation();
@@ -40,6 +46,7 @@ function MembershipsPage(): React.JSX.Element {
   const [search, setSearch] = useState("");
 
   const { data: allData, isLoading } = useAllMemberships({ limit: 500 });
+  const { data: lapsedStudents = [], isLoading: lapsedLoading } = useLapsedStudents();
   const { data: studentsData } = useStudents({ limit: 500 });
   const { data: plans } = useMembershipPlans();
   const notifyMutation = useSendCustomNotification();
@@ -64,33 +71,32 @@ function MembershipsPage(): React.JSX.Element {
 
   const buckets = useMemo(() => {
     const active: Membership[] = [];
-    const expiring: Membership[] = []; // active + ≤30 días
-    const expired: Membership[] = [];
+    const expiring: Membership[] = []; // active + ≤30 días, not renewed yet
+    const scheduled: Membership[] = []; // queued renewals
     const frozen: Membership[] = [];
-    const cancelled: Membership[] = [];
 
+    const renewed = new Set(
+      allMemberships.filter((m) => m.status === "pending").map((m) => m.student_id),
+    );
     for (const m of allMemberships) {
       if (m.status === "frozen") {
         frozen.push(m);
-      } else if (m.status === "cancelled") {
-        cancelled.push(m);
-      } else if (m.status === "expired" || m.end_date < today) {
-        expired.push(m);
-      } else if (m.status === "active") {
+      } else if (m.status === "pending") {
+        scheduled.push(m);
+      } else if (m.status === "active" && m.end_date > today) {
         active.push(m);
         const days = m.days_until_expiry ?? 999;
-        if (days <= 30) expiring.push(m);
+        if (days <= 30 && !renewed.has(m.student_id)) expiring.push(m);
       }
     }
 
     // Sort each bucket meaningfully
     active.sort((a, b) => (a.days_until_expiry ?? 0) - (b.days_until_expiry ?? 0));
     expiring.sort((a, b) => (a.days_until_expiry ?? 0) - (b.days_until_expiry ?? 0));
-    expired.sort((a, b) => b.end_date.localeCompare(a.end_date));
+    scheduled.sort((a, b) => a.start_date.localeCompare(b.start_date));
     frozen.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-    cancelled.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 
-    return { active, expiring, expired, frozen, cancelled };
+    return { active, expiring, scheduled, frozen, renewed };
   }, [allMemberships, today]);
 
   // ── Stats ───────────────────────────────────────────────────────────────
@@ -110,11 +116,11 @@ function MembershipsPage(): React.JSX.Element {
       activeCount: buckets.active.length,
       expiringWeek,
       expiringIn30: buckets.expiring.length,
-      expired: buckets.expired.length,
+      lapsed: lapsedStudents.length,
       frozen: buckets.frozen.length,
       monthRevenue,
     };
-  }, [buckets, allMemberships, today]);
+  }, [buckets, allMemberships, today, lapsedStudents.length]);
 
   // ── Filter by tab + search ──────────────────────────────────────────────
   const visible = useMemo(() => {
@@ -126,14 +132,14 @@ function MembershipsPage(): React.JSX.Element {
       case "expiring":
         list = buckets.expiring;
         break;
-      case "expired":
-        list = buckets.expired;
+      case "scheduled":
+        list = buckets.scheduled;
+        break;
+      case "lapsed":
+        list = [];
         break;
       case "frozen":
         list = buckets.frozen;
-        break;
-      case "cancelled":
-        list = buckets.cancelled;
         break;
       case "all":
       default:
@@ -147,6 +153,13 @@ function MembershipsPage(): React.JSX.Element {
       return name.includes(q);
     });
   }, [tab, buckets, allMemberships, search, studentMap]);
+
+  const visibleLapsed = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q ? lapsedStudents.filter((s) => s.full_name.toLowerCase().includes(q)) : lapsedStudents;
+  }, [lapsedStudents, search]);
+  const listLoading = tab === "lapsed" ? lapsedLoading : isLoading;
+  const listEmpty = tab === "lapsed" ? visibleLapsed.length === 0 : visible.length === 0;
 
   return (
     <>
@@ -213,20 +226,20 @@ function MembershipsPage(): React.JSX.Element {
             tone={stats.expiringWeek > 0 ? "danger" : undefined}
           />
           <TabButton
-            active={tab === "expired"}
-            onClick={() => setTab("expired")}
-            label={`${t("memberships.tabExpired")} (${stats.expired})`}
-            tone={stats.expired > 0 ? "warning" : undefined}
+            active={tab === "scheduled"}
+            onClick={() => setTab("scheduled")}
+            label={`${t("memberships.tabScheduled")} (${buckets.scheduled.length})`}
+          />
+          <TabButton
+            active={tab === "lapsed"}
+            onClick={() => setTab("lapsed")}
+            label={`${t("memberships.tabExpired")} (${stats.lapsed})`}
+            tone={stats.lapsed > 0 ? "warning" : undefined}
           />
           <TabButton
             active={tab === "frozen"}
             onClick={() => setTab("frozen")}
             label={`${t("memberships.tabFrozen")} (${stats.frozen})`}
-          />
-          <TabButton
-            active={tab === "cancelled"}
-            onClick={() => setTab("cancelled")}
-            label={`${t("memberships.tabCancelled")} (${buckets.cancelled.length})`}
           />
           <TabButton
             active={tab === "all"}
@@ -247,18 +260,33 @@ function MembershipsPage(): React.JSX.Element {
           />
         </div>
 
+        {tab === "lapsed" && (
+          <p className="mb-3 text-sm text-[--tx-muted]">{t("memberships.lapsedDesc")}</p>
+        )}
+
         {/* List */}
-        {isLoading ? (
+        {listLoading ? (
           <div className="flex h-48 items-center justify-center">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-[--gold] border-t-transparent" />
           </div>
-        ) : visible.length === 0 ? (
+        ) : listEmpty ? (
           <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] py-20 text-center">
             <CreditCard className="mx-auto mb-4 h-16 w-16 text-[--tx-disabled]" />
             <p className="text-xl text-[--tx-muted]">{t("memberships.noMatching")}</p>
             {tab === "expiring" && (
               <p className="mt-2 text-[--tx-disabled]">{t("memberships.allUpToDate")}</p>
             )}
+          </div>
+        ) : tab === "lapsed" ? (
+          <div className="space-y-3">
+            {visibleLapsed.map((s) => (
+              <LapsedStudentCard
+                key={s.student_id}
+                student={s}
+                planLabels={planLabels}
+                onRenew={() => setRenewStudentId(s.student_id)}
+              />
+            ))}
           </div>
         ) : (
           <div className="space-y-3">
@@ -271,13 +299,16 @@ function MembershipsPage(): React.JSX.Element {
                 planLabels={planLabels}
                 onEdit={() => setEditMembership(m)}
                 onRenew={
-                  m.status === "expired" ||
-                  (m.status === "active" && (m.days_until_expiry ?? 999) <= 30)
+                  m.status === "active" &&
+                  (m.days_until_expiry ?? 999) <= 30 &&
+                  !buckets.renewed.has(m.student_id)
                     ? () => setRenewStudentId(m.student_id)
                     : undefined
                 }
                 onNotify={
-                  m.status === "active" && (m.days_until_expiry ?? 999) <= 30
+                  m.status === "active" &&
+                  (m.days_until_expiry ?? 999) <= 30 &&
+                  !buckets.renewed.has(m.student_id)
                     ? () =>
                         notifyMutation.mutate({
                           studentId: m.student_id,
@@ -430,9 +461,11 @@ function MembershipCard({
 }): React.JSX.Element {
   const { t } = useTranslation();
 
-  // Compute effective state — even if backend says "active", check date
-  const isExpiredByDate = m.status === "active" && m.end_date < today;
-  const effectiveStatus: MembershipStatus = isExpiredByDate ? "expired" : m.status;
+  // Compute effective state — even if backend says "active", check date.
+  // Legacy "cancelled" records are shown as expired (there are no refunds).
+  const isExpiredByDate = m.status === "active" && m.end_date <= today;
+  const effectiveStatus: MembershipStatus =
+    isExpiredByDate || m.status === "cancelled" ? "expired" : m.status;
   const days = m.days_until_expiry ?? 0;
 
   const tone = getStatusTone(effectiveStatus, days);
@@ -446,11 +479,13 @@ function MembershipCard({
         <div
           className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl border ${tone.badgeClass}`}
         >
-          {effectiveStatus === "active" ? (
+          {effectiveStatus === "active" || effectiveStatus === "pending" ? (
             <>
-              <p className={`text-xl font-bold ${tone.textClass}`}>{days}</p>
+              <p className={`text-xl font-bold ${tone.textClass}`}>
+                {effectiveStatus === "pending" ? (m.days_until_start ?? 0) : days}
+              </p>
               <p className="text-[10px] uppercase tracking-wide text-[--tx-disabled]">
-                {t("memberships.days")}
+                {effectiveStatus === "pending" ? t("memberships.daysToStart") : t("memberships.days")}
               </p>
             </>
           ) : (
@@ -617,13 +652,13 @@ function getStatusTone(status: MembershipStatus, days: number): StatusTone {
       icon: Calendar,
     };
   }
-  // cancelled / pending
+  // pending (queued renewal)
   return {
-    borderClass: "border-[--bd-subtle]",
-    hoverBorderClass: "border-[--bd-default]",
-    badgeClass: "bg-[--bg-muted] border-[--bd-subtle]",
-    textClass: "text-[--tx-disabled]",
-    icon: XCircle,
+    borderClass: "border-[--gold-bd]",
+    hoverBorderClass: "border-[--gold]",
+    badgeClass: "bg-[--gold-bg] border-[--gold-bd]",
+    textClass: "text-[--gold]",
+    icon: CalendarClock,
   };
 }
 
@@ -633,8 +668,8 @@ function StatusPill({ status }: { status: MembershipStatus }): React.JSX.Element
     active: { label: t("memberships.active"), color: "var(--color-success)" },
     frozen: { label: t("memberships.frozen"), color: "var(--color-info)" },
     expired: { label: t("memberships.expired"), color: "var(--tx-muted)" },
-    cancelled: { label: t("memberships.cancelled"), color: "var(--color-danger)" },
-    pending: { label: t("memberships.pending"), color: "var(--color-warning)" },
+    cancelled: { label: t("memberships.expired"), color: "var(--tx-muted)" },
+    pending: { label: t("memberships.scheduled"), color: "var(--gold)" },
   };
   const tone = map[status];
   return (
@@ -647,5 +682,87 @@ function StatusPill({ status }: { status: MembershipStatus }): React.JSX.Element
     >
       {tone.label}
     </span>
+  );
+}
+
+// ─── Lapsed student card (Vencidas) ──────────────────────────────────────────
+
+function LapsedStudentCard({
+  student: s,
+  planLabels,
+  onRenew,
+}: {
+  student: LapsedStudent;
+  planLabels: Record<string, string>;
+  onRenew: () => void;
+}): React.JSX.Element {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border border-[--color-warning-bd] bg-[--bg-surface] p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-1 items-center gap-4">
+        <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl border border-[--color-warning-bd] bg-[--color-warning-bg]">
+          {s.days_since_expiry !== null ? (
+            <>
+              <p className="text-xl font-bold text-[--color-warning]">{s.days_since_expiry}</p>
+              <p className="text-[10px] uppercase tracking-wide text-[--tx-disabled]">
+                {t("memberships.daysExpired")}
+              </p>
+            </>
+          ) : (
+            <UserX className="h-7 w-7 text-[--color-warning]" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-center gap-3">
+            <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full">
+              {s.photo_url ? (
+                <img src={s.photo_url} alt={s.full_name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-[--gold-bg] text-xs font-bold text-[--gold]">
+                  {getInitials(s.full_name)}
+                </div>
+              )}
+            </div>
+            <Link
+              to="/students/$studentId"
+              params={{ studentId: s.student_id }}
+              className="truncate text-lg font-semibold text-[--tx-primary] transition-colors hover:text-[--gold]"
+            >
+              {s.full_name}
+            </Link>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[--tx-muted]">
+            {s.last_membership_type ? (
+              <>
+                <span className="flex items-center gap-1.5">
+                  <CreditCard className="h-3.5 w-3.5" />
+                  {planLabels[s.last_membership_type] ?? s.last_membership_type}
+                </span>
+                {s.last_end_date && (
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {t("memberships.expiredOn")}: {formatDate(s.last_end_date)}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span>{t("memberships.neverHadMembership")}</span>
+            )}
+            {s.phone && <span>{s.phone}</span>}
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={onRenew}
+        className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all"
+        style={{
+          background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",
+          color: "var(--gold-fg)",
+        }}
+      >
+        <Plus className="h-4 w-4" />
+        {t("memberships.renewMembership")}
+      </button>
+    </div>
   );
 }

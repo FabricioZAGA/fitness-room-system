@@ -90,6 +90,7 @@ export default function Dashboard(): React.JSX.Element {
   const displayProfile = isDev ? mockProfile : profile
   const displayMembership = isDev ? mockMembership : membership
   const membershipData = displayMembership?.membership
+  const upcomingMembership = isDev ? null : membership?.upcoming_membership ?? null
   const role = displayProfile?.role || portalRole
   const isStudent = role === 'student'
   const isStaff = role === 'staff'
@@ -345,6 +346,26 @@ export default function Dashboard(): React.JSX.Element {
                   <p style={{ fontSize: '12px', color: '#d4af37', margin: '0 0 4px 0' }}>Días restantes</p>
                   <p style={{ fontSize: '24px', fontWeight: 700, color: '#d4af37', margin: 0 }}>
                     {membershipData.days_until_expiry}
+                  </p>
+                </div>
+              )}
+              {upcomingMembership && (
+                <div
+                  style={{
+                    padding: '12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(212, 175, 55, 0.3)',
+                    gridColumn: 'span 2',
+                  }}
+                >
+                  <p style={{ fontSize: '12px', color: '#d4af37', margin: '0 0 4px 0' }}>
+                    Renovación programada
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#ffffff', margin: 0 }}>
+                    {MEMBERSHIP_TYPE_LABELS[upcomingMembership.membership_type] ??
+                      upcomingMembership.membership_type}{' '}
+                    · inicia el {upcomingMembership.start_date}
                   </p>
                 </div>
               )}

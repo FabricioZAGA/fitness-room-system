@@ -9,8 +9,11 @@ import {
 } from "@tanstack/react-query";
 import type {
   CashCut,
+  ChargeResult,
   CreateCashCutRequest,
+  CreateChargeRequest,
   CreateTransactionRequest,
+  OpenPeriod,
   SummaryScope,
   TodaySummary,
   Transaction,
@@ -28,6 +31,31 @@ export function useTodaySummary(scope: SummaryScope = "day"): UseQueryResult<Tod
     queryKey: [TX_KEY, "today", scope],
     queryFn: () => transactionService.todaySummary(scope),
     refetchInterval: 1000 * 60 * 2, // refresh every 2 min
+  });
+}
+
+/** Open cash-register period: everything since the last cut, across days. */
+export function useOpenPeriod(): UseQueryResult<OpenPeriod> {
+  return useQuery({
+    queryKey: [TX_KEY, "open-period"],
+    queryFn: () => transactionService.openPeriod(),
+    refetchInterval: 1000 * 60 * 2,
+  });
+}
+
+export function useRegisterCharge(): UseMutationResult<ChargeResult, Error, CreateChargeRequest> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => transactionService.registerCharge(data),
+    onSuccess: (result) => {
+      void qc.invalidateQueries({ queryKey: [TX_KEY] });
+      void qc.invalidateQueries({ queryKey: ["balance"] });
+      void qc.invalidateQueries({ queryKey: ["debts"] });
+      toast.success(result.debt_id ? "Cargo registrado como adeudo" : "Cobro registrado");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Error al registrar el cobro"));
+    },
   });
 }
 

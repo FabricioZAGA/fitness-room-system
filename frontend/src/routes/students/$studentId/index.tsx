@@ -438,9 +438,12 @@ function StudentDetailPage(): React.JSX.Element {
                 {debts.map((d) => (
                   <div key={d.sale_id} className="flex items-center justify-between rounded-xl border border-[--color-danger-bd] bg-[--color-danger-bg] px-4 py-3">
                     <div>
-                      <p className="text-sm font-semibold text-[--tx-primary]">{d.product_name}</p>
+                      <p className="text-sm font-semibold text-[--tx-primary]">{d.description}</p>
                       <p className="text-xs text-[--tx-muted]">
-                        {t("debt.quantity", { count: d.quantity })} · {formatDate(d.created_at)}
+                        {d.concept_type === "product"
+                          ? `${t("debt.quantity", { count: d.quantity })} · `
+                          : ""}
+                        {formatDate(d.created_at)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -498,6 +501,8 @@ function StudentDetailPage(): React.JSX.Element {
                         ? "border-[--color-success-bd] bg-[--color-success-bg]"
                         : m.status === "frozen"
                         ? "border-[--color-info-bd] bg-[--color-info-bg]"
+                        : m.status === "pending"
+                        ? "border-[--gold-bd] bg-[--gold-bg]"
                         : "border-[--bd-default] bg-[--bg-muted]/50"
                     }`}
                   >

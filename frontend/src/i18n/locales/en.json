@@ -118,7 +118,8 @@
     "viewProfile": "View Full Profile",
     "historyCount": "Membership history ({{count}})",
     "balanceBadge": "Balance: {{amount}}",
-    "debtBanner": "⚠️ Owes {{amount}}"
+    "debtBanner": "⚠️ Owes {{amount}}",
+    "queuedRenewal": "Scheduled renewal: starts on {{date}}."
   },
   "students": {
     "title": "Members",
@@ -269,14 +270,21 @@
     "tabExpiringSoon": "Expiring",
     "tabExpired": "Expired",
     "tabFrozen": "Frozen",
-    "tabCancelled": "Cancelled",
     "tabAll": "All",
     "totalActive": "Active",
     "expiredCount": "Expired",
     "frozenCount": "Frozen",
     "searchPlaceholder": "Search member by name...",
     "sessionsRemaining_one": "{{count}} session left",
-    "sessionsRemaining_other": "{{count}} sessions left"
+    "sessionsRemaining_other": "{{count}} sessions left",
+    "queuedNotice": "The student still has a running membership: this one will be scheduled and start on {{date}}, without losing days.",
+    "tabScheduled": "Scheduled",
+    "lapsedDesc": "Students who are not inactive and have no active, frozen or scheduled membership.",
+    "daysToStart": "to start",
+    "scheduled": "Scheduled",
+    "daysExpired": "days ago",
+    "expiredOn": "Expired",
+    "neverHadMembership": "Never had a membership"
   },
   "instructors": {
     "title": "Instructors",
@@ -448,10 +456,15 @@
     "pendingNo": "Pending (on credit)",
     "requiresStudent": "Pending sales require selecting a student",
     "studentOptional": "Student (optional)",
-    "sinceLastCut": "Last cut at {{time}} — totals only show what was registered afterwards.",
+    "sinceLastCut": "Last cut: {{time}} — totals accumulate everything registered afterwards (even from previous days) until the next cut.",
     "totalSinceCut": "Total since cut",
     "movementsSinceCut": "Movements since last cut ({{count}})",
-    "noPaymentsSinceCut": "No movements since the last cut"
+    "noPaymentsSinceCut": "No movements since the last cut",
+    "openPeriodPreviousDays": "The register still holds movements since {{date}}: they accumulate until you make a cash cut.",
+    "cutDescRange": "The cut will include everything accumulated since the last cut ({{from}} – {{to}}). After the cut the register starts at zero. Accumulated total:",
+    "totalOpen": "Total in register",
+    "openMovements": "Movements in register ({{count}})",
+    "noPaymentsOpen": "No movements in the register"
   },
   "reportes": {
     "title": "Reports",
@@ -574,7 +587,8 @@
     "payAllConfirm": "Collect all debts ({{amount}})?",
     "pending": "Pending",
     "quantity": "x{{count}}",
-    "selectPaymentMethod": "Payment method"
+    "selectPaymentMethod": "Payment method",
+    "useBalance": "Use balance"
   },
   "payment": {
     "mixedOption": "Mixed (several methods)",
@@ -584,5 +598,36 @@
     "exceeds": "Exceeds the total by {{amount}}",
     "balanced": "The breakdown matches the total",
     "needsTwo": "A mixed payment needs at least two methods"
+  },
+  "charge": {
+    "buyer": "Student",
+    "selectBuyer": "— Select a student or General public —",
+    "publicBuyer": "General public (non-member)",
+    "publicHint": "General public can only pay right away (no credit or balance).",
+    "status": "How is it paid?",
+    "paidNow": "Paid now",
+    "leavePending": "Leave as debt (on credit)",
+    "pendingHint": "A {{amount}} debt will be recorded for the student; it enters the register when paid.",
+    "balanceToUse": "Balance to use",
+    "methodForRemaining": "Payment method for the remaining {{amount}}",
+    "registerDebt": "Record debt",
+    "errors": {
+      "selectBuyer": "Select a student or General public.",
+      "pendingNeedsStudent": "Select a student to leave it as a debt.",
+      "balanceNeedsStudent": "Select a student to pay with balance.",
+      "balanceExceedsTotal": "The applied balance cannot exceed the total.",
+      "incompleteSplit": "The mixed payment breakdown does not match the amount."
+    }
+  },
+  "birthday": {
+    "title": "It's their birthday today!",
+    "turnsAge": "{{name}} turns {{age}} today. Wish them a happy birthday!",
+    "wish": "Wish {{name}} a happy birthday!",
+    "kioskTitle": "Happy birthday, {{name}}!",
+    "kioskSubtitle": "The whole Fitness Room team wishes you a great day.",
+    "dashboardTitle_one": "{{count}} member has a birthday today",
+    "dashboardTitle_other": "{{count}} members have a birthday today",
+    "years_one": "{{count}} year",
+    "years_other": "{{count}} years"
   }
 }

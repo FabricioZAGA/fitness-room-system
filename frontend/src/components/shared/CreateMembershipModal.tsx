@@ -1,19 +1,22 @@
 /** Modal form for assigning a membership to a student. */
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Wallet } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import { Dialog } from "./Dialog";
-import { useAssignMembership } from "@/hooks/useMemberships";
+import { useAssignMembership, useMembershipsForStudent } from "@/hooks/useMemberships";
 import { useStudents } from "@/hooks/useStudents";
-import { useStudentBalance, useApplyBalance } from "@/hooks/useBalance";
 import { useMembershipPlans } from "@/hooks/useMembershipPlans";
 import type { CreateMembershipRequest, MembershipType } from "@/types/membership";
 import { MEMBERSHIP_TYPE_LABELS, MEMBERSHIP_DEFAULT_PRICE } from "@/types/membership";
-import type { PaymentMethod, PaymentSplit } from "@/types/transaction";
-import { formatCurrency } from "@/lib/utils";
-import { isPaymentComplete, splitsForPayload } from "@/lib/payments";
-import { PaymentMethodField } from "./PaymentMethodField";
+import { formatDate } from "@/lib/utils";
+import {
+  EMPTY_CHARGE_PAYMENT,
+  chargeError,
+  chargePayload,
+  type ChargePaymentValue,
+} from "@/lib/charge";
+import { ChargePaymentSection } from "./ChargePaymentSection";
 
 interface CreateMembershipModalProps {
   open: boolean;
@@ -45,8 +48,6 @@ const INITIAL_FORM = {
   start_date: todayStr(),
   end_date: addDays(todayStr(), 30),
   price_paid: MEMBERSHIP_DEFAULT_PRICE[DEFAULT_TYPE as keyof typeof MEMBERSHIP_DEFAULT_PRICE],
-  payment_method: "cash" as PaymentMethod,
-  payment_splits: [] as PaymentSplit[],
   classes_total: undefined as number | undefined,
   notes: "",
   duo_partner_id: "",
@@ -59,9 +60,15 @@ export function CreateMembershipModal({
 }: CreateMembershipModalProps): React.JSX.Element {
   const { t } = useTranslation();
   const [form, setForm] = useState({ ...INITIAL_FORM, student_id: studentId ?? "" });
-  const [applyBalance, setApplyBalance] = useState(false);
+  const [payment, setPayment] = useState<ChargePaymentValue>({
+    ...EMPTY_CHARGE_PAYMENT,
+    studentId: studentId ?? "",
+  });
+  const patchPayment = useCallback(
+    (patch: Partial<ChargePaymentValue>) => setPayment((v) => ({ ...v, ...patch })),
+    [],
+  );
   const { mutate, isPending } = useAssignMembership();
-  const applyBalanceMutation = useApplyBalance();
   const { data: studentsData } = useStudents({ limit: 200 });
   const students = studentsData?.items ?? [];
   const { data: plans } = useMembershipPlans();
@@ -78,10 +85,12 @@ export function CreateMembershipModal({
     return planMap.get(type)?.default_price ?? MEMBERSHIP_DEFAULT_PRICE[type as keyof typeof MEMBERSHIP_DEFAULT_PRICE] ?? 0;
   }
 
+  function planDuration(type: MembershipType): number {
+    return planMap.get(type)?.duration_days ?? 30;
+  }
+
   function endDateForType(type: MembershipType, startDate: string): string {
-    const plan = planMap.get(type);
-    const days = plan?.duration_days ?? 30;
-    return addDays(startDate, days);
+    return addDays(startDate, planDuration(type));
   }
 
   function isSessionPack(type: MembershipType): boolean {
@@ -100,13 +109,51 @@ export function CreateMembershipModal({
   }
 
   const activeStudentId = form.student_id || studentId || "";
-  const { data: balance } = useStudentBalance(activeStudentId || undefined);
-  const currentBalance = balance?.current_balance ?? 0;
   const pricePaid = Number(form.price_paid) || 0;
-  const balanceToApply = applyBalance ? Math.min(currentBalance, pricePaid) : 0;
-  const remainingToPay = pricePaid - balanceToApply;
-  const paymentReady =
-    pricePaid <= 0 || isPaymentComplete(pricePaid, form.payment_method, form.payment_splits);
+  const paymentReady = pricePaid <= 0 || chargeError(payment, pricePaid) === null;
+
+  // The buyer of a membership is always the selected student.
+  useEffect(() => {
+    setPayment((v) =>
+      v.studentId === activeStudentId ? v : { ...v, studentId: activeStudentId, balanceAmount: 0 },
+    );
+  }, [activeStudentId]);
+
+  // Renewing while a membership is still running → the new one is queued and
+  // starts the day the last one (active / frozen / already queued) ends.
+  const { data: studentMemberships } = useMembershipsForStudent(activeStudentId, 100);
+  const queueTail = useMemo(() => {
+    const today = todayStr();
+    const ends = (studentMemberships?.items ?? [])
+      .filter(
+        (m) =>
+          m.status === "frozen" ||
+          m.status === "pending" ||
+          (m.status === "active" && m.end_date > today),
+      )
+      .map((m) => m.end_date)
+      .sort();
+    return ends.length ? ends[ends.length - 1] : null;
+  }, [studentMemberships]);
+  // The backend moves an overlapping start to the end of the queue.
+  const effectiveStart =
+    queueTail !== null && form.start_date < queueTail ? queueTail : form.start_date;
+  const isScheduled = effectiveStart > todayStr();
+
+  useEffect(() => {
+    if (!queueTail) return;
+    setForm((prev) =>
+      prev.start_date >= queueTail
+        ? prev
+        : {
+            ...prev,
+            start_date: queueTail,
+            end_date: addDays(queueTail, planDuration(prev.membership_type)),
+          },
+    );
+    // planDuration only depends on plans, which are loaded before the student is chosen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queueTail]);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -134,31 +181,25 @@ export function CreateMembershipModal({
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
+    const settlement = chargePayload(payment, pricePaid);
     const payload: CreateMembershipRequest = {
-      student_id: form.student_id,
+      student_id: activeStudentId,
       membership_type: form.membership_type,
       start_date: form.start_date,
       end_date: form.end_date,
-      price_paid: Number(form.price_paid),
-      payment_method: form.payment_method,
-      payment_splits: splitsForPayload(form.payment_method, form.payment_splits),
+      price_paid: pricePaid,
+      payment_method: settlement.payment_method,
+      payment_splits: settlement.payment_splits,
+      payment_status: settlement.payment_status,
+      balance_amount: settlement.balance_amount,
       classes_total: form.classes_total,
       notes: form.notes || undefined,
       duo_partner_id: isDuo ? form.duo_partner_id || undefined : undefined,
     };
     mutate(payload, {
-      onSuccess: (newMembership) => {
-        if (applyBalance && balanceToApply > 0 && newMembership?.membership_id) {
-          applyBalanceMutation.mutate({
-            studentId: activeStudentId,
-            data: {
-              amount: balanceToApply,
-              membership_id: newMembership.membership_id,
-            },
-          });
-        }
+      onSuccess: () => {
         setForm({ ...INITIAL_FORM, student_id: studentId ?? "" });
-        setApplyBalance(false);
+        setPayment({ ...EMPTY_CHARGE_PAYMENT, studentId: studentId ?? "" });
         onClose();
       },
     });
@@ -248,17 +289,24 @@ export function CreateMembershipModal({
             className={inputCls}
           />
         </Field>
-        <Field label="Método de pago *">
-          <PaymentMethodField
+        {isScheduled && (
+          <div className="flex items-start gap-2 rounded-xl border border-[--color-info-bd] bg-[--color-info-bg] px-4 py-3 text-xs text-[--color-info]">
+            <CalendarClock className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{t("memberships.queuedNotice", { date: formatDate(effectiveStart) })}</span>
+          </div>
+        )}
+
+        {activeStudentId && pricePaid > 0 && (
+          <ChargePaymentSection
             total={pricePaid}
-            method={form.payment_method}
-            splits={form.payment_splits}
+            value={payment}
+            onChange={patchPayment}
+            hideBuyer
+            allowPublic={false}
             inputClassName={inputCls}
-            onChange={(payment_method, payment_splits) =>
-              setForm((prev) => ({ ...prev, payment_method, payment_splits }))
-            }
+            labelClassName="mb-1.5 block text-sm font-medium text-[--tx-primary]"
           />
-        </Field>
+        )}
 
         {isDuo && (
           <Field label="Pareja Dúo *">
@@ -295,41 +343,6 @@ export function CreateMembershipModal({
               className={inputCls}
             />
           </Field>
-        )}
-
-        {/* Apply balance section */}
-        {currentBalance > 0 && (
-          <div className="rounded-xl border border-[--gold-bd] bg-[--gold-bg] p-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={applyBalance}
-                onChange={(e) => setApplyBalance(e.target.checked)}
-                className="h-4 w-4 rounded accent-[--gold]"
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-4 w-4 text-[--gold]" />
-                  <span className="text-sm font-semibold text-[--tx-primary]">
-                    {t("balance.applyQuestion")}
-                  </span>
-                </div>
-                <p className="mt-0.5 text-xs text-[--tx-muted]">
-                  {t("balance.availableBalance", { amount: formatCurrency(currentBalance) })}
-                </p>
-              </div>
-            </label>
-            {applyBalance && balanceToApply > 0 && (
-              <div className="mt-3 space-y-1 rounded-lg border border-[--bd-subtle] bg-[--bg-muted] px-3 py-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-[--tx-muted]">{t("balance.applyAmount", { amount: formatCurrency(balanceToApply) })}</span>
-                </div>
-                <div className="flex justify-between font-semibold">
-                  <span className="text-[--tx-primary]">{t("balance.remaining", { amount: formatCurrency(remainingToPay) })}</span>
-                </div>
-              </div>
-            )}
-          </div>
         )}
 
         <Field label="Notas">
