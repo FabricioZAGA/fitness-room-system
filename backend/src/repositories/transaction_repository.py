@@ -113,6 +113,18 @@ class TransactionRepository(DynamoRepository):
         ]
         return tx_items, next_key
 
+    def list_all_for_student(self, student_id: str) -> list[TransactionDynamoItem]:
+        """Every transaction of a student (follows pagination)."""
+        result: list[TransactionDynamoItem] = []
+        last_key: dict[str, Any] | None = None
+        while True:
+            items, last_key = self.list_transactions_for_student(
+                student_id, limit=200, last_evaluated_key=last_key
+            )
+            result.extend(items)
+            if not last_key:
+                return result
+
     def find_by_reference_id(
         self, student_id: str, reference_id: str
     ) -> TransactionDynamoItem | None:

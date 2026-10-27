@@ -5,7 +5,6 @@ from typing import Any
 from aws_lambda_powertools import Logger
 
 from src.models.balance import (
-    BalanceApplyRequest,
     BalanceDepositRequest,
     BalanceMovementResponse,
     BalanceMovementType,
@@ -15,7 +14,6 @@ from src.models.transaction import PaymentMethod, TransactionCreate, Transaction
 from src.repositories.balance_repository import BalanceRepository
 from src.repositories.student_repository import StudentRepository
 from src.repositories.transaction_repository import TransactionRepository
-from src.utils.exceptions import InvalidOperationException
 
 logger = Logger()
 
@@ -112,75 +110,6 @@ class BalanceService:
             extra={
                 "student_id": student_id,
                 "deposited": data.amount,
-                "new_balance": new_balance,
-            },
-        )
-
-        return movement.to_response()
-
-    def apply_to_membership(
-        self, student_id: str, data: BalanceApplyRequest
-    ) -> BalanceMovementResponse:
-        """Apply balance toward a membership payment.
-
-        Steps:
-        1. Verify student exists.
-        2. Get current balance.
-        3. Validate sufficient balance.
-        4. Subtract amount.
-        5. Update balance.
-        6. Record movement.
-
-        Args:
-            student_id: The student's unique identifier.
-            data: Apply request with amount and membership_id.
-
-        Returns:
-            The recorded balance movement.
-
-        Raises:
-            InvalidOperationException: If insufficient balance.
-        """
-        logger.info(
-            "Applying balance to membership",
-            extra={
-                "student_id": student_id,
-                "amount": data.amount,
-                "membership_id": data.membership_id,
-            },
-        )
-
-        # Verify student exists
-        self._student_repo.get_by_id(student_id)
-
-        # Get current balance
-        current = self._balance_repo.get_balance(student_id)
-        if current.current_balance < data.amount:
-            raise InvalidOperationException(
-                f"Saldo insuficiente: tiene ${current.current_balance:.2f}, "
-                f"se requieren ${data.amount:.2f}"
-            )
-
-        new_balance = current.current_balance - data.amount
-
-        # Update balance
-        self._balance_repo.upsert_balance(student_id, new_balance)
-
-        # Record movement
-        movement = self._balance_repo.create_movement(
-            student_id=student_id,
-            amount=-data.amount,
-            movement_type=BalanceMovementType.MEMBERSHIP_APPLY,
-            balance_after=new_balance,
-            reference_id=data.membership_id,
-            notes=f"Aplicado a membresía {data.membership_id}",
-        )
-
-        logger.info(
-            "Balance applied to membership",
-            extra={
-                "student_id": student_id,
-                "applied": data.amount,
                 "new_balance": new_balance,
             },
         )

@@ -87,13 +87,6 @@ class BalanceDepositRequest(BaseModel):
     notes: str | None = Field(default=None, max_length=500)
 
 
-class BalanceApplyRequest(BaseModel):
-    """Request to apply balance toward a membership."""
-
-    amount: float = Field(..., gt=0, description="Amount to apply from balance")
-    membership_id: str = Field(..., description="Membership being paid")
-
-
 class BalanceMovementResponse(TimestampedModel):
     """Balance movement returned in API responses."""
 
@@ -104,6 +97,7 @@ class BalanceMovementResponse(TimestampedModel):
     payment_method: str | None
     reference_id: str | None
     notes: str | None
+    concept_type: str | None = None
     balance_after: float
 
 
@@ -122,6 +116,7 @@ class BalanceMovementDynamoItem(BaseModel):
     payment_method: str | None
     reference_id: str | None
     notes: str | None
+    concept_type: str | None = None
     balance_after: float
     created_at: datetime
     updated_at: datetime
@@ -136,6 +131,7 @@ class BalanceMovementDynamoItem(BaseModel):
         payment_method: str | None = None,
         reference_id: str | None = None,
         notes: str | None = None,
+        concept_type: str | None = None,
     ) -> "BalanceMovementDynamoItem":
         """Create a new balance movement record."""
         mov_id = new_id()
@@ -154,6 +150,7 @@ class BalanceMovementDynamoItem(BaseModel):
             payment_method=payment_method,
             reference_id=reference_id,
             notes=notes,
+            concept_type=concept_type,
             balance_after=balance_after,
             created_at=now,
             updated_at=now,
@@ -169,6 +166,7 @@ class BalanceMovementDynamoItem(BaseModel):
             payment_method=self.payment_method,
             reference_id=self.reference_id,
             notes=self.notes,
+            concept_type=self.concept_type,
             balance_after=self.balance_after,
             created_at=self.created_at,
             updated_at=self.updated_at,

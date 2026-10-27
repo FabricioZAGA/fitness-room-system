@@ -20,6 +20,7 @@ from mangum import Mangum
 
 from src.config import get_settings
 from src.routers import (
+    account,
     balance,
     catalogs,
     classes,
@@ -191,6 +192,7 @@ app.include_router(catalogs.router, prefix="/api/v1")
 app.include_router(balance.router, prefix="/api/v1")
 app.include_router(debts.router, prefix="/api/v1")
 app.include_router(membership_plans.router, prefix="/api/v1")
+app.include_router(account.router, prefix="/api/v1")
 
 
 @logger.inject_lambda_context(log_event=True)

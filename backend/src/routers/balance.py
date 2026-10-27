@@ -5,7 +5,6 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query
 
 from src.models.balance import (
-    BalanceApplyRequest,
     BalanceDepositRequest,
     BalanceMovementResponse,
     StudentBalanceResponse,
@@ -50,22 +49,6 @@ def deposit(
 ) -> BalanceMovementResponse:
     """Deposit money into a student's balance."""
     return service.deposit(student_id, data)
-
-
-@router.post(
-    "/{student_id}/apply",
-    response_model=BalanceMovementResponse,
-    summary="Apply Balance to Membership",
-    description="Apply balance toward a membership payment.",
-)
-def apply_balance(
-    student_id: str,
-    data: BalanceApplyRequest,
-    _current_user: dict[str, Any] = Depends(get_current_user),
-    service: BalanceService = Depends(get_service),
-) -> BalanceMovementResponse:
-    """Apply balance to a membership."""
-    return service.apply_to_membership(student_id, data)
 
 
 @router.get(

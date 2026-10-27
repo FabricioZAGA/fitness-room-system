@@ -69,6 +69,18 @@ class DebtRepository(DynamoRepository):
         )
         return [StudentDebtDynamoItem.model_validate(i) for i in items], next_key
 
+    def list_all_for_student(self, student_id: str) -> list[StudentDebtDynamoItem]:
+        """Every pending debt of a student (follows pagination)."""
+        result: list[StudentDebtDynamoItem] = []
+        last_key: dict[str, Any] | None = None
+        while True:
+            items, last_key = self.list_for_student(
+                student_id, limit=200, last_evaluated_key=last_key
+            )
+            result.extend(items)
+            if not last_key:
+                return result
+
     def list_all_pending(
         self,
         limit: int = 200,

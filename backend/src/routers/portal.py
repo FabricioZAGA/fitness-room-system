@@ -22,6 +22,7 @@ from ..repositories.instructor_repository import InstructorRepository
 from ..repositories.membership_repository import MembershipRepository
 from ..repositories.reservation_repository import ReservationRepository
 from ..repositories.student_repository import StudentRepository
+from ..services.account_service import AccountService
 from ..services.event_notifier import EventNotifier
 from ..services.membership_service import MembershipService
 from ..services.reservation_service import ReservationService
@@ -246,6 +247,26 @@ def get_membership(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching membership: {str(e)}",
         )
+
+
+@router.get("/account")
+def get_account(
+    current_user: dict[str, Any] = Depends(require_student_or_staff_group()),
+    student_repo: StudentRepository = Depends(get_student_repository),
+) -> JSONResponse:
+    """Return the student's account statement: purchases, payments, debts and balance."""
+    role = get_user_role(current_user)
+    if role == "staff":
+        return JSONResponse(content={"role": "staff", "account": None})
+    try:
+        student = _resolve_student(current_user, student_repo)
+    except ResourceNotFoundException:
+        return JSONResponse(content={"role": "student", "account": None})
+
+    statement = AccountService().get_statement(student.student_id)
+    return JSONResponse(
+        content={"role": "student", "account": statement.model_dump(mode="json")}
+    )
 
 
 @router.get("/qr")

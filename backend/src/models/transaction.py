@@ -187,6 +187,7 @@ class ChargeResponse(BaseModel):
     debt_id: str | None = None
     balance_applied: float = 0
     amount_paid_now: float = 0
+    reference_id: str | None = Field(default=None, description="Groups all records of the charge")
 
 
 class TransactionUpdate(BaseModel):

@@ -14,7 +14,7 @@ Anonymous charges ("Público general", ``student_id=None``) are only allowed whe
 paid in full right away.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 from aws_lambda_powertools import Logger
@@ -86,6 +86,7 @@ class SettlementResult:
     debt_id: str | None
     balance_applied: float
     amount_paid_now: float
+    reference_id: str | None = None
 
 
 class PaymentSettlementService:
@@ -166,13 +167,17 @@ class PaymentSettlementService:
         splits = self.validate(charge)
         if charge.amount <= 0:
             return SettlementResult(None, None, 0.0, 0.0)
+        # Every record of this charge (debt, balance movement, transaction) shares
+        # one reference so the account statement can show them as a single line.
+        if charge.reference_id is None:
+            charge = replace(charge, reference_id=new_id())
 
         if charge.payment_status == "pending" and charge.student_id:
-            # Product debts keep the sale_id as their ID (legacy behaviour).
-            is_product = charge.concept_type == TransactionType.PRODUCT
+            # The debt ID is the charge reference (sale_id for products — legacy
+            # behaviour — membership_id for memberships, generated otherwise).
             debt = self._debts.create_debt(
                 student_id=charge.student_id,
-                sale_id=(charge.reference_id if is_product else None) or new_id(),
+                sale_id=charge.reference_id or new_id(),
                 amount=charge.amount,
                 description=charge.description,
                 concept_type=charge.concept_type,
@@ -189,7 +194,7 @@ class PaymentSettlementService:
                     "amount": charge.amount,
                 },
             )
-            return SettlementResult(None, debt.sale_id, 0.0, 0.0)
+            return SettlementResult(None, debt.sale_id, 0.0, 0.0, charge.reference_id)
 
         balance_applied = 0.0
         if charge.balance_amount > 0 and charge.student_id:
@@ -199,6 +204,7 @@ class PaymentSettlementService:
                 amount=balance_applied,
                 reference_id=charge.reference_id,
                 notes=f"Pago con saldo: {charge.description}",
+                concept_type=charge.concept_type,
             )
 
         transaction_id: str | None = None
@@ -224,7 +230,9 @@ class PaymentSettlementService:
             )
             transaction_id = tx.transaction_id
 
-        return SettlementResult(transaction_id, None, balance_applied, max(due_now, 0.0))
+        return SettlementResult(
+            transaction_id, None, balance_applied, max(due_now, 0.0), charge.reference_id
+        )
 
     def apply_balance(
         self,
@@ -232,6 +240,7 @@ class PaymentSettlementService:
         amount: float,
         reference_id: str | None,
         notes: str,
+        concept_type: TransactionType | None = None,
     ) -> float:
         """Debit ``amount`` from a student's balance and record the movement.
 
@@ -255,6 +264,7 @@ class PaymentSettlementService:
             balance_after=new_balance,
             reference_id=reference_id,
             notes=notes[:500],
+            concept_type=concept_type.value if concept_type else None,
         )
         logger.info(
             "Balance applied to charge",

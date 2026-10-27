@@ -128,6 +128,7 @@ class TransactionService:
             debt_id=result.debt_id,
             balance_applied=result.balance_applied,
             amount_paid_now=result.amount_paid_now,
+            reference_id=result.reference_id,
         )
 
     # ------------------------------------------------------------------

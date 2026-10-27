@@ -5,7 +5,7 @@ from typing import Any
 from aws_lambda_powertools import Logger
 
 from src.models.debt import PayDebtRequest, StudentDebtDynamoItem, StudentDebtResponse
-from src.models.transaction import PaymentMethod, TransactionType
+from src.models.transaction import PaymentMethod
 from src.repositories.balance_repository import BalanceRepository
 from src.repositories.debt_repository import DebtRepository
 from src.repositories.transaction_repository import TransactionRepository
@@ -148,9 +148,8 @@ class DebtService:
     ) -> None:
         """Settle a single debt and remove it."""
         response = debt.to_response()
+        # The description already carries the quantity for products ("Venta: X x2").
         concept = f"Cobro adeudo: {response.description}"
-        if response.concept_type == TransactionType.PRODUCT:
-            concept += f" x{debt.quantity}"
         self._settlement.settle(
             ChargeRequest(
                 student_id=debt.student_id,

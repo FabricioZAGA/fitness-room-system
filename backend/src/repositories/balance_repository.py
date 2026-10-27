@@ -60,6 +60,7 @@ class BalanceRepository(DynamoRepository):
         payment_method: str | None = None,
         reference_id: str | None = None,
         notes: str | None = None,
+        concept_type: str | None = None,
     ) -> BalanceMovementDynamoItem:
         """Record a balance movement.
 
@@ -73,6 +74,7 @@ class BalanceRepository(DynamoRepository):
             payment_method=payment_method,
             reference_id=reference_id,
             notes=notes,
+            concept_type=concept_type,
         )
         self.put_item(item.model_dump(mode="json"))
         return item
@@ -95,6 +97,22 @@ class BalanceRepository(DynamoRepository):
         )
         items.reverse()  # newest first (SK is timestamp-based)
         return [BalanceMovementDynamoItem.model_validate(i) for i in items], next_key
+
+    def list_all_movements_for_student(self, student_id: str) -> list[BalanceMovementDynamoItem]:
+        """Every balance movement of a student, newest first (follows pagination)."""
+        result: list[BalanceMovementDynamoItem] = []
+        last_key: dict[str, Any] | None = None
+        while True:
+            items, last_key = self.query_by_pk(
+                pk=f"STUDENT#{student_id}",
+                sk_begins_with="BAL_MOV#",
+                limit=200,
+                last_evaluated_key=last_key,
+            )
+            result.extend(BalanceMovementDynamoItem.model_validate(i) for i in items)
+            if not last_key:
+                result.reverse()
+                return result
 
     def list_movements_by_date(
         self,
