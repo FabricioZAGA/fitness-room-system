@@ -148,11 +148,16 @@ class TestCashCutPeriods:
         self, txs: list[TransactionDynamoItem], cuts: list[CashCutDynamoItem]
     ) -> tuple[TransactionService, MagicMock]:
         repo = MagicMock()
-        repo.list_transactions_by_date.return_value = (txs, None)
-        repo.list_cash_cuts_for_date.return_value = cuts
+        repo.list_transactions_between.return_value = txs
+        repo.get_latest_cash_cut.return_value = cuts[-1] if cuts else None
         repo.create_cash_cut.side_effect = (
-            lambda data, transactions, period_start=None: CashCutDynamoItem.from_data(
-                data, transactions, period_start=period_start
+            lambda data, transactions, period_start=None, period_start_date=None: (
+                CashCutDynamoItem.from_data(
+                    data,
+                    transactions,
+                    period_start=period_start,
+                    period_start_date=period_start_date,
+                )
             )
         )
         return TransactionService(repo=repo), repo
@@ -247,3 +252,17 @@ class TestUpdateMixedTransaction:
             {"method": "cash", "amount": 200.0},
             {"method": "transfer", "amount": 600.0},
         ]
+
+
+class TestCashCutRoutes:
+    """GET /transactions/cashcut must not be captured by GET /transactions/{id}."""
+
+    def test_list_cash_cuts_route(self, client: Any) -> None:
+        with patch("src.routers.transactions.TransactionService") as svc_cls:
+            svc = MagicMock()
+            svc.list_cash_cuts.return_value = ([], None)
+            svc_cls.return_value = svc
+            response = client.get("/api/v1/transactions/cashcut")
+        assert response.status_code == 200
+        assert response.json() == []
+        svc.get_transaction.assert_not_called()

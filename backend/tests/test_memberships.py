@@ -7,7 +7,12 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from src.models.membership import MembershipResponse, MembershipStatus, MembershipType
+from src.models.membership import (
+    LapsedStudentResponse,
+    MembershipResponse,
+    MembershipStatus,
+    MembershipType,
+)
 
 
 def make_membership_response(overrides: dict | None = None) -> MembershipResponse:
@@ -16,7 +21,7 @@ def make_membership_response(overrides: dict | None = None) -> MembershipRespons
     data = {
         "membership_id": str(uuid4()),
         "student_id": student_id,
-        "membership_type": MembershipType.MONTHLY,
+        "membership_type": MembershipType.ROOM_ELITE,
         "status": MembershipStatus.ACTIVE,
         "start_date": date.today(),
         "end_date": date(
@@ -42,7 +47,7 @@ def sample_membership_create(sample_student_id: str) -> dict:
     """Return a valid membership creation payload."""
     return {
         "student_id": sample_student_id,
-        "membership_type": "monthly",
+        "membership_type": "room_elite",
         "start_date": str(date.today()),
         "end_date": str(date(date.today().year + 1, 1, 1)),
         "price_paid": 500.0,
@@ -75,7 +80,7 @@ class TestAssignMembership:
         assert response.status_code == 201
         body = response.json()
         assert "membership_id" in body
-        assert body["membership_type"] == "monthly"
+        assert body["membership_type"] == "room_elite"
 
     def test_assign_membership_missing_fields(self, client: TestClient) -> None:
         """Should return 422 when required fields are missing."""
@@ -167,27 +172,36 @@ class TestGetActiveMembership:
         assert response.json() is None
 
 
-class TestCancelMembership:
-    """Tests for POST /api/v1/memberships/student/{student_id}/{membership_id}/cancel."""
+class TestCancelMembershipRemoved:
+    """v3.0.0: memberships are never cancelled — the endpoint no longer exists."""
 
-    def test_cancel_membership_success(self, client: TestClient, sample_student_id: str) -> None:
-        """Should cancel the membership and return 200."""
-        membership_id = str(uuid4())
-        cancelled = make_membership_response(
-            {
-                "student_id": sample_student_id,
-                "membership_id": membership_id,
-                "status": MembershipStatus.CANCELLED,
-            }
+    def test_cancel_endpoint_is_gone(self, client: TestClient, sample_student_id: str) -> None:
+        response = client.post(
+            f"/api/v1/memberships/student/{sample_student_id}/{uuid4()}/cancel"
         )
+        assert response.status_code in (404, 405)
+
+
+class TestLapsedStudents:
+    """Tests for GET /api/v1/memberships/lapsed."""
+
+    def test_list_lapsed(self, client: TestClient) -> None:
+        lapsed = [
+            LapsedStudentResponse(
+                student_id=str(uuid4()),
+                full_name="Ana Prueba",
+                student_status="active",
+                last_membership_type="room_elite",
+                last_end_date=date(2026, 1, 1),
+                days_since_expiry=10,
+            )
+        ]
         with patch("src.routers.memberships.MembershipService") as mock_svc_cls:
             mock_svc = MagicMock()
-            mock_svc.cancel_membership.return_value = cancelled
+            mock_svc.list_lapsed_students.return_value = lapsed
             mock_svc_cls.return_value = mock_svc
 
-            response = client.post(
-                f"/api/v1/memberships/student/{sample_student_id}/{membership_id}/cancel"
-            )
+            response = client.get("/api/v1/memberships/lapsed")
 
         assert response.status_code == 200
-        assert response.json()["status"] == "cancelled"
+        assert response.json()[0]["full_name"] == "Ana Prueba"
