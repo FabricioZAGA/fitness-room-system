@@ -51,6 +51,7 @@ export function useRegisterCharge(): UseMutationResult<ChargeResult, Error, Crea
       void qc.invalidateQueries({ queryKey: [TX_KEY] });
       void qc.invalidateQueries({ queryKey: ["balance"] });
       void qc.invalidateQueries({ queryKey: ["debts"] });
+      void qc.invalidateQueries({ queryKey: ["account"] });
       toast.success(result.debt_id ? "Cargo registrado como adeudo" : "Cobro registrado");
     },
     onError: (error) => {

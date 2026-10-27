@@ -3,7 +3,7 @@ import {
   ArrowLeft, CreditCard, Calendar, Plus, Power, PowerOff,
   Pencil, Mail, Phone, User, CheckCircle2, XCircle, Clock,
   Snowflake, QrCode, Download, ShieldBan, ShieldCheck,
-  Send, RefreshCw, Wallet, AlertTriangle,
+  Send, RefreshCw, Wallet, Receipt,
   Lock, Eye, EyeOff, Copy, Mail as MailIcon,
 } from "lucide-react";
 import { useState, useMemo } from "react";
@@ -31,9 +31,8 @@ import { CLASS_TYPE_LABELS } from "@/types/class";
 import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
 import type { PaymentMethod } from "@/types/transaction";
 import { formatDate, formatCurrency, getInitials } from "@/lib/utils";
-import { useStudentBalance, useBalanceMovements, useDeposit } from "@/hooks/useBalance";
-import { useStudentDebts, usePayDebt, usePayAllDebts } from "@/hooks/useDebts";
-import { BALANCE_MOVEMENT_TYPE_LABELS, type BalanceMovementType } from "@/types/balance";
+import { useStudentBalance, useDeposit } from "@/hooks/useBalance";
+import { AccountStatement } from "@/components/shared/AccountStatement";
 
 export const Route = createFileRoute("/students/$studentId/")({
   component: StudentDetailPage,
@@ -75,17 +74,12 @@ function StudentDetailPage(): React.JSX.Element {
   const { mutate: resendWelcome, isPending: sendingWelcome } = useResendWelcome();
   const updateContact = useUpdateContact(studentId);
   const { data: balance } = useStudentBalance(studentId);
-  const { data: movements = [] } = useBalanceMovements(studentId);
-  const { data: debts = [] } = useStudentDebts(studentId);
   const depositMutation = useDeposit();
-  const payDebtMutation = usePayDebt();
-  const payAllDebtsMutation = usePayAllDebts();
 
   const [depositOpen, setDepositOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState(0);
   const [depositMethod, setDepositMethod] = useState<PaymentMethod>("cash");
   const [depositNotes, setDepositNotes] = useState("");
-  const [debtPayMethod, setDebtPayMethod] = useState<PaymentMethod>("cash");
 
   const [contactOpen, setContactOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
@@ -365,106 +359,16 @@ function StudentDetailPage(): React.JSX.Element {
               <p className="text-2xl font-bold text-[--gold]">{formatCurrency(balance?.current_balance ?? 0)}</p>
             </div>
 
-            {movements.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-medium text-[--tx-muted]">{t("balance.history")}</p>
-                <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
-                  {movements.slice(0, 10).map((m) => (
-                    <div key={m.movement_id} className="flex items-center justify-between rounded-lg border border-[--bd-subtle] bg-[--bg-muted]/40 px-3 py-2 text-xs">
-                      <div>
-                        <span className="font-medium text-[--tx-primary]">
-                          {BALANCE_MOVEMENT_TYPE_LABELS[m.movement_type as BalanceMovementType] ?? m.movement_type}
-                        </span>
-                        {m.notes && <span className="ml-2 text-[--tx-disabled]">{m.notes}</span>}
-                      </div>
-                      <span className={`font-semibold ${m.amount >= 0 ? "text-[--color-success]" : "text-[--color-danger]"}`}>
-                        {m.amount >= 0 ? "+" : ""}{formatCurrency(m.amount)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {movements.length === 0 && (
-              <p className="text-center text-xs text-[--tx-disabled] py-4">{t("balance.noMovements")}</p>
-            )}
+            <p className="text-xs text-[--tx-muted]">{t("balance.statementHint")}</p>
           </section>
 
-          {/* Debts section */}
+          {/* Account statement: purchases, payments and debts */}
           <section className="rounded-2xl border border-[--bd-default] bg-[--bg-surface] p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-[--color-danger]" />
-                <h2 className="text-base font-semibold text-[--tx-primary]">{t("debt.title")}</h2>
-                {debts.length > 0 && (
-                  <span className="rounded-full bg-[--color-danger-bg] px-2 py-0.5 text-xs font-bold text-[--color-danger]">
-                    {debts.length}
-                  </span>
-                )}
-              </div>
-              {debts.length > 1 && (
-                <div className="flex items-center gap-2">
-                  <select
-                    className="rounded-lg border border-[--bd-default] bg-[--bg-muted] px-2 py-1.5 text-xs text-[--tx-primary]"
-                    value={debtPayMethod}
-                    onChange={(e) => setDebtPayMethod(e.target.value as PaymentMethod)}
-                  >
-                    {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => payAllDebtsMutation.mutate({
-                      studentId,
-                      data: { payment_method: debtPayMethod },
-                    })}
-                    disabled={payAllDebtsMutation.isPending}
-                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50"
-                    style={{ background: "var(--color-danger)" }}
-                  >
-                    {payAllDebtsMutation.isPending ? t("common.saving") : t("debt.payAll")}
-                  </button>
-                </div>
-              )}
+            <div className="mb-4 flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-[--gold]" />
+              <h2 className="text-base font-semibold text-[--tx-primary]">{t("account.title")}</h2>
             </div>
-
-            {debts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center">
-                <CheckCircle2 className="mb-3 h-10 w-10 text-[--color-success]" />
-                <p className="text-[--tx-muted]">{t("debt.noDebts")}</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {debts.map((d) => (
-                  <div key={d.sale_id} className="flex items-center justify-between rounded-xl border border-[--color-danger-bd] bg-[--color-danger-bg] px-4 py-3">
-                    <div>
-                      <p className="text-sm font-semibold text-[--tx-primary]">{d.description}</p>
-                      <p className="text-xs text-[--tx-muted]">
-                        {d.concept_type === "product"
-                          ? `${t("debt.quantity", { count: d.quantity })} · `
-                          : ""}
-                        {formatDate(d.created_at)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-[--color-danger]">{formatCurrency(d.amount)}</span>
-                      <button
-                        onClick={() => payDebtMutation.mutate({
-                          studentId,
-                          saleId: d.sale_id,
-                          data: { payment_method: debtPayMethod },
-                        })}
-                        disabled={payDebtMutation.isPending}
-                        className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50"
-                        style={{ background: "var(--color-danger)" }}
-                      >
-                        {payDebtMutation.isPending ? t("common.saving") : t("debt.pay")}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <AccountStatement studentId={studentId} />
           </section>
         </div>
 

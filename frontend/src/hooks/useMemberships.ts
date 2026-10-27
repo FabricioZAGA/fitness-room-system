@@ -56,6 +56,7 @@ export function useAssignMembership() {
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["balance"] });
       qc.invalidateQueries({ queryKey: ["debts"] });
+      qc.invalidateQueries({ queryKey: ["account"] });
       toast.success(
         membership.status === "pending"
           ? `Renovación programada: inicia el ${membership.start_date}.`

@@ -1,7 +1,33 @@
 import { useQuery } from '@tanstack/react-query'
-import { portalApi, type Profile, type StudentProfile, type StaffProfile } from '../services/api'
+import {
+  portalApi,
+  type AccountEntry,
+  type Profile,
+  type StudentProfile,
+  type StaffProfile,
+} from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { Container, Card, PageHeader, LoadingState, ErrorState } from '../components'
+
+const CONCEPT_LABELS: Record<string, string> = {
+  membership: 'Membresía',
+  class_pack: 'Paquete de clases',
+  product: 'Producto',
+  other: 'Otro cargo',
+}
+
+const METHOD_LABELS: Record<string, string> = {
+  cash: 'Efectivo',
+  card: 'Tarjeta',
+  transfer: 'Transferencia',
+  mixed: 'Mixto',
+}
+
+const money = (n: number): string =>
+  n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+
+const shortDate = (iso: string): string =>
+  new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 
 const isDev = import.meta.env.DEV
 
@@ -25,6 +51,12 @@ export default function Profile(): React.JSX.Element {
     queryFn: () => portalApi.getProfile().then((res) => res.data),
     enabled: !isDev,
   })
+  const { data: accountData } = useQuery({
+    queryKey: ['account'],
+    queryFn: () => portalApi.getAccount().then((res) => res.data),
+    enabled: !isDev,
+  })
+  const account = accountData?.account ?? null
 
   if (isError && !isDev) {
     return <ErrorState title="Error al cargar perfil" onRetry={() => refetch()} />
@@ -165,7 +197,94 @@ export default function Profile(): React.JSX.Element {
             </p>
           )}
         </Card>
+
+        {isStudent && account && (
+          <div style={{ marginTop: '16px' }}>
+            <Card variant="gold">
+              <p style={{ color: '#ffffff', fontWeight: 600, fontSize: '16px', margin: '0 0 12px' }}>
+                Mis compras y pagos
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 4px' }}>Saldo a favor</p>
+                  <p style={{ fontSize: '18px', fontWeight: 700, color: '#10b981', margin: 0 }}>
+                    {money(account.current_balance)}
+                  </p>
+                </div>
+                <div style={{ padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 4px' }}>Por pagar</p>
+                  <p
+                    style={{
+                      fontSize: '18px',
+                      fontWeight: 700,
+                      color: account.total_pending > 0 ? '#ef4444' : '#ffffff',
+                      margin: 0,
+                    }}
+                  >
+                    {money(account.total_pending)}
+                  </p>
+                </div>
+              </div>
+              {account.total_pending > 0 && (
+                <p style={{ fontSize: '12px', color: '#fca5a5', margin: '0 0 12px' }}>
+                  Tienes cargos pendientes de pago. Pasa a recepción para liquidarlos.
+                </p>
+              )}
+              {account.entries.length === 0 ? (
+                <p style={{ fontSize: '14px', color: '#9ca3af', margin: 0 }}>Aún no tienes movimientos.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {account.entries.slice(0, 20).map((e) => (
+                    <AccountRow key={e.entry_id} entry={e} />
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
       </div>
     </Container>
+  )
+}
+
+function AccountRow({ entry: e }: { entry: AccountEntry }): React.JSX.Element {
+  const isDeposit = e.kind === 'deposit'
+  const pending = e.status === 'pending'
+  const details: string[] = []
+  if (e.paid_now > 0 && e.payment_method) details.push(`${METHOD_LABELS[e.payment_method] ?? e.payment_method} ${money(e.paid_now)}`)
+  if (e.paid_with_balance > 0) details.push(`Saldo ${money(e.paid_with_balance)}`)
+  const label = isDeposit ? 'Abono' : (CONCEPT_LABELS[e.concept_type ?? ''] ?? 'Cargo')
+  const color = pending ? '#ef4444' : isDeposit ? '#10b981' : '#ffffff'
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '10px 12px',
+        borderRadius: '12px',
+        background: pending ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.04)',
+        border: pending ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid transparent',
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <p style={{ color: '#ffffff', fontSize: '14px', fontWeight: 500, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {e.description}
+        </p>
+        <p style={{ color: '#9ca3af', fontSize: '12px', margin: '2px 0 0' }}>
+          {label} · {shortDate(e.date)}
+          {details.length > 0 ? ` · ${details.join(' · ')}` : ''}
+        </p>
+      </div>
+      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <p style={{ color, fontWeight: 700, fontSize: '14px', margin: 0 }}>
+          {isDeposit ? '+' : ''}{money(pending ? e.pending_amount : e.amount)}
+        </p>
+        <p style={{ color, fontSize: '11px', margin: '2px 0 0' }}>
+          {pending ? 'Pendiente' : isDeposit ? 'Abono' : 'Pagado'}
+        </p>
+      </div>
+    </div>
   )
 }

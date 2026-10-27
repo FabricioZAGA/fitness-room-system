@@ -24,6 +24,8 @@ export interface BalanceMovement {
   payment_method: string | null;
   reference_id: string | null;
   notes: string | null;
+  /** Charge category when the movement paid a charge (v3.0.0+). */
+  concept_type?: string | null;
   balance_after: number;
   created_at: string;
   updated_at: string;
@@ -33,9 +35,4 @@ export interface DepositRequest {
   amount: number;
   payment_method: string;
   notes?: string;
-}
-
-export interface ApplyBalanceRequest {
-  amount: number;
-  membership_id: string;
 }

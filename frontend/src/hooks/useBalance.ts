@@ -8,12 +8,13 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import type {
-  ApplyBalanceRequest,
   BalanceMovement,
   DepositRequest,
   StudentBalance,
 } from "@/types/balance";
+import { toast } from "sonner";
 import { balanceService } from "@/services/balanceService";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { TX_KEY } from "./useTransactions";
 
 export const BALANCE_KEY = "balance";
@@ -54,24 +55,11 @@ export function useDeposit(): UseMutationResult<
         queryKey: [BALANCE_KEY, "movements", studentId],
       });
       void qc.invalidateQueries({ queryKey: [TX_KEY] });
+      void qc.invalidateQueries({ queryKey: ["account", studentId] });
+      toast.success("Abono registrado");
     },
-  });
-}
-
-export function useApplyBalance(): UseMutationResult<
-  BalanceMovement,
-  Error,
-  { studentId: string; data: ApplyBalanceRequest }
-> {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ studentId, data }) =>
-      balanceService.applyToMembership(studentId, data),
-    onSuccess: (_result, { studentId }) => {
-      void qc.invalidateQueries({ queryKey: [BALANCE_KEY, studentId] });
-      void qc.invalidateQueries({
-        queryKey: [BALANCE_KEY, "movements", studentId],
-      });
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Error al registrar el abono"));
     },
   });
 }

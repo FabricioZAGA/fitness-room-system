@@ -215,7 +215,39 @@ export interface Checkin {
   reason: string
 }
 
+/** One line of the student's account statement (estado de cuenta). */
+export interface AccountEntry {
+  entry_id: string
+  kind: 'charge' | 'deposit'
+  date: string
+  concept_type: 'membership' | 'class_pack' | 'product' | 'other' | null
+  description: string
+  amount: number
+  status: 'paid' | 'pending'
+  paid_now: number
+  paid_with_balance: number
+  pending_amount: number
+  payment_method: string | null
+  paid_at: string | null
+}
+
+export interface StudentAccount {
+  student_id: string
+  current_balance: number
+  total_pending: number
+  pending_count: number
+  entries: AccountEntry[]
+}
+
+export interface AccountResponse {
+  role: 'student' | 'staff'
+  account: StudentAccount | null
+}
+
 export const portalApi = {
+  // Account statement (purchases, payments, debts, balance)
+  getAccount: () => apiClient.get<AccountResponse>('/api/v1/portal/account'),
+
   // Profile
   getProfile: () => apiClient.get<Profile>('/api/v1/portal/profile'),
   

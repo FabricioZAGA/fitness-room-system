@@ -464,7 +464,10 @@
     "cutDescRange": "The cut will include everything accumulated since the last cut ({{from}} – {{to}}). After the cut the register starts at zero. Accumulated total:",
     "totalOpen": "Total in register",
     "openMovements": "Movements in register ({{count}})",
-    "noPaymentsOpen": "No movements in the register"
+    "noPaymentsOpen": "No movements in the register",
+    "pendingDebts_one": "{{count}} pending debt",
+    "pendingDebts_other": "{{count}} pending debts",
+    "collect": "Collect"
   },
   "reportes": {
     "title": "Reports",
@@ -573,7 +576,8 @@
     "applyQuestion": "Apply account balance?",
     "applyAmount": "{{amount}} will be deducted from balance",
     "remaining": "Remaining to pay: {{amount}}",
-    "insufficientBalance": "Insufficient balance"
+    "insufficientBalance": "Insufficient balance",
+    "statementHint": "Deposits and balance payments are listed under \"Purchases & payments\"."
   },
   "debt": {
     "title": "Pending Debts",
@@ -629,5 +633,19 @@
     "dashboardTitle_other": "{{count}} members have a birthday today",
     "years_one": "{{count}} year",
     "years_other": "{{count}} years"
+  },
+  "account": {
+    "title": "Purchases & payments",
+    "owes": "Owes {{amount}}",
+    "empty": "No purchases or payments yet",
+    "withBalance": "Balance",
+    "paidOn": "paid on {{date}}",
+    "deposit": "Account deposit",
+    "depositBadge": "Deposit",
+    "paid": "Paid",
+    "conceptMembership": "Membership",
+    "conceptClassPack": "Class pack",
+    "conceptProduct": "Product",
+    "conceptOther": "Other charge"
   }
 }

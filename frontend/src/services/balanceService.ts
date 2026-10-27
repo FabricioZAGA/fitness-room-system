@@ -1,7 +1,6 @@
 /** Balance API service. */
 
 import type {
-  ApplyBalanceRequest,
   BalanceMovement,
   DepositRequest,
   StudentBalance,
@@ -20,17 +19,6 @@ export const balanceService = {
   ): Promise<BalanceMovement> {
     const res = await apiClient.post<BalanceMovement>(
       `/balance/${studentId}/deposit`,
-      data
-    );
-    return res.data;
-  },
-
-  async applyToMembership(
-    studentId: string,
-    data: ApplyBalanceRequest
-  ): Promise<BalanceMovement> {
-    const res = await apiClient.post<BalanceMovement>(
-      `/balance/${studentId}/apply`,
       data
     );
     return res.data;

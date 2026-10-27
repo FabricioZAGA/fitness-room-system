@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -30,8 +30,15 @@ import type {
   UpdateProductRequest,
 } from "@/types/inventory";
 import { PRODUCT_CATEGORY_LABELS } from "@/types/inventory";
-import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStudents } from "@/hooks/useStudents";
+import { ChargePaymentSection } from "@/components/shared/ChargePaymentSection";
+import {
+  EMPTY_CHARGE_PAYMENT,
+  chargeError,
+  chargePayload,
+  type ChargePaymentValue,
+} from "@/lib/charge";
 
 
 export const Route = createFileRoute("/inventario/")({
@@ -61,10 +68,16 @@ function InventarioPage(): React.JSX.Element {
     stock: 0,
     low_stock_threshold: 5,
   });
-  const [sellForm, setSellForm] = useState<Partial<CreateSaleRequest>>({
+  const [sellForm, setSellForm] = useState<Pick<CreateSaleRequest, "quantity" | "notes">>({
     quantity: 1,
-    payment_method: "cash",
   });
+  const [sellPayment, setSellPayment] = useState<ChargePaymentValue>(EMPTY_CHARGE_PAYMENT);
+  const patchSellPayment = useCallback(
+    (patch: Partial<ChargePaymentValue>) => setSellPayment((v) => ({ ...v, ...patch })),
+    [],
+  );
+  const { data: studentsData } = useStudents({ limit: 500 });
+  const allStudents = studentsData?.items ?? [];
 
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
 
@@ -132,16 +145,25 @@ function InventarioPage(): React.JSX.Element {
     }
   };
 
+  const sellTotal = sellProduct ? sellProduct.price * (sellForm.quantity ?? 1) : 0;
+  const sellReady =
+    !!sellProduct && (sellForm.quantity ?? 1) >= 1 && chargeError(sellPayment, sellTotal) === null;
+
+  const closeSell = (): void => {
+    setSellProduct(null);
+    setSellForm({ quantity: 1 });
+    setSellPayment(EMPTY_CHARGE_PAYMENT);
+  };
+
   const handleSell = async () => {
-    if (!sellProduct || !sellForm.payment_method) return;
+    if (!sellProduct || !sellReady) return;
     await sellMutation.mutateAsync({
+      ...chargePayload(sellPayment, sellTotal),
       product_id: sellProduct.product_id,
       quantity: sellForm.quantity ?? 1,
-      payment_method: sellForm.payment_method,
       notes: sellForm.notes,
     });
-    setSellProduct(null);
-    setSellForm({ quantity: 1, payment_method: "cash" });
+    closeSell();
   };
 
   const handleRestock = async () => {
@@ -488,7 +510,7 @@ function InventarioPage(): React.JSX.Element {
       {/* Sell modal */}
       {sellProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-[--gold-bd] p-6 shadow-2xl" style={{ backgroundColor: "var(--bg-elevated)" }}>
             <h2 className="mb-1 text-xl font-bold text-[--tx-primary]">{t("inventario.sellTitle")}</h2>
             <p className="mb-6 text-[--tx-muted]">{sellProduct.name}</p>
             <div className="space-y-4">
@@ -503,45 +525,32 @@ function InventarioPage(): React.JSX.Element {
                   className={inputCls}
                   value={sellForm.quantity ?? 1}
                   onChange={(e) =>
-                    setSellForm((f) => ({ ...f, quantity: parseInt(e.target.value) }))
+                    setSellForm((f) => ({ ...f, quantity: Math.max(1, parseInt(e.target.value) || 1) }))
                   }
                 />
               </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[--tx-muted]">
-                  {t("inventario.paymentMethod")} *
-                </label>
-                <select
-                  className={selectCls}
-                  value={sellForm.payment_method}
-                  onChange={(e) =>
-                    setSellForm((f) => ({ ...f, payment_method: e.target.value }))
-                  }
-                >
-                  {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
-                    <option key={val} value={val}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <div className="rounded-xl bg-[--gold-bg] px-4 py-3">
                 <p className="text-sm text-[--tx-muted]">{t("inventario.totalToCharge")}</p>
-                <p className="text-xl font-bold text-[--gold]">
-                  {formatCurrency(sellProduct.price * (sellForm.quantity ?? 1))}
-                </p>
+                <p className="text-xl font-bold text-[--gold]">{formatCurrency(sellTotal)}</p>
               </div>
+              <ChargePaymentSection
+                total={sellTotal}
+                value={sellPayment}
+                onChange={patchSellPayment}
+                students={allStudents}
+                inputClassName={selectCls}
+              />
             </div>
             <div className="mt-6 flex gap-3">
               <button
-                onClick={() => setSellProduct(null)}
+                onClick={closeSell}
                 className="flex-1 rounded-xl border border-[--bd-default] py-3 text-sm font-medium text-[--tx-muted] hover:bg-[--bg-muted]"
               >
                 {t("common.cancel")}
               </button>
               <button
                 onClick={() => void handleSell()}
-                disabled={sellMutation.isPending}
+                disabled={!sellReady || sellMutation.isPending}
                 className="flex-1 rounded-xl py-3 text-sm font-semibold disabled:opacity-50"
                 style={{
                   background: "linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%)",

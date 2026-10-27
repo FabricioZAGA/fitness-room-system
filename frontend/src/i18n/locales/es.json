@@ -464,7 +464,10 @@
     "cutDescRange": "Se generará el corte con todo lo acumulado desde el último corte ({{from}} – {{to}}). Después del corte la caja inicia en ceros. Total acumulado:",
     "totalOpen": "Total en caja",
     "openMovements": "Movimientos en caja ({{count}})",
-    "noPaymentsOpen": "No hay movimientos en caja"
+    "noPaymentsOpen": "No hay movimientos en caja",
+    "pendingDebts_one": "{{count}} adeudo pendiente",
+    "pendingDebts_other": "{{count}} adeudos pendientes",
+    "collect": "Cobrar"
   },
   "reportes": {
     "title": "Reportes",
@@ -573,7 +576,8 @@
     "applyQuestion": "¿Aplicar saldo a favor?",
     "applyAmount": "Se descontarán {{amount}} del saldo",
     "remaining": "Restante a cobrar: {{amount}}",
-    "insufficientBalance": "Saldo insuficiente"
+    "insufficientBalance": "Saldo insuficiente",
+    "statementHint": "Los abonos y los pagos con saldo aparecen en \"Compras y pagos\"."
   },
   "debt": {
     "title": "Deudas Pendientes",
@@ -629,5 +633,19 @@
     "dashboardTitle_other": "Hoy cumplen años {{count}} socios",
     "years_one": "{{count}} año",
     "years_other": "{{count}} años"
+  },
+  "account": {
+    "title": "Compras y pagos",
+    "owes": "Debe {{amount}}",
+    "empty": "Sin compras ni pagos registrados",
+    "withBalance": "Saldo",
+    "paidOn": "pagado el {{date}}",
+    "deposit": "Abono a cuenta",
+    "depositBadge": "Abono",
+    "paid": "Pagado",
+    "conceptMembership": "Membresía",
+    "conceptClassPack": "Paquete de clases",
+    "conceptProduct": "Producto",
+    "conceptOther": "Otro cargo"
   }
 }

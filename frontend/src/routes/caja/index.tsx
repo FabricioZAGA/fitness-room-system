@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
   Banknote,
@@ -30,6 +30,7 @@ import { EditTransactionModal } from "@/components/shared/EditTransactionModal";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { useProducts, useSellProduct } from "@/hooks/useInventory";
 import { useDeposit } from "@/hooks/useBalance";
+import { useAllPendingDebts } from "@/hooks/useDebts";
 import { useStudents } from "@/hooks/useStudents";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
@@ -150,6 +151,8 @@ function CajaPage(): React.JSX.Element {
   // Students for deposit and pending sale
   const { data: studentsData } = useStudents({ limit: 500 });
   const allStudents = studentsData?.items ?? [];
+  const studentNames = Object.fromEntries(allStudents.map((s) => [s.student_id, s.full_name]));
+  const { data: pendingDebts = [] } = useAllPendingDebts();
   const depositMutation = useDeposit();
 
   // Derived product info
@@ -349,6 +352,47 @@ function CajaPage(): React.JSX.Element {
         )}
       </div>
 
+      {/* Pending debts (fiado) across all students */}
+      {pendingDebts.length > 0 && (
+        <div className="mb-8 rounded-2xl border border-[--color-danger-bd] bg-[--bg-surface]">
+          <div className="flex items-center justify-between border-b border-[--bd-default] px-6 py-4">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-[--tx-primary]">
+              <AlertTriangle className="h-5 w-5 text-[--color-danger]" />
+              {t("caja.pendingDebts", { count: pendingDebts.length })}
+            </h2>
+            <span className="font-bold text-[--color-danger]">
+              {formatCurrency(pendingDebts.reduce((sum, d) => sum + d.amount, 0))}
+            </span>
+          </div>
+          <div className="divide-y divide-[--bd-default]">
+            {pendingDebts.map((d) => (
+              <div key={`${d.student_id}-${d.sale_id}`} className="flex items-center gap-4 px-6 py-3">
+                <div className="flex-1">
+                  <Link
+                    to="/students/$studentId"
+                    params={{ studentId: d.student_id }}
+                    className="text-sm font-medium text-[--tx-primary] hover:text-[--gold]"
+                  >
+                    {studentNames[d.student_id] ?? d.student_id}
+                  </Link>
+                  <p className="text-xs text-[--tx-muted]">
+                    {d.description} · {formatDate(d.created_at)}
+                  </p>
+                </div>
+                <span className="font-semibold text-[--color-danger]">{formatCurrency(d.amount)}</span>
+                <Link
+                  to="/students/$studentId"
+                  params={{ studentId: d.student_id }}
+                  className="rounded-xl border border-[--bd-default] px-3 py-2 text-xs font-medium text-[--tx-muted] transition-all hover:border-[--gold-bd] hover:text-[--gold]"
+                >
+                  {t("caja.collect")}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Recent cash cuts */}
       {cashCuts.length > 0 && (
         <div className="rounded-2xl border border-[--bd-default] bg-[--bg-surface]">
@@ -390,7 +434,7 @@ function CajaPage(): React.JSX.Element {
       {showRegister && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div
-            className="w-full max-w-md rounded-2xl border border-[--gold-bd] p-6 shadow-2xl"
+            className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-[--gold-bd] p-6 shadow-2xl"
             style={{ backgroundColor: "var(--bg-elevated)" }}
           >
             <h2 className="mb-4 text-xl font-bold text-[--tx-primary]">{t("caja.registerPayment")}</h2>

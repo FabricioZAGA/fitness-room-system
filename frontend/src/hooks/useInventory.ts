@@ -153,8 +153,11 @@ export function useSellProduct(): UseMutationResult<
     onSuccess: (sale) => {
       void qc.invalidateQueries({ queryKey: [PRODUCT_KEY] });
       void qc.invalidateQueries({ queryKey: [SALE_KEY] });
-      // Backend auto-creates a transaction — sync Caja view
+      // Backend settles the payment (transaction / balance / debt) — sync Caja and the student
       void qc.invalidateQueries({ queryKey: ["transactions"] });
+      void qc.invalidateQueries({ queryKey: ["balance"] });
+      void qc.invalidateQueries({ queryKey: ["debts"] });
+      void qc.invalidateQueries({ queryKey: ["account"] });
       toast.success(`Venta registrada — ${sale.product_name ?? "Producto"} x${sale.quantity}`);
     },
     onError: (err) => {
