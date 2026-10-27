@@ -3,7 +3,7 @@
 Guía para IAs y desarrolladores que trabajen en este proyecto.
 **Lee esto antes de modificar cualquier cosa.** Para detalle de operaciones (deploy, versionado, infra) ver [`.claude/CLAUDE.md`](.claude/CLAUDE.md).
 
-> **Versión actual:** 2.4.0 — Operación en producción desde 2026-05-01.
+> **Versión actual:** 3.0.0 — Operación en producción desde 2026-05-01.
 
 ---
 
@@ -82,7 +82,7 @@ frontend/src/
   hooks/                   # TanStack Query hooks (useStudents, useClasses, useReports, ...)
   services/                # Axios API calls
   types/                   # TypeScript interfaces
-  i18n/locales/            # es.json + en.json (paridad 548 keys)
+  i18n/locales/            # es.json + en.json (paridad 587 keys)
   store/                   # Zustand (useThemeStore, useGymStore)
   config/                  # theme.ts (applyTheme)
   lib/                     # utils, exportReports, dateRangePresets, changelog
@@ -247,7 +247,7 @@ const inputCls = "w-full rounded-xl border border-[--bd-default] bg-[--bg-muted]
 
 - Idiomas: **español (default)** e **inglés**
 - Archivos: `frontend/src/i18n/locales/es.json` y `en.json`
-- **Paridad obligatoria**: 548 keys actualmente. Si agregas una clave en un archivo, agrégala en el otro.
+- **Paridad obligatoria**: 587 keys actualmente. Si agregas una clave en un archivo, agrégala en el otro.
 - Uso: `const { t } = useTranslation()` → `t("settings.title")`
 - Detección: localStorage → navigator, fallback a `"es"`
 - Verificación rápida:
@@ -314,9 +314,10 @@ GET  /api/v1/students/{id}/qr             QR base64 PNG
 
 # Membresías
 GET/POST/PATCH /api/v1/memberships[/{id}]
-GET  /api/v1/memberships/expiring         por vencer
-POST /api/v1/memberships/{id}/cancel|renew
+GET  /api/v1/memberships/expiring-soon    por vencer (excluye a quien ya renovó)
+GET  /api/v1/memberships/lapsed           "Vencidas": alumnos no inactivos sin membresía active/frozen/pending
 POST /api/v1/memberships/student/{id}/{mid}/freeze|unfreeze
+# (v3.0.0) No existe /cancel: las membresías nunca se cancelan (sin reembolsos)
 
 # Clases
 GET/POST/PATCH /api/v1/classes[/{id}]
@@ -333,9 +334,11 @@ POST /api/v1/instructors/{id}/activate|deactivate
 
 # Caja
 POST /api/v1/transactions, GET /api/v1/transactions
+POST /api/v1/transactions/charge          cobro con fiado / saldo / Público general
+GET  /api/v1/transactions/open-period     todo desde el último corte (cualquier día)
 GET  /api/v1/transactions/student/{id}
-GET  /api/v1/transactions/daily-summary
-POST /api/v1/transactions/cash-cut
+GET  /api/v1/transactions/summary/today?scope=day|period
+POST /api/v1/transactions/cashcut, GET /api/v1/transactions/cashcut[/{id}]
 
 # Inventario
 POST/GET/PATCH /api/v1/inventory/products[/{id}]
@@ -437,6 +440,10 @@ VITE_ENV=development
 6. **Portal vs Frontend** — dos apps independientes con sus propios `package.json` y builds. Portal usa Tailwind 3.4, no 4. **No** mezclar componentes ni dependencias.
 7. **EventBridge** — handlers de notificaciones SES (alertas de vencimiento) configurados como reglas en `ApiStack`.
 8. **El bucket del portal y el del admin son distintos**: si por error desplegas el bundle de admin sobre el del portal (o viceversa), los socios verán la app del admin (que rechaza grupos `student`/`teacher`). Pasó en v1.8.x — fix en v1.8.3.
+9. **Ciclo de vida de membresías (v3.0.0)** — `pending → active → expired`, `active ⇄ frozen`. Nunca `cancelled` (solo lectura legacy). Renovar con una membresía vigente la encola (`pending`, GSI3SK `PENDING_MEMBERSHIP#{start}#{id}`); `end_date` es exclusivo (misma regla que check-in). Antes de leer la membresía activa llama `MembershipService.roll_student()`; el job nocturno `roll_memberships` (00:05 CDMX) hace lo mismo para todos.
+10. **Cobros** — todo cobro pasa por `PaymentSettlementService` (pagado / saldo / fiado). Pagar con saldo **no** crea transacción por esa parte (el ingreso se contó en el abono).
+11. **Corte de caja** — el periodo abierto va desde el último corte de cualquier día; no se reinicia a medianoche.
+12. **Type-check del admin** — `npx tsc --noEmit` en la raíz de `frontend/` no revisa la app (tsconfig con referencias); usa `pnpm build` (`tsc -b`) para el chequeo real.
 
 ---
 

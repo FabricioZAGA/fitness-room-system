@@ -12,9 +12,23 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "2.4.0";
+export const APP_VERSION = "3.0.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "3.0.0",
+    date: "2026-10-27",
+    title: "Renovaciones anticipadas, adiós a 'cancelada', caja unificada y corte acumulado",
+    items: [
+      { icon: "🔁", text: "Renovar antes de que venza ya no cancela la membresía actual: la nueva queda 'Programada' y empieza sola el día que termina la anterior, sin perder días" },
+      { icon: "❄️", text: "Ya no existe el estatus 'Cancelada' (no hay reembolsos): al desactivar o suspender a un socio su membresía se congela y al reactivarlo recupera exactamente los días que le quedaban" },
+      { icon: "📋", text: "Membresías → 'Vencidas' ahora lista a las personas que no están inactivas y no tienen membresía activa, congelada ni programada (las que hay que renovar). Nueva pestaña 'Programadas'" },
+      { icon: "🧾", text: "Caja: cualquier cobro (producto, membresía u otro) se liga a un socio y se puede dejar a deber (fiado) o pagar con su saldo a favor, total o parcial. 'Público general' solo para pago inmediato" },
+      { icon: "💰", text: "Corte de caja: la caja ya no se reinicia a medianoche — acumula todo hasta que hagas el corte, aunque sea de días anteriores" },
+      { icon: "🎂", text: "Cumpleaños: aviso en Check-in, felicitación en el kiosco y tarjeta de cumpleañeros del día en el Dashboard" },
+      { icon: "🛠️", text: "Corregido: pagar una membresía con saldo ya no cuenta doble el ingreso; suspender/reactivar ya no suma 365 días a la membresía" },
+    ],
+  },
   {
     version: "2.4.0",
     date: "2026-10-05",

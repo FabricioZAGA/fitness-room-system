@@ -5,6 +5,42 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [3.0.0] — 2026-10-27
+
+> **Major**: cambia el ciclo de vida de membresías (desaparece `cancelled`) y el
+> periodo del corte de caja. Requiere correr `scripts/migrate_v3_memberships.py`
+> después del deploy del backend. Rollback: redeploy de `v2.4.0` + backup de DynamoDB.
+
+### Added
+
+- **Renovaciones encoladas**: si el alumno aún tiene una membresía vigente (activa, congelada o ya programada), la nueva se crea como `pending` y sus fechas se recorren para iniciar el día en que termina la última (sin perder días). GSI3SK `PENDING_MEMBERSHIP#{start_date}#{id}`. `MembershipResponse.days_until_start`.
+- **Roll del ciclo de vida** (`MembershipService.roll_student` / `roll_all`): `pending → active` al llegar su inicio, `active → expired` al llegar su `end_date` (exclusivo, misma regla que check-in) y fin automático de congelamientos con fecha. Se aplica de forma perezosa en check-in, reservaciones, portal y lecturas de membresía, y cada noche con la nueva regla EventBridge `fitness-room-daily-membership-roll-{env}` (00:05 CDMX, acción `roll_memberships`).
+- **`GET /api/v1/memberships/lapsed`** ("Vencidas"): alumnos no inactivos sin membresía `active`/`frozen`/`pending`, con su última membresía y días desde el vencimiento.
+- **`PaymentSettlementService`**: punto único para liquidar cualquier cobro — pagado ahora (efectivo/tarjeta/transferencia/mixto), con saldo a favor (movimiento `charge_apply`, sin transacción por esa parte) o como adeudo (fiado). "Público general" (`student_id=null`) solo para pago inmediato.
+- **`POST /api/v1/transactions/charge`**: "Otro cobro" con opciones de fiado/saldo. `MembershipCreate` y `ProductSaleCreate` aceptan `payment_status` y `balance_amount`.
+- **Adeudos genéricos**: `StudentDebt` con `concept_type`, `description` y `reference_id` (membresía, paquete, producto u otro). `PayDebtRequest` acepta `payment_splits` y `use_balance`.
+- **`GET /api/v1/transactions/open-period`**: todo lo registrado desde el último corte (de cualquier día), con totales por método y tipo.
+- **Cumpleaños**: `StudentResponse.is_birthday_today` (29-feb → 28-feb en años no bisiestos), `DashboardStats.birthdays_today`, aviso en Check-in, felicitación en kiosco y tarjeta en Dashboard.
+- **Admin**: componente `ChargePaymentSection` (alumno/Público general, pagado vs. fiado, saldo y método para el restante) usado en Caja (producto y otro) y Nueva membresía; aviso de renovación programada; pestañas "Programadas" y "Vencidas" (alumnos); portal muestra la renovación programada.
+- **Migración** `scripts/migrate_v3_memberships.py` (`--dry-run` / `--apply`, idempotente, reporte CSV).
+- **Tests**: `backend/tests/test_v3_lifecycle.py` (moto: ciclo de vida, cascadas, vencidas, liquidación, corte multi-día, cumpleaños) y `frontend/src/test/lib/charge.test.ts`.
+
+### Changed
+
+- **Sin estatus `cancelled`**: ya no se escribe (queda solo como lectura legacy). Se elimina `POST /memberships/student/{id}/{mid}/cancel`; `PATCH` con `status=cancelled` responde 400.
+- **Desactivar / suspender alumno** congela la membresía activa indefinidamente; **activar / reactivar** la descongela acreditando los días reales congelados.
+- **Congelar** recorre también las membresías programadas; descongelar corrige `end_date` a los días realmente congelados.
+- **Corte de caja**: el periodo va desde el último corte de cualquier día (`period_start_date`), ya no se reinicia a medianoche. `summary/today?scope=period` usa el mismo periodo. Consultas de transacciones paginadas.
+- **Alertas de vencimiento** (dashboard, `expiring-soon`, recordatorios por correo) excluyen a quien ya renovó por adelantado.
+
+### Fixed
+
+- **Doble conteo de ingresos** al pagar una membresía con saldo: el abono ya era ingreso y la membresía registraba otra transacción por el precio completo. Ahora solo se registra la parte cobrada en el momento.
+- **Suspender / reactivar** sumaba 365 días permanentes a la membresía (`unfreeze` no revertía el congelamiento planeado).
+- **`GET /transactions/cashcut`** quedaba capturado por `GET /transactions/{transaction_id}`; las rutas de corte se registran antes.
+
+---
+
 ## [2.4.0] — 2026-10-05
 
 ### Added
