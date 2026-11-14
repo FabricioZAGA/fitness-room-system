@@ -211,7 +211,13 @@
     "editClassDesc": "Fix the name, instructor, date or time without losing enrolled members",
     "editKeepsEnrolled_one": "{{count}} enrolled member will keep their spot when saving.",
     "editKeepsEnrolled_other": "{{count}} enrolled members will keep their spot when saving.",
-    "saveChanges": "Save changes"
+    "saveChanges": "Save changes",
+    "bookingOpensDaysBefore": "Enrollment opens (days before)",
+    "bookingOpensHint": "Members can enroll from 00:00 of that day. 0 = class day only.",
+    "bookingOpens": "Opens",
+    "bookingOpensValue_one": "{{date}}, 00:00 ({{count}} day before)",
+    "bookingOpensValue_other": "{{date}}, 00:00 ({{count}} days before)",
+    "bookingOpensSameDay": "{{date}}, 00:00 (same day)"
   },
   "reservations": {
     "title": "Reservations",

@@ -211,7 +211,13 @@
     "editClassDesc": "Corrige nombre, instructor, fecha u hora sin perder a los inscritos",
     "editKeepsEnrolled_one": "{{count}} alumno inscrito conservará su lugar al guardar los cambios.",
     "editKeepsEnrolled_other": "{{count}} alumnos inscritos conservarán su lugar al guardar los cambios.",
-    "saveChanges": "Guardar cambios"
+    "saveChanges": "Guardar cambios",
+    "bookingOpensDaysBefore": "Inscripción abre (días antes)",
+    "bookingOpensHint": "Los socios podrán inscribirse desde las 00:00 de ese día. 0 = solo el mismo día de la clase.",
+    "bookingOpens": "Abre",
+    "bookingOpensValue_one": "{{date}}, 00:00 ({{count}} día antes)",
+    "bookingOpensValue_other": "{{date}}, 00:00 ({{count}} días antes)",
+    "bookingOpensSameDay": "{{date}}, 00:00 (mismo día)"
   },
   "reservations": {
     "title": "Reservaciones",

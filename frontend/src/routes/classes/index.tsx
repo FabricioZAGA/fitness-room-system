@@ -10,6 +10,7 @@ import {
   Users,
   Clock,
   Link as LinkIcon,
+  LockOpen,
   Pencil,
   XCircle,
 } from "lucide-react";
@@ -342,6 +343,18 @@ function ClassDetailPanel({
           {cls.class_link && (
             <DetailRow icon={LinkIcon} label={t("classes.link")} value={t("classes.onlineClass")} link={cls.class_link} />
           )}
+          <DetailRow
+            icon={LockOpen}
+            label={t("classes.bookingOpens")}
+            value={
+              cls.booking_opens_days_before === 0
+                ? t("classes.bookingOpensSameDay", { date: formatDate(cls.booking_opens_at.slice(0, 10)) })
+                : t("classes.bookingOpensValue", {
+                    date: formatDate(cls.booking_opens_at.slice(0, 10)),
+                    count: cls.booking_opens_days_before,
+                  })
+            }
+          />
         </div>
 
         {/* Occupancy */}

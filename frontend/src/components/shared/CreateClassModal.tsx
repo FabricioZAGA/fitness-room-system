@@ -7,7 +7,11 @@ import { useCreateClass, useUpdateClass } from "@/hooks/useClasses";
 import { useInstructors } from "@/hooks/useInstructors";
 import { useClassTypes } from "@/hooks/useCatalogs";
 import type { ClassMode, CreateClassRequest, FitnessClass, UpdateClassRequest } from "@/types/class";
-import { CLASS_MODE_LABELS } from "@/types/class";
+import {
+  CLASS_MODE_LABELS,
+  DEFAULT_BOOKING_OPENS_DAYS_BEFORE,
+  MAX_BOOKING_OPENS_DAYS_BEFORE,
+} from "@/types/class";
 
 interface CreateClassModalProps {
   open: boolean;
@@ -34,6 +38,7 @@ const INITIAL: CreateClassRequest = {
   location: "Sala A",
   description: "",
   class_mode: "presencial",
+  booking_opens_days_before: DEFAULT_BOOKING_OPENS_DAYS_BEFORE,
 };
 
 function formFromClass(cls: FitnessClass): CreateClassRequest {
@@ -48,6 +53,7 @@ function formFromClass(cls: FitnessClass): CreateClassRequest {
     description: cls.description ?? "",
     class_mode: cls.class_mode,
     class_link: cls.class_link ?? "",
+    booking_opens_days_before: cls.booking_opens_days_before,
   };
 }
 
@@ -273,6 +279,21 @@ export function CreateClassModal({
             />
           </Field>
         </div>
+
+        <Field label={t("classes.bookingOpensDaysBefore")}>
+          <input
+            name="booking_opens_days_before"
+            type="number"
+            min={0}
+            max={MAX_BOOKING_OPENS_DAYS_BEFORE}
+            step={1}
+            value={form.booking_opens_days_before ?? ""}
+            onChange={handleChange}
+            required
+            className={inputCls}
+          />
+          <p className="mt-1.5 text-xs text-[--tx-disabled]">{t("classes.bookingOpensHint")}</p>
+        </Field>
 
         <Field label="Descripción">
           <textarea

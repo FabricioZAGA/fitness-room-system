@@ -26,9 +26,16 @@ export interface FitnessClass {
   class_mode: ClassMode;
   class_link: string | null;
   is_cancelled: boolean;
+  /** Calendar days before the class when self-service enrollment opens (00:00 MX). */
+  booking_opens_days_before: number;
+  /** ISO datetime (Mexico City offset) when self-service enrollment opens. */
+  booking_opens_at: string;
   created_at: string;
   updated_at: string;
 }
+
+export const DEFAULT_BOOKING_OPENS_DAYS_BEFORE = 1;
+export const MAX_BOOKING_OPENS_DAYS_BEFORE = 30;
 
 export interface CreateClassRequest {
   class_type: string;
@@ -41,6 +48,7 @@ export interface CreateClassRequest {
   description?: string;
   class_mode?: ClassMode;
   class_link?: string;
+  booking_opens_days_before?: number;
 }
 
 export interface UpdateClassRequest {
@@ -54,6 +62,7 @@ export interface UpdateClassRequest {
   description?: string;
   class_mode?: ClassMode;
   class_link?: string;
+  booking_opens_days_before?: number;
   is_cancelled?: boolean;
 }
 
@@ -87,6 +96,8 @@ export interface ClassAttendees {
   reservations_count: number;
   waitlist_count: number;
   available_spots: number;
+  booking_opens_days_before: number;
+  booking_opens_at: string;
   confirmed: ClassAttendee[];
   waitlisted: ClassAttendee[];
 }
