@@ -12,9 +12,20 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "3.1.0";
+export const APP_VERSION = "3.2.0";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "3.2.0",
+    date: "2026-11-14",
+    title: "Apertura de inscripciones por clase",
+    items: [
+      { icon: "🗓️", text: "Nuevo: al crear o editar una clase eliges desde cuántos días antes pueden inscribirse los socios (0 a 30, por defecto 1 día). Las inscripciones abren a las 00:00 de ese día" },
+      { icon: "🔒", text: "En el portal, las clases que aún no abren se ven con el aviso 'Inscripciones abren vie 13 nov, 00:00' y no permiten inscribirse ni unirse a la lista de espera antes de tiempo" },
+      { icon: "🛎️", text: "Recepción puede seguir inscribiendo socios desde el panel en cualquier momento" },
+      { icon: "📋", text: "Todas las clases existentes quedan con apertura de 1 día antes" },
+    ],
+  },
   {
     version: "3.1.0",
     date: "2026-10-27",

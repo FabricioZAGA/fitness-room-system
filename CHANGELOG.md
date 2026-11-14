@@ -5,6 +5,22 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [3.2.0] — 2026-11-14
+
+> Opcional después del deploy del backend: `scripts/backfill_class_booking_window.py`
+> (`--dry-run` primero). El API ya trata las clases sin el atributo como 1 día.
+
+### Added
+
+- **Ventana de apertura de inscripciones por clase**: nuevo campo `booking_opens_days_before` (0–30, default 1) en `ClassCreate` / `ClassUpdate` / `ClassResponse`. La inscripción abre a las 00:00 (America/Mexico_City) de `class_date − N` días; `ClassResponse.booking_opens_at` expone ese momento. Helper `booking_opens_at()` en `models/class_model.py`.
+- `ReservationService._check_booking_opens`: rechaza (400) reservaciones y lista de espera antes de la apertura. No aplica con `staff_override` (recepción) ni a visitantes.
+- Portal: `GET /portal/classes` y `GET /portal/classes/{id}` incluyen `booking_opens_days_before`, `booking_opens_at` y `booking_open`. Las clases aún cerradas se muestran con "🔒 Inscripciones abren …".
+- Admin: campo "Inscripción abre (días antes)" en crear/editar clase y fila "Abre" en el detalle de la clase. `GET /classes/{id}/attendees` incluye la ventana.
+- `scripts/backfill_class_booking_window.py`: escribe `booking_opens_days_before = 1` en clases que no lo tienen (condicional, `--dry-run`).
+- Tests: `backend/tests/test_booking_window.py`.
+
+---
+
 ## [3.1.0] — 2026-10-27
 
 ### Added

@@ -3,7 +3,7 @@
 Guía para IAs y desarrolladores que trabajen en este proyecto.
 **Lee esto antes de modificar cualquier cosa.** Para detalle de operaciones (deploy, versionado, infra) ver [`.claude/CLAUDE.md`](.claude/CLAUDE.md).
 
-> **Versión actual:** 3.1.0 — Operación en producción desde 2026-05-01.
+> **Versión actual:** 3.2.0 — Operación en producción desde 2026-05-01.
 
 ---
 
@@ -446,6 +446,7 @@ VITE_ENV=development
 10. **Cobros** — todo cobro pasa por `PaymentSettlementService` (pagado / saldo / fiado). Pagar con saldo **no** crea transacción por esa parte (el ingreso se contó en el abono).
 11. **Corte de caja** — el periodo abierto va desde el último corte de cualquier día; no se reinicia a medianoche.
 12. **Type-check del admin** — `npx tsc --noEmit` en la raíz de `frontend/` no revisa la app (tsconfig con referencias); usa `pnpm build` (`tsc -b`) para el chequeo real.
+13. **Apertura de inscripciones (v3.2.0)** — cada clase tiene `booking_opens_days_before` (0–30, default 1). La inscripción self-service (portal, incluida lista de espera) abre a las 00:00 CDMX de `class_date − N`; se calcula con `booking_opens_at()` en `models/class_model.py` y se valida en `ReservationService._check_booking_opens`. Recepción (`staff_override`) y visitantes no aplican. Items sin el atributo se leen como 1.
 
 ---
 
