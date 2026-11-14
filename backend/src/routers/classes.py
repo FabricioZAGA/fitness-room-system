@@ -190,6 +190,8 @@ def get_class_attendees(
         "reservations_count": cls.reservations_count,
         "waitlist_count": cls.waitlist_count,
         "available_spots": cls.available_spots,
+        "booking_opens_days_before": cls.booking_opens_days_before,
+        "booking_opens_at": cls.booking_opens_at,
         "confirmed": confirmed,
         "waitlisted": waitlisted,
     }

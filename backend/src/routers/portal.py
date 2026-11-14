@@ -8,13 +8,13 @@ from io import BytesIO
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from src.models.common import mexico_today
+from src.models.common import mexico_now, mexico_today
 
 import qrcode
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
-from ..models.class_model import ClassDynamoItem
+from ..models.class_model import ClassDynamoItem, booking_opens_at
 from ..models.reservation import ReservationCreate
 from ..models.student import StudentDynamoItem
 from ..repositories.class_repository import ClassRepository
@@ -109,6 +109,16 @@ def _resolve_student(
             return student
 
     raise ResourceNotFoundException("Student profile not found")
+
+
+def _booking_window_fields(class_item: ClassDynamoItem) -> dict[str, Any]:
+    """Enrollment-opening info for a class so the portal UI never recomputes it."""
+    opens_at = booking_opens_at(class_item.class_date, class_item.booking_opens_days_before)
+    return {
+        "booking_opens_days_before": class_item.booking_opens_days_before,
+        "booking_opens_at": opens_at.isoformat(),
+        "booking_open": mexico_now() >= opens_at,
+    }
 
 
 def _can_cancel_reservation(
@@ -625,6 +635,7 @@ def get_class_detail(
         "reservations_count": cls.reservations_count,
         "waitlist_count": cls.waitlist_count,
         "available_spots": max(0, cls.capacity - cls.reservations_count),
+        **_booking_window_fields(cls),
         "confirmed": confirmed,
         "waitlisted": waitlisted,
     })
@@ -686,6 +697,7 @@ def get_upcoming_classes(
                 "available_spots": available_spots,
                 "is_full": available_spots == 0,
                 "description": c.description,
+                **_booking_window_fields(c),
             }
 
             # Check if student already has a reservation or waitlist seat

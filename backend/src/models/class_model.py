@@ -13,12 +13,34 @@ GSI2 (list by instructor):
   GSI2SK: DATE#{date}#CLASS#{class_id}
 """
 
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from src.models.common import TimestampedModel, new_id, utc_now
+from src.models.common import MX_TZ, TimestampedModel, new_id, utc_now
+
+DEFAULT_BOOKING_OPENS_DAYS_BEFORE = 1
+MAX_BOOKING_OPENS_DAYS_BEFORE = 30
+
+
+def booking_opens_at(class_date: date | str, days_before: int) -> datetime:
+    """Return when self-service enrollment opens for a class.
+
+    Enrollment opens at 00:00 (America/Mexico_City) of the calendar day that is
+    ``days_before`` days before ``class_date``. ``days_before=0`` means it opens
+    at midnight of the class day itself.
+
+    Args:
+        class_date: The class date (``date`` or ISO ``YYYY-MM-DD`` string).
+        days_before: Calendar days before the class when enrollment opens.
+
+    Returns:
+        Timezone-aware datetime in Mexico City time.
+    """
+    day = date.fromisoformat(class_date) if isinstance(class_date, str) else class_date
+    opens_day = day - timedelta(days=days_before)
+    return datetime.combine(opens_day, time.min, tzinfo=MX_TZ)
 
 
 # Legacy ClassType enum kept for backward compatibility with existing data.
@@ -69,6 +91,12 @@ class ClassCreate(BaseModel):
     class_link: str | None = Field(
         default=None, max_length=500, description="External class link (Zoom/Meet/Zumba)"
     )
+    booking_opens_days_before: int = Field(
+        default=DEFAULT_BOOKING_OPENS_DAYS_BEFORE,
+        ge=0,
+        le=MAX_BOOKING_OPENS_DAYS_BEFORE,
+        description="Calendar days before the class when self-service enrollment opens (00:00 MX)",
+    )
 
 
 class ClassUpdate(BaseModel):
@@ -84,6 +112,9 @@ class ClassUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=500)
     class_mode: ClassMode | None = None
     class_link: str | None = Field(default=None, max_length=500)
+    booking_opens_days_before: int | None = Field(
+        default=None, ge=0, le=MAX_BOOKING_OPENS_DAYS_BEFORE
+    )
     is_cancelled: bool | None = None
 
 
@@ -105,10 +136,15 @@ class ClassResponse(TimestampedModel):
     class_mode: ClassMode = ClassMode.PRESENCIAL
     class_link: str | None = None
     is_cancelled: bool = False
+    booking_opens_days_before: int = DEFAULT_BOOKING_OPENS_DAYS_BEFORE
+    booking_opens_at: datetime | None = Field(
+        default=None, description="When self-service enrollment opens (Mexico City time)"
+    )
 
     def model_post_init(self, __context: object) -> None:
-        """Compute available spots after initialization."""
+        """Compute available spots and enrollment opening time after initialization."""
         self.available_spots = max(0, self.capacity - self.reservations_count)
+        self.booking_opens_at = booking_opens_at(self.class_date, self.booking_opens_days_before)
 
 
 class ClassDynamoItem(BaseModel):
@@ -135,6 +171,8 @@ class ClassDynamoItem(BaseModel):
     class_mode: str = "presencial"
     class_link: str | None = None
     is_cancelled: bool = False
+    # Legacy items written before v3.2.0 lack this attribute → default applies.
+    booking_opens_days_before: int = DEFAULT_BOOKING_OPENS_DAYS_BEFORE
     created_at: datetime
     updated_at: datetime
 
@@ -163,6 +201,7 @@ class ClassDynamoItem(BaseModel):
             description=data.description,
             class_mode=data.class_mode.value,
             class_link=data.class_link,
+            booking_opens_days_before=data.booking_opens_days_before,
             created_at=now,
             updated_at=now,
         )
@@ -184,6 +223,7 @@ class ClassDynamoItem(BaseModel):
             class_mode=ClassMode(self.class_mode),
             class_link=self.class_link,
             is_cancelled=self.is_cancelled,
+            booking_opens_days_before=self.booking_opens_days_before,
             created_at=self.created_at,
             updated_at=self.updated_at,
         )

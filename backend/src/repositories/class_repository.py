@@ -134,6 +134,8 @@ class ClassRepository(DynamoRepository):
             updates["class_mode"] = data.class_mode.value
         if data.class_link is not None:
             updates["class_link"] = data.class_link
+        if data.booking_opens_days_before is not None:
+            updates["booking_opens_days_before"] = data.booking_opens_days_before
         if data.is_cancelled is not None:
             updates["is_cancelled"] = data.is_cancelled
 

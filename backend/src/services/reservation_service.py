@@ -6,6 +6,7 @@ from typing import Any
 
 from aws_lambda_powertools import Logger
 
+from src.models.class_model import booking_opens_at
 from src.models.common import MX_TZ, mexico_now, new_id
 from src.models.reservation import (
     ReservationCreate,
@@ -27,7 +28,21 @@ from src.utils.exceptions import (
 MIN_BOOKING_MINUTES = 5
 MIN_CANCEL_MINUTES = 15
 
+_WEEKDAYS_ES = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+_MONTHS_ES = (
+    "", "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+)
+
 logger = Logger()
+
+
+def _format_opens_at_es(moment: datetime) -> str:
+    """Format an enrollment opening in Spanish, e.g. 'viernes 13 de noviembre a las 00:00'."""
+    return (
+        f"{_WEEKDAYS_ES[moment.weekday()]} {moment.day} de {_MONTHS_ES[moment.month]} "
+        f"a las {moment:%H:%M}"
+    )
 
 
 class ReservationService:
@@ -102,6 +117,7 @@ class ReservationService:
             raise_bad_request(f"Class '{data.class_id}' has been cancelled.")
 
         if not staff_override and not is_visitor:
+            self._check_booking_opens(class_item)
             self._check_booking_window(class_item)
             self._check_daily_limit(data.student_id, class_item.class_date)
             self._check_schedule_restrictions(data.student_id, class_item)
@@ -471,6 +487,22 @@ class ReservationService:
         time_str = str(class_item.start_time)[:5]  # "HH:MM"
         naive = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         return naive.replace(tzinfo=MX_TZ)
+
+    @staticmethod
+    def _check_booking_opens(class_item: Any) -> None:
+        """Raise 400 if self-service enrollment for the class has not opened yet.
+
+        Enrollment opens at 00:00 (Mexico City) ``booking_opens_days_before``
+        calendar days before the class date. Applies to the waitlist too.
+        """
+        opens_at = booking_opens_at(
+            str(class_item.class_date), class_item.booking_opens_days_before
+        )
+        if mexico_now() < opens_at:
+            raise_bad_request(
+                "Las inscripciones para esta clase abren el "
+                f"{_format_opens_at_es(opens_at)}."
+            )
 
     def _check_booking_window(self, class_item: Any) -> None:
         """Raise 400 if booking is attempted less than MIN_BOOKING_MINUTES before class start."""
