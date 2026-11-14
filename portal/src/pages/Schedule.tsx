@@ -16,8 +16,21 @@ const CLASS_TYPE_LABELS: Record<string, string> = {
   other: 'Otra',
 }
 
+function mockDate(daysAhead: number): string {
+  return new Date(Date.now() + daysAhead * 86400000).toISOString().split('T')[0]
+}
+
+function mockWindow(daysAhead: number, daysBefore = 1): Pick<UpcomingClass, 'booking_opens_days_before' | 'booking_opens_at' | 'booking_open'> {
+  return {
+    booking_opens_days_before: daysBefore,
+    booking_opens_at: `${mockDate(daysAhead - daysBefore)}T00:00:00-06:00`,
+    booking_open: daysAhead <= daysBefore,
+  }
+}
+
 const mockClasses: UpcomingClass[] = [
   {
+    ...mockWindow(1),
     class_id: 'class-1',
     class_type: 'yoga',
     class_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
@@ -34,6 +47,7 @@ const mockClasses: UpcomingClass[] = [
     my_reservation_id: null,
   },
   {
+    ...mockWindow(1),
     class_id: 'class-2',
     class_type: 'entrenamiento_funcional',
     class_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
@@ -50,6 +64,7 @@ const mockClasses: UpcomingClass[] = [
     my_reservation_id: null,
   },
   {
+    ...mockWindow(2, 5),
     class_id: 'class-3',
     class_type: 'zumba',
     class_date: new Date(Date.now() + 172800000).toISOString().split('T')[0],
@@ -64,6 +79,23 @@ const mockClasses: UpcomingClass[] = [
     is_full: false,
     my_status: 'confirmed',
     my_reservation_id: 'res-003',
+  },
+  {
+    ...mockWindow(5),
+    class_id: 'class-4',
+    class_type: 'hyrox',
+    class_date: mockDate(5),
+    start_time: '19:00',
+    duration_minutes: 60,
+    instructor_name: 'Carlos López',
+    location: 'Salón B',
+    capacity: 15,
+    reservations_count: 0,
+    waitlist_count: 0,
+    available_spots: 15,
+    is_full: false,
+    my_status: null,
+    my_reservation_id: null,
   },
 ]
 
@@ -97,6 +129,13 @@ function formatDateLabel(dateStr: string): string {
   if (date.toDateString() === tomorrow.toDateString()) return 'Mañana'
 
   return date.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+/** "vie 13 nov, 00:00" — uses the Mexico City date already embedded in the ISO string. */
+function formatOpensAt(iso: string): string {
+  const date = new Date(iso.slice(0, 10) + 'T12:00:00')
+  const day = date.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
+  return `${day}, ${iso.slice(11, 16)}`
 }
 
 export default function Schedule(): React.JSX.Element {
@@ -465,6 +504,11 @@ function ClassDetailModal({
                   📍 {detail.location}
                 </p>
               )}
+              {!detail.booking_open && (
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', margin: 0 }}>
+                  🔒 Inscripciones abren {formatOpensAt(detail.booking_opens_at)}
+                </p>
+              )}
               {detail.description && (
                 <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', margin: '4px 0 0 0' }}>
                   {detail.description}
@@ -618,6 +662,7 @@ function ClassCard({
   const isCancelling = cancellingId === cls.class_id
   const isEnrolled = cls.my_status === 'confirmed'
   const isWaitlisted = cls.my_status === 'waitlisted'
+  const isLocked = !cls.booking_open
 
   return (
     <Card>
@@ -714,6 +759,23 @@ function ClassCard({
           >
             {isCancelling ? 'Saliendo...' : 'Salir de la lista de espera'}
           </button>
+        ) : isLocked ? (
+          <div
+            style={{
+              width: '100%',
+              padding: '10px',
+              borderRadius: '12px',
+              boxSizing: 'border-box',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.5)',
+              fontSize: '13px',
+              fontWeight: 600,
+              textAlign: 'center',
+            }}
+          >
+            🔒 Inscripciones abren {formatOpensAt(cls.booking_opens_at)}
+          </div>
         ) : (
           <button
             onClick={() => onEnroll(cls.class_id)}

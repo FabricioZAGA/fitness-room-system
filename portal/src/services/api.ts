@@ -168,6 +168,12 @@ export interface UpcomingClass {
   available_spots: number
   is_full: boolean
   description?: string
+  /** Calendar days before the class when enrollment opens (00:00 MX). */
+  booking_opens_days_before: number
+  /** ISO datetime (Mexico City offset) when enrollment opens. */
+  booking_opens_at: string
+  /** Whether self-service enrollment is already open (computed server-side). */
+  booking_open: boolean
   my_status: 'confirmed' | 'waitlisted' | null
   my_reservation_id: string | null
 }
@@ -203,6 +209,9 @@ export interface ClassDetail {
   reservations_count: number
   waitlist_count: number
   available_spots: number
+  booking_opens_days_before: number
+  booking_opens_at: string
+  booking_open: boolean
   confirmed: ClassAttendee[]
   waitlisted: ClassAttendee[]
 }
