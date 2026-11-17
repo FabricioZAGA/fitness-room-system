@@ -12,9 +12,17 @@ export interface ChangelogEntry {
   items: { icon: string; text: string }[];
 }
 
-export const APP_VERSION = "3.2.0";
+export const APP_VERSION = "3.2.1";
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "3.2.1",
+    date: "2026-11-14",
+    title: "Clases en orden de horario en el portal",
+    items: [
+      { icon: "🕗", text: "Corregido: en el portal las clases de cada día aparecían en desorden (primero la de la tarde). Ahora se muestran de la más temprana a la más tarde, igual que 'Mis reservaciones'" },
+    ],
+  },
   {
     version: "3.2.0",
     date: "2026-11-14",

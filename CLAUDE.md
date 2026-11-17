@@ -3,7 +3,7 @@
 Guía para IAs y desarrolladores que trabajen en este proyecto.
 **Lee esto antes de modificar cualquier cosa.** Para detalle de operaciones (deploy, versionado, infra) ver [`.claude/CLAUDE.md`](.claude/CLAUDE.md).
 
-> **Versión actual:** 3.2.0 — Operación en producción desde 2026-05-01.
+> **Versión actual:** 3.2.1 — Operación en producción desde 2026-05-01.
 
 ---
 

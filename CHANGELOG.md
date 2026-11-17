@@ -5,6 +5,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [3.2.1] — 2026-11-14
+
+### Fixed
+
+- Portal: las clases de un mismo día salían en orden aleatorio (GSI1SK `DATE#{date}#CLASS#{uuid}` ordena por `class_id` dentro del día). `GET /portal/classes` ahora ordena por `(class_date, start_time)` y el portal ordena también "Disponibles" y "Mis reservaciones" próximas en orden cronológico. Test: `backend/tests/test_portal_classes.py`.
+
+---
+
 ## [3.2.0] — 2026-11-14
 
 > Opcional después del deploy del backend: `scripts/backfill_class_booking_window.py`
