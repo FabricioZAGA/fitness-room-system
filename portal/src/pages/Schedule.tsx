@@ -131,6 +131,17 @@ function formatDateLabel(dateStr: string): string {
   return date.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
+/** Chronological order: earliest date first, then earliest start time ("HH:MM[:SS]"). */
+function byDateAndTime(
+  a: { class_date: string; start_time?: string },
+  b: { class_date: string; start_time?: string },
+): number {
+  return (
+    a.class_date.localeCompare(b.class_date) ||
+    (a.start_time ?? '').localeCompare(b.start_time ?? '')
+  )
+}
+
 /** "vie 13 nov, 00:00" — uses the Mexico City date already embedded in the ISO string. */
 function formatOpensAt(iso: string): string {
   const date = new Date(iso.slice(0, 10) + 'T12:00:00')
@@ -204,9 +215,9 @@ export default function Schedule(): React.JSX.Element {
     ? mockReservations
     : ((reservationsData?.items ?? []) as Reservation[])
 
-  const upcomingReservations = allReservations.filter(
-    (r) => !r.is_past && (r.status === 'confirmed' || r.status === 'waitlisted')
-  )
+  const upcomingReservations = allReservations
+    .filter((r) => !r.is_past && (r.status === 'confirmed' || r.status === 'waitlisted'))
+    .sort(byDateAndTime)
   const pastReservations = allReservations.filter(
     (r) => r.is_past || r.status === 'attended' || r.status === 'no_show'
   )
@@ -219,7 +230,7 @@ export default function Schedule(): React.JSX.Element {
 
   // Group classes by date
   const groupedClasses: Record<string, UpcomingClass[]> = {}
-  for (const cls of classes) {
+  for (const cls of [...classes].sort(byDateAndTime)) {
     if (!groupedClasses[cls.class_date]) {
       groupedClasses[cls.class_date] = []
     }

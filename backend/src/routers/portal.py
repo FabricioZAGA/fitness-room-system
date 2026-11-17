@@ -673,11 +673,12 @@ def get_upcoming_classes(
             limit=100,
         )
 
-        # Filter out cancelled and past classes
-        active_classes = [
-            c for c in classes
-            if not c.is_cancelled and c.class_date >= today.isoformat()
-        ]
+        # Filter out cancelled and past classes. GSI1SK only orders by date
+        # (then by random class_id), so sort chronologically by start time.
+        active_classes = sorted(
+            (c for c in classes if not c.is_cancelled and c.class_date >= today.isoformat()),
+            key=lambda c: (c.class_date, c.start_time),
+        )
 
         # Build response with enrollment status
         items: list[dict[str, Any]] = []
